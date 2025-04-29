@@ -1,0 +1,1743 @@
+openapi: 3.0.0
+info:
+  title: LMS Service API
+  description: API documentation for the Learning Management System
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: API ID
+        ver:
+          type: string
+          description: API version
+          default: "1.0"
+        ts:
+          type: string
+          format: date-time
+          description: Timestamp
+        params:
+          type: object
+          properties:
+            resmsgid:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [successful, failed]
+            err:
+              type: string
+              nullable: true
+            errmsg:
+              type: string
+              nullable: true
+        responseCode:
+          type: integer
+          description: HTTP status code
+        result:
+          type: object
+          description: Response data
+
+    Course:
+      type: object
+      properties:
+        courseId:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        title:
+          type: string
+        shortDescription:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        featured:
+          type: boolean
+        free:
+          type: boolean
+        certificateTerm:
+          type: string
+          enum: [NA, PASS_ALL, COMPLETE_ALL]
+        certificateId:
+          type: string
+          format: uuid
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        adminApproval:
+          type: boolean
+        autoEnroll:
+          type: boolean
+        status:
+          type: string
+          enum: [unpublished, published, draft]
+        params:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        updatedBy:
+          type: string
+        updatedAt:
+          type: string
+
+    Module:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        title:
+          type: string
+        description:
+          type: string
+        ordering:
+          type: integer
+        image:
+          type: string
+        status:
+          type: integer
+        courseId:
+          type: string
+          format: uuid
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        updatedBy:
+          type: string
+        updatedAt:
+          type: string
+
+    Lesson:
+      type: object
+      properties:
+        lessonId:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        ordering:
+          type: integer
+        moduleId:
+          type: string
+        courseId:
+          type: string
+        status:
+          type: string
+        shortDesc:
+          type: string
+        image:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        storage:
+          type: string
+        freeLesson:
+          type: string
+        noOfAttempts:
+          type: string
+        attemptsGrade:
+          type: string
+        considerMarks:
+          type: string
+        format:
+          type: string
+        mediaId:
+          type: string
+        eligibilityCriteria:
+          type: string
+        idealTime:
+          type: integer
+        resume:
+          type: boolean
+        totalMarks:
+          type: integer
+        passingMarks:
+          type: integer
+        inLib:
+          type: boolean
+        params:
+          type: object
+        mediaContent:
+          type: object
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        updatedBy:
+          type: string
+        updatedAt:
+          type: string
+
+    UserEnrollment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        course_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        enrolled_on_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        state:
+          type: integer
+        unlimited_plan:
+          type: boolean
+        before_expiry_mail:
+          type: boolean
+        after_expiry_mail:
+          type: boolean
+        params:
+          type: object
+        enrolled_by:
+          type: string
+        enrolled_at:
+          type: string
+          format: date-time
+
+    TrackCourse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        course_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        timestart:
+          type: string
+          format: date-time
+        timeend:
+          type: string
+          format: date-time
+        no_of_lessons:
+          type: integer
+          default: 0
+        completed_lessons:
+          type: integer
+          default: 0
+        status:
+          type: string
+          default: 'incomplete'
+        last_accessed_date:
+          type: string
+          format: date-time
+        cert_gen_date:
+          type: string
+          format: date-time
+
+    TrackLesson:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        lesson_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        attempt:
+          type: integer
+          default: 1
+        timestart:
+          type: string
+          format: date-time
+        timeend:
+          type: string
+          format: date-time
+        score:
+          type: integer
+          default: 0
+        status:
+          type: string
+          default: 'started'
+        total_content:
+          type: number
+          default: 0
+        current_position:
+          type: number
+          default: 0
+        time_spent:
+          type: integer
+        updatedBy:
+          type: string
+          format: uuid
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: API ID
+        ver:
+          type: string
+          description: API version
+          default: "1.0"
+        ts:
+          type: string
+          format: date-time
+          description: Timestamp
+        params:
+          type: object
+          properties:
+            resmsgid:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [failed]
+            err:
+              type: string
+            errmsg:
+              type: string
+        responseCode:
+          type: integer
+          description: HTTP status code
+        result:
+          type: object
+          properties:
+            error:
+              type: string
+            error_description:
+              type: string
+
+    PaginatedResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Number of items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+        has_prev:
+          type: boolean
+          description: Whether there is a previous page
+
+    Media:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        format:
+          type: string
+          enum: [video, document, image, audio]
+        sub_format:
+          type: string
+          enum: [video.youtube.url, video.vimeo.url, document.pdf, image.jpeg, image.png, audio.mp3]
+        org_filename:
+          type: string
+        path:
+          type: string
+        storage:
+          type: string
+          enum: [local, cloud]
+        source:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          format: uuid
+        updatedAt:
+          type: string
+          format: date-time
+
+    SearchParams:
+      type: object
+      properties:
+        q:
+          type: string
+          description: Search query
+        sort:
+          type: string
+          description: Sort field
+        order:
+          type: string
+          enum: [asc, desc]
+          default: asc
+        filters:
+          type: object
+          additionalProperties: true
+          description: Additional filters
+
+    AddLessonToCourseRequest:
+      type: object
+      required:
+        - lessonId
+      properties:
+        lessonId:
+          type: string
+          format: uuid
+          description: ID of the lesson to add
+        tenentId:
+          type: string
+          format: uuid
+          description:  Tenent ID
+        freeLesson:
+          type: boolean
+          description: Whether the lesson is free
+        considerForPassing:
+          type: boolean
+          description: Whether lesson counts towards passing
+        status:
+          type: string
+          description: Lesson status
+        startDate:
+          type: string
+          format: date-time
+          description: Lesson start date
+        endDate:
+          type: string
+          format: date-time
+          description: Lesson end date
+        noOfAttempts:
+          type: string
+          description: Number of attempts allowed
+        attemptsGrade:
+          type: string
+          description: Grade calculation method
+        eligibilityCriteria:
+          type: string
+          description: Eligibility criteria
+        idealTime:
+          type: integer
+          description: Ideal completion time
+        resume:
+          type: boolean
+          description: Whether lesson can be resumed
+        totalMarks:
+          type: integer
+          description: Total marks
+        passingMarks:
+          type: integer
+          description: Passing marks
+        params:
+          type: object
+          additionalProperties: true
+          description: Additional parameters
+
+paths:
+  /courses:
+    get:
+      summary: Get all courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FeaturedFilter'
+        - $ref: '#/components/parameters/FreeFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/TenentId'
+      responses:
+        '200':
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    allOf:
+                      - $ref: '#/components/schemas/PaginatedResponse'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a new course
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Course'
+      responses:
+        '201':
+          description: Course created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /courses/{courseId}:
+    get:
+      summary: Get course by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      responses:
+        '200':
+          description: Course details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update course
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Course'
+      responses:
+        '200':
+          description: Course updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete course
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      responses:
+        '204':
+          description: Course deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /courses/{courseId}/modules:
+    get:
+      summary: Get all modules for a course
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Module'
+    post:
+      summary: Create a new module
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+      responses:
+        '201':
+          description: Module created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+
+  /modules/{moduleId}:
+    get:
+      summary: Get module by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Module details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Module'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update module
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+      responses:
+        '200':
+          description: Module updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Module'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete module
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Module deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{courseId}/modules/{moduleId}/lessons:
+    post:
+      summary: Add lesson into course under module
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/ModuleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLessonToCourseRequest'
+      responses:
+        '201':
+          description: Lesson added to course module successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      courseId:
+                        type: string
+                        format: uuid
+                      moduleId:
+                        type: string
+                        format: uuid
+                      lessonId:
+                        type: string
+                        format: uuid
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /lessons:
+    get:
+      summary: Get all lessons
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lesson'
+    post:
+      summary: Create a new lesson
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+      responses:
+        '201':
+          description: Lesson created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+
+  /lessons/{lessonId}:
+    get:
+      summary: Get lesson by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Lesson'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update lesson
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+      responses:
+        '200':
+          description: Lesson updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Lesson'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete lesson
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Lesson deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /enrollments:
+    get:
+      summary: Get all enrollments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of enrollments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserEnrollment'
+    post:
+      summary: Create a new enrollment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserEnrollment'
+      responses:
+        '201':
+          description: Enrollment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEnrollment'
+
+  /enrollments/{enrollmentId}:
+    get:
+      summary: Get enrollment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Enrollment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/UserEnrollment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update enrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserEnrollment'
+      responses:
+        '200':
+          description: Enrollment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/UserEnrollment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete enrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Enrollment deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tracking/course:
+    get:
+      summary: Get course tracking information
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: course_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Course tracking information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackCourse'
+
+  /tracking/lesson:
+    get:
+      summary: Get lesson tracking information
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lesson_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson tracking information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackLesson'
+    post:
+      summary: Update lesson tracking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackLesson'
+      responses:
+        '200':
+          description: Lesson tracking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackLesson'
+
+  /courses/search:
+    get:
+      summary: Search courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortField'
+        - $ref: '#/components/parameters/SortOrder'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/TenentId'
+      responses:
+        '200':
+          description: List of courses matching search criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    allOf:
+                      - $ref: '#/components/schemas/PaginatedResponse'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Course'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /lessons/search:
+    get:
+      summary: Search lessons
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/SortField'
+        - $ref: '#/components/parameters/SortOrder'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/TenentId'
+      responses:
+        '200':
+          description: List of lessons matching search criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    allOf:
+                      - $ref: '#/components/schemas/PaginatedResponse'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Lesson'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /media:
+    post:
+      summary: Upload media
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - format
+              properties:
+                file:
+                  type: string
+                  format: binary
+                format:
+                  type: string
+                  enum: [video, document, image, audio]
+                sub_format:
+                  type: string
+                  enum: [video.youtube.url, video.vimeo.url, document.pdf, image.jpeg, image.png, audio.mp3]
+                storage:
+                  type: string
+                  enum: [local, cloud]
+                params:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Media'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /courses/{courseId}/details:
+    get:
+      summary: Get course details with modules and lessons
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Course details with modules and lessons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    allOf:
+                      - $ref: '#/components/schemas/Course'
+                      - type: object
+                        properties:
+                          modules:
+                            type: array
+                            items:
+                              allOf:
+                                - $ref: '#/components/schemas/Module'
+                                - type: object
+                                  properties:
+                                    lessons:
+                                      type: array
+                                      items:
+                                        $ref: '#/components/schemas/Lesson'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{courseId}/progress:
+    get:
+      summary: Get course progress
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Course progress information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      course:
+                        $ref: '#/components/schemas/TrackCourse'
+                      modules:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            module:
+                              $ref: '#/components/schemas/Module'
+                            progress:
+                              type: number
+                            lessons:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  lesson:
+                                    $ref: '#/components/schemas/Lesson'
+                                  tracking:
+                                    $ref: '#/components/schemas/TrackLesson'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /media/{mediaId}:
+    get:
+      summary: Get media details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Media'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Media deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lessons/{lessonId}/associated-files:
+    get:
+      summary: Get associated files for a lesson
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of associated files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Media'
+    post:
+      summary: Add associated file to lesson
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaId
+              properties:
+                mediaId:
+                  type: string
+                  format: uuid
+                  description: ID of the media to associate
+      responses:
+        '201':
+          description: File associated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      lessonId:
+                        type: string
+                        format: uuid
+                      mediaId:
+                        type: string
+                        format: uuid
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lessons/{lessonId}/associated-files/{mediaId}:
+    delete:
+      summary: Remove associated file from lesson
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File association removed successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{courseId}/lessons/{lessonId}:
+    get:
+      summary: Get lesson details within a course
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson details within course
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      lesson:
+                        $ref: '#/components/schemas/Lesson'
+                      courseSettings:
+                        type: object
+                        properties:
+                          freeLesson:
+                            type: boolean
+                          considerForPassing:
+                            type: boolean
+                          status:
+                            type: string
+                          startDate:
+                            type: string
+                            format: date-time
+                          endDate:
+                            type: string
+                            format: date-time
+                          noOfAttempts:
+                            type: string
+                          attemptsGrade:
+                            type: string
+                          eligibilityCriteria:
+                            type: string
+                          idealTime:
+                            type: integer
+                          resume:
+                            type: boolean
+                          totalMarks:
+                            type: integer
+                          passingMarks:
+                            type: integer
+                          params:
+                            type: object
+                            additionalProperties: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update lesson settings within a course
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                freeLesson:
+                  type: boolean
+                considerForPassing:
+                  type: boolean
+                status:
+                  type: string
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                noOfAttempts:
+                  type: string
+                attemptsGrade:
+                  type: string
+                eligibilityCriteria:
+                  type: string
+                idealTime:
+                  type: integer
+                resume:
+                  type: boolean
+                totalMarks:
+                  type: integer
+                passingMarks:
+                  type: integer
+                params:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Lesson settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      lessonId:
+                        type: string
+                        format: uuid
+                      courseId:
+                        type: string
+                        format: uuid
+                      updatedSettings:
+                        type: object
+                        additionalProperties: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    CourseId:
+      name: courseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Course ID
+    ModuleId:
+      name: moduleId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Module ID
+    LessonId:
+      name: lessonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Lesson ID
+    MediaId:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Media ID
+    FeaturedFilter:
+      name: featured
+      in: query
+      schema:
+        type: boolean
+      description: Filter by featured status
+    FreeFilter:
+      name: free
+      in: query
+      schema:
+        type: boolean
+      description: Filter by free status
+    StatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+      description: Filter by status
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+      description: Number of items per page
+    SearchQuery:
+      name: q
+      in: query
+      description: Search query
+    SortField:
+      name: sort
+      in: query
+      description: Sort field
+    SortOrder:
+      name: order
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+    TenentId:
+      name: tenentId
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description:  Tenent ID
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse' 

@@ -5,6 +5,7 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | courseId | UUID | Primary key |
+| tenentId | UUID | Tenent ID |
 | title | VARCHAR | Course title |
 | alias | VARCHAR | Course alias |
 | shortDescription | VARCHAR | Short description of the course |
@@ -31,6 +32,7 @@
 |--------|------|-------------|
 | moduleId | UUID | Primary key |
 | courseId | UUID | Foreign key referencing courses |
+| tenentId | UUID | Tenent ID |
 | title | VARCHAR | Module title |
 | description | VARCHAR | Module description |
 | image | VARCHAR | Module image path |
@@ -46,6 +48,7 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | lessonId | UUID | Primary key |
+| tenentId | UUID | Tenent ID |
 | checkedOut | UUID | Checkout user ID |
 | checkedOutTime | TIMESTAMPTZ | Checkout timestamp |
 | title | VARCHAR(255) | Lesson title |
@@ -78,6 +81,7 @@
 | lessonId | UUID | Part of composite primary key, foreign key referencing Lessons |
 | courseId | UUID | Part of composite primary key, foreign key referencing Courses |
 | moduleId | UUID | Part of composite primary key, foreign key referencing Modules |
+| tenentId | UUID | Tenent ID |
 | freeLesson | BOOLEAN | Whether the lesson is free |
 | considerForPassing | BOOLEAN | Whether lesson counts towards passing |
 | status | VARCHAR(255) | Lesson status |
@@ -127,6 +131,7 @@
 |--------|------|-------------|
 | id | UUID | Primary key |
 | course_id | UUID | Foreign key referencing courses |
+| tenentId | UUID | Tenent ID |
 | user_id | UUID | User ID |
 | enrolled_on_time | TIMESTAMPTZ | Enrollment timestamp |
 | end_time | TIMESTAMPTZ | Enrollment end time |
