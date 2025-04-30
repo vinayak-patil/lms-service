@@ -47,7 +47,7 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 
 ### 🔒 Authentication & Access Control
 - All requests will be authenticated using JWT headers
-- JWT will include claims like user_id, role, and company_id
+- JWT will include claims like user_id, role, and tenentId
 - Role-Based Access Control (RBAC) enforced at route/method level
 
 ## 📝 Content Creation
