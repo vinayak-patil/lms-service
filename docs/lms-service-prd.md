@@ -50,6 +50,14 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 - JWT will include claims like user_id, role, and tenentId
 - Role-Based Access Control (RBAC) enforced at route/method level
 
+## 🏢 Multi-Tenancy Support
+### 🧱 Multi-Tenant Architecture
+ - The LMS will support row-level multi-tenancy to allow multiple organizations to use the system securely and independently.
+
+ - Each data entity that is tenant-specific will include a tenant_id field.
+
+ - JWT tokens include a tenantId claim to identify and restrict access.
+
 ## 📝 Content Creation
 
 ### 📚 Course and Module Structure
