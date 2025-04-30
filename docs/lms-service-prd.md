@@ -29,7 +29,7 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 
 #### 🛠️ Administrator
 - System-wide access and configuration
-- Content approval and content control
+- Content control
 - Analytics and reporting access
 
 #### 👨‍🏫 Instructor
