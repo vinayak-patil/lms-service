@@ -19,7 +19,7 @@ The LMS will provide a complete platform for creating, managing, and delivering 
 To create a flexible, scalable LMS that empowers educators to deliver high-quality learning experiences while providing learners with intuitive access to educational content.
 
 ### 👥 Target Users
-- **Administrators**: Manage the overall system, users, and content
+- **Administrators**: Manage the overall course management, enrollments, and content
 - **Instructors**: Create and manage courses and lessons
 - **Learners**: Consume educational content and track progress
 
@@ -29,7 +29,7 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 
 #### 🛠️ Administrator
 - System-wide access and configuration
-- Content approval and quality control
+- Content approval and content control
 - Analytics and reporting access
 
 #### 👨‍🏫 Instructor
