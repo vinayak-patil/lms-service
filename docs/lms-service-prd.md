@@ -87,15 +87,6 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 #### 📝 Quiz Lessons
 - Integration with external quiz / exercise services (assessment)
 
-#### 📝 HTML5 Zip Lessons
-- Upload HTML 5 zip file
-
-#### 📝 SCORM Zip Lessons (future)
-- Upload SCORM 5 zip file
-
-#### 📝 TEXT and MEDIA
-- Upload SCORM 5 zip file
-
 ## 📱 Content Consumption
 
 ### 🔍 Course Discovery
@@ -178,7 +169,6 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 #### 📈 Course-Level Tracking
 - Overall completion percentage
 - Time spent in course
-- Engagement analytics
 
 #### 📊 Lesson-Level Tracking
 - Completion status
@@ -190,8 +180,9 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 - Completion certificates for individual lessons
 - Performance metrics outside of course context
 
-### 📊 Reporting and Analytics
+### 📊 Reporting
 - Individual learner reports
-- Course performance analytics
-- Exportable data for external analysis
+- Course level reports
+- Lesson level reports
+- Exportable data
 
