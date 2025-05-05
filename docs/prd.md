@@ -162,11 +162,10 @@ Develop a scalable, multi-tenant Learning Management System (LMS) that enables o
 |------------------|---------------------------------------------|
 | Performance      | Support for 100K concurrent learners         |
 | Scalability      | Horizontally scalable microservices          |
-| Accessibility    | WCAG 2.1 compliance                         |
 | Localization     | i18next for translations                    |
 | Availability     | 99.9% uptime SLA                            |
 | Backup/Recovery  | Daily tenant-level backups, RTO < 2hr       |
-| Security         | JWT, RBAC, HTTPS, OWASP secure coding       |
+| Security         | JWT, RBAC, HTTPS secure coding       |
 
 ---
 
