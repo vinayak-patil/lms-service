@@ -1,4 +1,4 @@
-# 📚 Learning Management System (LMS) - Product Requirements Document
+# 📚 Product Requirements Document
 
 ## 📝 Introduction
 
@@ -19,13 +19,6 @@ The LMS will provide a complete platform for creating, managing, and delivering 
 To create a flexible, scalable LMS that empowers educators to deliver high-quality learning experiences while providing learners with intuitive access to educational content.
 
 ### 👥 Target Users
-- **Administrators**: Manage the overall course management, enrollments, and content
-- **Instructors**: Create and manage courses and lessons
-- **Learners**: Consume educational content and track progress
-
-## 🔐 User Management
-
-### 👥 User Roles and Authentication
 
 #### 🛠️ Administrator
 - System-wide access and configuration
@@ -36,7 +29,7 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 - Course and lesson creation
 - Student enrollment management
 - Progress tracking and grading
-- Limited analytics access (for their courses only)
+- Limited report access (for their courses only)
 
 #### 👨‍🎓 Learner
 - Course browsing and enrollment
