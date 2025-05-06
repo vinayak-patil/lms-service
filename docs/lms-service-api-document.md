@@ -65,35 +65,24 @@
 - **Endpoint**: `POST /api/courses`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
+- **Content-Type**: `multipart/form-data`
 - **Request Parameters**:
 
-- None
-
-
-
-- **Request Body**:
-
-```json
-{
-  "title": "Introduction to Machine Learning",
-  "alias": "intro-ml",
-  "shortDescription": "Learn the basics of machine learning",
-  "description": "Comprehensive introduction to machine learning concepts and algorithms",
-  "featured": false,
-  "free": true,
-  "certificateTerm": "PASS_ALL",
-  "certificateId": "cert-uuid-123",
-  "startDatetime": "2024-06-01T00:00:00Z",
-  "endDatetime": "2024-12-31T23:59:59Z",
-  "adminApproval": false,
-  "autoEnroll": true,
-  "status": "published",
-  "params": {
-    "difficulty": "beginner",
-    "estimatedHours": 20
-  }
-}
-```
+- `title` (form): Course title
+- `alias` (form): Course alias/URL slug
+- `shortDescription` (form): Short description of the course
+- `description` (form): Detailed description of the course
+- `image` (form): Course image file
+- `featured` (form): Whether the course is featured (true/false)
+- `free` (form): Whether the course is free (true/false)
+- `certificateTerm` (form): Certificate terms
+- `certificateId` (form): Certificate ID
+- `startDatetime` (form): Course start date and time
+- `endDatetime` (form): Course end date and time
+- `adminApproval` (form): Whether admin approval is required (true/false)
+- `autoEnroll` (form): Whether auto-enrollment is enabled (true/false)
+- `status` (form): Course status
+- `params` (form): Additional parameters as JSON string
 
 
 - **Response Structure**:
@@ -532,27 +521,19 @@
 - **Endpoint**: `POST /api/modules`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
-- **Request Parameters**:
-
-- None
-
-
+- **Content-Type**: `multipart/form-data`
 
 - **Request Body**:
+- `courseId` (form): UUID of the course
+- `parentId` (form): UUID of the parent module (optional)
+- `title` (form): Module title
+- `description` (form): Module description
+- `image` (form): Module image file
+- `startDatetime` (form): Module start date and time
+- `endDatetime` (form): Module end date and time
+- `ordering` (form): Module ordering number
+- `status` (form): Module status
 
-```json
-{
-  "courseId": "course-uuid-123",
-  "parentId": null,
-  "title": "Introduction to Neural Networks",
-  "description": "Learn about neural network architecture and applications",
-  "image": "base64-encoded-image-data",
-  "startDatetime": "2024-06-01T00:00:00Z",
-  "endDatetime": "2024-12-31T23:59:59Z",
-  "ordering": 2,
-  "status": "published"
-}
-```
 
 
 - **Response Structure**:
@@ -891,41 +872,34 @@
 - **Endpoint**: `POST /api/lessons`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
-- **Request Parameters**:
-
-- None
-
-
-
+- **Content-Type**: `multipart/form-data`
 - **Request Body**:
 
+- `title` (form): Lesson title
+- `alias` (form): Lesson alias/URL slug
+- `description` (form): Lesson description
+- `image` (form): Lesson image file
+- `startDatetime` (form): Lesson start date and time
+- `endDatetime` (form): Lesson end date and time
+- `storage` (form): Storage type
+- `noOfAttempts` (form): Number of allowed attempts
+- `attemptsGrade` (form): Grade calculation method
+- `format` (form): Lesson format
+- `eligibilityCriteria` (form): Eligibility criteria
+- `idealTime` (form): Ideal time to complete
+- `resume` (form): Whether lesson can be resumed
+- `totalMarks` (form): Total marks
+- `passingMarks` (form): Passing marks
+- `status` (form): Lesson status
+- `mediaContent` (form): JSON string in format:
 ```json
 {
-  "title": "Introduction to Backpropagation",
-  "alias": "intro-backprop",
-  "description": "Learn how neural networks learn through backpropagation",
-  "image": "base64-encoded-image-data",
-  "startDatetime": "2024-06-01T00:00:00Z",
-  "endDatetime": "2024-12-31T23:59:59Z",
-  "storage": "local",
-  "noOfAttempts": "3",
-  "attemptsGrade": "highest",
   "format": "video",
-  "eligibilityCriteria": null,
-  "idealTime": 45,
-  "resume": true,
-  "totalMarks": 100,
-  "passingMarks": 60,
-  "status": "published",
-  "mediaContent": {
-    "format": "video",
-    "subFormat": "video.youtube.url",
-    "source": "https://youtube.com/watch?v=example",
-    "params": {}
-  }
+  "subFormat": "video.youtube.url",
+  "source": "https://youtube.com/watch?v=example",
+  "params": {}
 }
 ```
-
 
 - **Response Structure**:
 
