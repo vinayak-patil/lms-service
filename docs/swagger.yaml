@@ -1,15 +1,22 @@
 openapi: 3.0.0
 info:
-  title: LMS Service API
-  description: API documentation for the Learning Management System
+  title: Learning Management System (LMS) API
+  description: |
+    API for managing a Learning Management System with courses, modules, lessons, and user tracking.
+    This API provides comprehensive functionality for creating and managing educational content,
+    user enrollments, and progress tracking.
   version: 1.0.0
   contact:
-    name: API Support
-    email: support@example.com
+    name: LMS API Support
+    email: support@lmsapi.example.com
 
 servers:
-  - url: /api/v1
-    description: API v1
+  - url: https://api.lms.example.com/v1
+    description: Production server
+  - url: https://staging-api.lms.example.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
 
 components:
   securitySchemes:
@@ -17,336 +24,21 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: JWT token for authentication
 
   schemas:
-    ApiResponse:
+    Error:
       type: object
       properties:
         id:
           type: string
-          description: API ID
+          example: api.course.get
         ver:
           type: string
-          description: API version
-          default: "1.0"
+          example: "1.0"
         ts:
           type: string
           format: date-time
-          description: Timestamp
-        params:
-          type: object
-          properties:
-            resmsgid:
-              type: string
-              format: uuid
-            status:
-              type: string
-              enum: [successful, failed]
-            err:
-              type: string
-              nullable: true
-            errmsg:
-              type: string
-              nullable: true
-        responseCode:
-          type: integer
-          description: HTTP status code
-        result:
-          type: object
-          description: Response data
-
-    Course:
-      type: object
-      properties:
-        courseId:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        title:
-          type: string
-        shortDescription:
-          type: string
-        description:
-          type: string
-        image:
-          type: string
-        featured:
-          type: boolean
-        free:
-          type: boolean
-        certificateTerm:
-          type: string
-          enum: [NA, PASS_ALL, COMPLETE_ALL]
-        certificateId:
-          type: string
-          format: uuid
-        startDatetime:
-          type: string
-          format: date-time
-        endDatetime:
-          type: string
-          format: date-time
-        adminApproval:
-          type: boolean
-        autoEnroll:
-          type: boolean
-        status:
-          type: string
-          enum: [unpublished, published, draft]
-        params:
-          type: object
-          additionalProperties: true
-        createdBy:
-          type: string
-        createdAt:
-          type: string
-        updatedBy:
-          type: string
-        updatedAt:
-          type: string
-
-    Module:
-      type: object
-      properties:
-        moduleId:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        title:
-          type: string
-        description:
-          type: string
-        ordering:
-          type: integer
-        image:
-          type: string
-        status:
-          type: integer
-        courseId:
-          type: string
-          format: uuid
-        createdBy:
-          type: string
-        createdAt:
-          type: string
-        updatedBy:
-          type: string
-        updatedAt:
-          type: string
-
-    Lesson:
-      type: object
-      properties:
-        lessonId:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        title:
-          type: string
-        description:
-          type: string
-        content:
-          type: string
-        ordering:
-          type: integer
-        moduleId:
-          type: string
-        courseId:
-          type: string
-        status:
-          type: string
-        shortDesc:
-          type: string
-        image:
-          type: string
-        startDate:
-          type: string
-        endDate:
-          type: string
-        storage:
-          type: string
-        freeLesson:
-          type: string
-        noOfAttempts:
-          type: string
-        attemptsGrade:
-          type: string
-        considerMarks:
-          type: string
-        format:
-          type: string
-        mediaId:
-          type: string
-        eligibilityCriteria:
-          type: string
-        idealTime:
-          type: integer
-        resume:
-          type: boolean
-        totalMarks:
-          type: integer
-        passingMarks:
-          type: integer
-        inLib:
-          type: boolean
-        params:
-          type: object
-        mediaContent:
-          type: object
-        createdBy:
-          type: string
-        createdAt:
-          type: string
-        updatedBy:
-          type: string
-        updatedAt:
-          type: string
-
-    UserEnrollment:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        course_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        enrolled_on_time:
-          type: string
-          format: date-time
-        end_time:
-          type: string
-          format: date-time
-        state:
-          type: integer
-        unlimited_plan:
-          type: boolean
-        before_expiry_mail:
-          type: boolean
-        after_expiry_mail:
-          type: boolean
-        params:
-          type: object
-        enrolled_by:
-          type: string
-        enrolled_at:
-          type: string
-          format: date-time
-
-    TrackCourse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        course_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        timestart:
-          type: string
-          format: date-time
-        timeend:
-          type: string
-          format: date-time
-        no_of_lessons:
-          type: integer
-          default: 0
-        completed_lessons:
-          type: integer
-          default: 0
-        status:
-          type: string
-          default: 'incomplete'
-        last_accessed_date:
-          type: string
-          format: date-time
-        cert_gen_date:
-          type: string
-          format: date-time
-
-    TrackLesson:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        tenentId:
-          type: string
-          format: uuid
-          description:  Tenent ID
-        lesson_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        attempt:
-          type: integer
-          default: 1
-        timestart:
-          type: string
-          format: date-time
-        timeend:
-          type: string
-          format: date-time
-        score:
-          type: integer
-          default: 0
-        status:
-          type: string
-          default: 'started'
-        total_content:
-          type: number
-          default: 0
-        current_position:
-          type: number
-          default: 0
-        time_spent:
-          type: integer
-        updatedBy:
-          type: string
-          format: uuid
-        updatedAt:
-          type: string
-          format: date-time
-
-    ErrorResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          description: API ID
-        ver:
-          type: string
-          description: API version
-          default: "1.0"
-        ts:
-          type: string
-          format: date-time
-          description: Timestamp
         params:
           type: object
           properties:
@@ -358,66 +50,63 @@ components:
               enum: [failed]
             err:
               type: string
+              example: RESOURCE_NOT_FOUND
             errmsg:
               type: string
+              example: Course not found
         responseCode:
           type: integer
-          description: HTTP status code
+          example: 404
         result:
           type: object
-          properties:
-            error:
-              type: string
-            error_description:
-              type: string
 
-    PaginatedResponse:
+    Course:
       type: object
       properties:
-        count:
-          type: integer
-          description: Total number of items
-        page:
-          type: integer
-          description: Current page number
-        limit:
-          type: integer
-          description: Number of items per page
-        total_pages:
-          type: integer
-          description: Total number of pages
-        has_next:
-          type: boolean
-          description: Whether there is a next page
-        has_prev:
-          type: boolean
-          description: Whether there is a previous page
-
-    Media:
-      type: object
-      properties:
-        id:
+        courseId:
           type: string
           format: uuid
         tenentId:
           type: string
           format: uuid
-          description:  Tenent ID
-        format:
+        title:
           type: string
-          enum: [video, document, image, audio]
-        sub_format:
+        alias:
           type: string
-          enum: [video.youtube.url, video.vimeo.url, document.pdf, image.jpeg, image.png, audio.mp3]
-        org_filename:
+        shortDescription:
           type: string
-        path:
+        description:
           type: string
-        storage:
+        image:
           type: string
-          enum: [local, cloud]
-        source:
+          nullable: true
+        featured:
+          type: boolean
+          default: false
+        free:
+          type: boolean
+          default: true
+        certificateTerm:
           type: string
+          enum: [NA, PASS_ALL, COMPLETE_ALL]
+        certificateId:
+          type: string
+          nullable: true
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        adminApproval:
+          type: boolean
+          default: false
+        autoEnroll:
+          type: boolean
+          default: false
+        status:
+          type: string
+          enum: [draft, published, unpublished, archived]
         params:
           type: object
           additionalProperties: true
@@ -430,1133 +119,1641 @@ components:
         updatedBy:
           type: string
           format: uuid
+          nullable: true
         updatedAt:
           type: string
           format: date-time
+          nullable: true
+      required:
+        - title
+        - shortDescription
+        - description
+        - startDatetime
+        - endDatetime
 
-    SearchParams:
+    CourseList:
       type: object
       properties:
-        q:
-          type: string
-          description: Search query
-        sort:
-          type: string
-          description: Sort field
-        order:
-          type: string
-          enum: [asc, desc]
-          default: asc
-        filters:
-          type: object
-          additionalProperties: true
-          description: Additional filters
+        count:
+          type: integer
+        courses:
+          type: array
+          items:
+            type: object
+            properties:
+              courseId:
+                type: string
+                format: uuid
+              title:
+                type: string
+              shortDescription:
+                type: string
+              image:
+                type: string
+                nullable: true
+              featured:
+                type: boolean
+              free:
+                type: boolean
+              status:
+                type: string
+              startDatetime:
+                type: string
+                format: date-time
+              endDatetime:
+                type: string
+                format: date-time
 
-    AddLessonToCourseRequest:
+    CourseDetails:
+      allOf:
+        - $ref: '#/components/schemas/Course'
+        - type: object
+          properties:
+            modules:
+              type: array
+              items:
+                $ref: '#/components/schemas/ModuleWithLessons'
+
+    Module:
       type: object
+      properties:
+        moduleId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        courseId:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          nullable: true
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        ordering:
+          type: integer
+        status:
+          type: string
+          enum: [published, unpublished]
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          format: uuid
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
       required:
-        - lessonId
+        - title
+        - description
+        - courseId
+
+    ModuleWithLessons:
+      allOf:
+        - $ref: '#/components/schemas/Module'
+        - type: object
+          properties:
+            subModules:
+              type: array
+              items:
+                $ref: '#/components/schemas/ModuleWithLessons'
+            lessons:
+              type: array
+              items:
+                $ref: '#/components/schemas/LessonSummary'
+
+    Lesson:
+      type: object
       properties:
         lessonId:
           type: string
           format: uuid
-          description: ID of the lesson to add
         tenentId:
           type: string
           format: uuid
-          description:  Tenent ID
-        freeLesson:
-          type: boolean
-          description: Whether the lesson is free
-        considerForPassing:
-          type: boolean
-          description: Whether lesson counts towards passing
-        status:
+        title:
           type: string
-          description: Lesson status
-        startDate:
+        alias:
           type: string
-          format: date-time
-          description: Lesson start date
-        endDate:
+        description:
+          type: string
+        image:
+          type: string
+          nullable: true
+        startDatetime:
           type: string
           format: date-time
-          description: Lesson end date
+        endDatetime:
+          type: string
+          format: date-time
+        storage:
+          type: string
+          enum: [local, cloud]
         noOfAttempts:
           type: string
-          description: Number of attempts allowed
         attemptsGrade:
           type: string
-          description: Grade calculation method
+          enum: [highest, average, latest]
+        format:
+          type: string
+          enum: [video, document, quiz, scorm, html]
+        mediaId:
+          type: string
+          format: uuid
+          nullable: true
         eligibilityCriteria:
           type: string
-          description: Eligibility criteria
+          nullable: true
         idealTime:
           type: integer
-          description: Ideal completion time
         resume:
           type: boolean
-          description: Whether lesson can be resumed
         totalMarks:
           type: integer
-          description: Total marks
         passingMarks:
           type: integer
-          description: Passing marks
+        status:
+          type: string
+          enum: [draft, published, unpublished]
         params:
           type: object
           additionalProperties: true
-          description: Additional parameters
+        mediaContent:
+          type: object
+          properties:
+            format:
+              type: string
+            subFormat:
+              type: string
+            source:
+              type: string
+            params:
+              type: object
+              additionalProperties: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          format: uuid
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - title
+        - description
+
+    LessonSummary:
+      type: object
+      properties:
+        lessonId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+        totalMarks:
+          type: integer
+        passingMarks:
+          type: integer
+        mediaContent:
+          type: object
+          properties:
+            format:
+              type: string
+            subFormat:
+              type: string
+            source:
+              type: string
+
+    CourseLessonMapping:
+      type: object
+      properties:
+        lessonId:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+          format: uuid
+        moduleId:
+          type: string
+          format: uuid
+          nullable: true
+        freeLesson:
+          type: boolean
+        considerForPassing:
+          type: boolean
+        status:
+          type: string
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+        noOfAttempts:
+          type: string
+        attemptsGrade:
+          type: string
+        eligibilityCriteria:
+          type: string
+          nullable: true
+        idealTime:
+          type: integer
+        resume:
+          type: boolean
+        totalMarks:
+          type: integer
+        passingMarks:
+          type: integer
+        params:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - lessonId
+        - courseId
+
+    Media:
+      type: object
+      properties:
+        mediaId:
+          type: string
+          format: uuid
+        format:
+          type: string
+        subFormat:
+          type: string
+        orgFilename:
+          type: string
+        path:
+          type: string
+        storage:
+          type: string
+        source:
+          type: string
+          nullable: true
+        params:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          format: uuid
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Enrollment:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        tenentId:
+          type: string
+          format: uuid
+        enrolledOnTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, expired, cancelled, extended]
+        unlimitedPlan:
+          type: boolean
+        beforeExpiryMail:
+          type: boolean
+        afterExpiryMail:
+          type: boolean
+        params:
+          type: object
+          additionalProperties: true
+        enrolledBy:
+          type: string
+          format: uuid
+        enrolledAt:
+          type: string
+          format: date-time
+      required:
+        - courseId
+        - userId
+
+    EnrollmentWithCourse:
+      allOf:
+        - $ref: '#/components/schemas/Enrollment'
+        - type: object
+          properties:
+            course:
+              type: object
+              properties:
+                title:
+                  type: string
+                shortDescription:
+                  type: string
+                image:
+                  type: string
+
+    CourseTracking:
+      type: object
+      properties:
+        courseTrackId:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+          nullable: true
+        noOfLessons:
+          type: integer
+        completedLessons:
+          type: integer
+        status:
+          type: string
+          enum: [incomplete, in_progress, completed]
+        lastAccessedDate:
+          type: string
+          format: date-time
+        certGenDate:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - courseId
+        - userId
+        - startDatetime
+
+    CourseTrackingWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/CourseTracking'
+        - type: object
+          properties:
+            course:
+              type: object
+              properties:
+                title:
+                  type: string
+                shortDescription:
+                  type: string
+                image:
+                  type: string
+            progress:
+              type: integer
+              description: Percentage of course completed
+
+    LessonTracking:
+      type: object
+      properties:
+        lessonTrackId:
+          type: string
+          format: uuid
+        lessonId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        attempt:
+          type: integer
+        startDatetime:
+          type: string
+          format: date-time
+        endDatetime:
+          type: string
+          format: date-time
+          nullable: true
+        score:
+          type: integer
+        status:
+          type: string
+          enum: [started, in_progress, completed]
+        totalContent:
+          type: number
+          format: float
+        currentPosition:
+          type: number
+          format: float
+        timeSpent:
+          type: integer
+        updatedBy:
+          type: string
+          format: uuid
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - lessonId
+        - userId
+        - attempt
+        - startDatetime
+
+    LessonTrackingWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/LessonTracking'
+        - type: object
+          properties:
+            lesson:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                format:
+                  type: string
+                totalMarks:
+                  type: integer
+                passingMarks:
+                  type: integer
+            progress:
+              type: integer
+            passed:
+              type: boolean
+
+    LessonTrackingHistory:
+      type: object
+      properties:
+        attempts:
+          type: array
+          items:
+            type: object
+            properties:
+              lessonTrackId:
+                type: string
+                format: uuid
+              attempt:
+                type: integer
+              startDatetime:
+                type: string
+                format: date-time
+              endDatetime:
+                type: string
+                format: date-time
+              score:
+                type: integer
+              status:
+                type: string
+              timeSpent:
+                type: integer
+        lesson:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+            format:
+              type: string
+            totalMarks:
+              type: integer
+            passingMarks:
+              type: integer
+        bestScore:
+          type: integer
+        averageScore:
+          type: number
+          format: float
+        totalAttempts:
+          type: integer
+        passed:
+          type: boolean
+
+    SuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        ver:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        params:
+          type: object
+          properties:
+            resmsgid:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [successful]
+            err:
+              type: object
+            errmsg:
+              type: string
+        responseCode:
+          type: integer
+        result:
+          type: object
+
+security:
+  - bearerAuth: []
 
 paths:
   /courses:
     get:
       summary: Get all courses
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/FeaturedFilter'
-        - $ref: '#/components/parameters/FreeFilter'
-        - $ref: '#/components/parameters/StatusFilter'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/TenentId'
-      responses:
-        '200':
-          description: List of courses
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    allOf:
-                      - $ref: '#/components/schemas/PaginatedResponse'
-                      - type: object
-                        properties:
-                          data:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/Course'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    post:
-      summary: Create a new course
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Course'
-      responses:
-        '201':
-          description: Course created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Course'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /courses/{courseId}:
-    get:
-      summary: Get course by ID
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/CourseId'
-      responses:
-        '200':
-          description: Course details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Course'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    put:
-      summary: Update course
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/CourseId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Course'
-      responses:
-        '200':
-          description: Course updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Course'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      summary: Delete course
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/CourseId'
-      responses:
-        '204':
-          description: Course deleted successfully
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /courses/{courseId}/modules:
-    get:
-      summary: Get all modules for a course
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: courseId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: List of modules
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Module'
-    post:
-      summary: Create a new module
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: courseId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Module'
-      responses:
-        '201':
-          description: Module created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Module'
-
-  /modules/{moduleId}:
-    get:
-      summary: Get module by ID
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: moduleId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Module details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Module'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      summary: Update module
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: moduleId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Module'
-      responses:
-        '200':
-          description: Module updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Module'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      summary: Delete module
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: moduleId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Module deleted successfully
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /courses/{courseId}/modules/{moduleId}/lessons:
-    post:
-      summary: Add lesson into course under module
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/CourseId'
-        - $ref: '#/components/parameters/ModuleId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddLessonToCourseRequest'
-      responses:
-        '201':
-          description: Lesson added to course module successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: object
-                    properties:
-                      courseId:
-                        type: string
-                        format: uuid
-                      moduleId:
-                        type: string
-                        format: uuid
-                      lessonId:
-                        type: string
-                        format: uuid
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /lessons:
-    get:
-      summary: Get all lessons
-      security:
-        - bearerAuth: []
+      description: Retrieves a list of courses with optional filtering
+      operationId: getCourses
+      tags:
+        - Courses
       parameters:
         - name: status
           in: query
+          description: Filter by course status
           schema:
             type: string
-        - name: format
+            enum: [published, unpublished, draft]
+        - name: featured
           in: query
+          description: Filter featured courses
           schema:
-            type: string
-      responses:
-        '200':
-          description: List of lessons
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Lesson'
-    post:
-      summary: Create a new lesson
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Lesson'
-      responses:
-        '201':
-          description: Lesson created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Lesson'
-
-  /lessons/{lessonId}:
-    get:
-      summary: Get lesson by ID
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Lesson details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Lesson'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      summary: Update lesson
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Lesson'
-      responses:
-        '200':
-          description: Lesson updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Lesson'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      summary: Delete lesson
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Lesson deleted successfully
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /enrollments:
-    get:
-      summary: Get all enrollments
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: course_id
+            type: boolean
+        - name: free
           in: query
+          description: Filter free courses
           schema:
-            type: string
-            format: uuid
-        - name: user_id
+            type: boolean
+        - name: page
           in: query
+          description: Page number
           schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: List of enrollments
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserEnrollment'
-    post:
-      summary: Create a new enrollment
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserEnrollment'
-      responses:
-        '201':
-          description: Enrollment created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserEnrollment'
-
-  /enrollments/{enrollmentId}:
-    get:
-      summary: Get enrollment by ID
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: enrollmentId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Enrollment details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/UserEnrollment'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      summary: Update enrollment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: enrollmentId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserEnrollment'
-      responses:
-        '200':
-          description: Enrollment updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/UserEnrollment'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      summary: Delete enrollment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: enrollmentId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Enrollment deleted successfully
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /tracking/course:
-    get:
-      summary: Get course tracking information
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: course_id
+            type: integer
+            default: 1
+        - name: limit
           in: query
-          required: true
+          description: Number of items per page
           schema:
-            type: string
-            format: uuid
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
+            type: integer
+            default: 10
       responses:
         '200':
-          description: Course tracking information
+          description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrackCourse'
-
-  /tracking/lesson:
-    get:
-      summary: Get lesson tracking information
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lesson_id
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Lesson tracking information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrackLesson'
-    post:
-      summary: Update lesson tracking
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TrackLesson'
-      responses:
-        '200':
-          description: Lesson tracking updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrackLesson'
-
-  /courses/search:
-    get:
-      summary: Search courses
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortField'
-        - $ref: '#/components/parameters/SortOrder'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/TenentId'
-      responses:
-        '200':
-          description: List of courses matching search criteria
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    allOf:
-                      - $ref: '#/components/schemas/PaginatedResponse'
-                      - type: object
-                        properties:
-                          data:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/Course'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/CourseList'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
         '500':
-          description: Internal Server Error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /lessons/search:
-    get:
-      summary: Search lessons
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/SearchQuery'
-        - $ref: '#/components/parameters/SortField'
-        - $ref: '#/components/parameters/SortOrder'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/TenentId'
-      responses:
-        '200':
-          description: List of lessons matching search criteria
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    allOf:
-                      - $ref: '#/components/schemas/PaginatedResponse'
-                      - type: object
-                        properties:
-                          data:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/Lesson'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /media:
+                $ref: '#/components/schemas/Error'
+    
     post:
-      summary: Upload media
-      security:
-        - bearerAuth: []
+      summary: Create a new course
+      description: Creates a new course
+      operationId: createCourse
+      tags:
+        - Courses
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
-                - format
               properties:
-                file:
+                title:
+                  type: string
+                alias:
+                  type: string
+                shortDescription:
+                  type: string
+                description:
+                  type: string
+                image:
                   type: string
                   format: binary
-                format:
+                featured:
+                  type: boolean
+                  default: false
+                free:
+                  type: boolean
+                  default: true
+                certificateTerm:
                   type: string
-                  enum: [video, document, image, audio]
-                sub_format:
+                  enum: [NA, PASS_ALL, COMPLETE_ALL]
+                certificateId:
                   type: string
-                  enum: [video.youtube.url, video.vimeo.url, document.pdf, image.jpeg, image.png, audio.mp3]
-                storage:
+                startDatetime:
                   type: string
-                  enum: [local, cloud]
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+                adminApproval:
+                  type: boolean
+                  default: false
+                autoEnroll:
+                  type: boolean
+                  default: false
+                status:
+                  type: string
+                  enum: [draft, published, unpublished]
+                  default: draft
                 params:
-                  type: object
-                  additionalProperties: true
+                  type: string
+                  description: JSON string of additional parameters
+              required:
+                - title
+                - shortDescription
+                - description
+                - startDatetime
+                - endDatetime
       responses:
         '201':
-          description: Media uploaded successfully
+          description: Course created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Media'
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/Course'
         '400':
-          description: Bad Request
+          description: Bad request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
         '500':
-          description: Internal Server Error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}:
+    get:
+      summary: Get course by ID
+      description: Retrieves a specific course by ID
+      operationId: getCourseById
+      tags:
+        - Courses
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Course'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update course
+      description: Updates an existing course
+      operationId: updateCourse
+      tags:
+        - Courses
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                alias:
+                  type: string
+                shortDescription:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                featured:
+                  type: boolean
+                free:
+                  type: boolean
+                certificateTerm:
+                  type: string
+                certificateId:
+                  type: string
+                startDatetime:
+                  type: string
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+                adminApproval:
+                  type: boolean
+                autoEnroll:
+                  type: boolean
+                status:
+                  type: string
+                  enum: [draft, published, unpublished]
+                params:
+                  type: string
+                  description: JSON string of additional parameters
+      responses:
+        '200':
+          description: Course updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Course'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete course
+      description: Deletes a course
+      operationId: deleteCourse
+      tags:
+        - Courses
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Course deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Course deleted successfully
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /courses/{courseId}/details:
     get:
       summary: Get course details with modules and lessons
-      security:
-        - bearerAuth: []
+      description: Retrieves detailed course information including its modules and lessons
+      operationId: getCourseDetails
+      tags:
+        - Courses
       parameters:
         - name: courseId
           in: path
           required: true
+          description: UUID of the course
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Course details with modules and lessons
+          description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    allOf:
-                      - $ref: '#/components/schemas/Course'
-                      - type: object
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/CourseDetails'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /modules:
+    post:
+      summary: Create a new module
+      description: Creates a new module
+      operationId: createModule
+      tags:
+        - Modules
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                courseId:
+                  type: string
+                  format: uuid
+                parentId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                startDatetime:
+                  type: string
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+                ordering:
+                  type: integer
+                status:
+                  type: string
+                  enum: [published, unpublished]
+              required:
+                - courseId
+                - title
+                - description
+      responses:
+        '201':
+          description: Module created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/Module'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /modules/{moduleId}:
+    get:
+      summary: Get module by ID
+      description: Retrieves a specific module by ID
+      operationId: getModuleById
+      tags:
+        - Modules
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: UUID of the module
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Module'
+        '404':
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update module
+      description: Updates an existing module
+      operationId: updateModule
+      tags:
+        - Modules
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: UUID of the module
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                ordering:
+                  type: integer
+                status:
+                  type: string
+                  enum: [published, unpublished]
+                startDatetime:
+                  type: string
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Module updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Module'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete module
+      description: Deletes a module
+      operationId: deleteModule
+      tags:
+        - Modules
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: UUID of the module
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Module deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Module deleted successfully
+        '404':
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}/modules:
+    get:
+      summary: Get modules by course ID
+      description: Retrieves all modules belonging to a specific course
+      operationId: getModulesByCourseId
+      tags:
+        - Modules
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+        - name: includeSubmodules
+          in: query
+          description: Whether to include submodules
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
                         properties:
                           modules:
                             type: array
                             items:
-                              allOf:
-                                - $ref: '#/components/schemas/Module'
-                                - type: object
-                                  properties:
-                                    lessons:
-                                      type: array
-                                      items:
-                                        $ref: '#/components/schemas/Lesson'
+                              $ref: '#/components/schemas/ModuleWithLessons'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /courses/{courseId}/progress:
+  /modules/{moduleId}/submodules:
     get:
-      summary: Get course progress
-      security:
-        - bearerAuth: []
+      summary: Get submodules by parent module ID
+      description: Retrieves all submodules belonging to a specific parent module
+      operationId: getSubmodulesByParentId
+      tags:
+        - Modules
       parameters:
-        - name: courseId
+        - name: moduleId
+          in: path
+          required: 
+        - Modules
+      parameters:
+        - name: moduleId
           in: path
           required: true
-          schema:
-            type: string
-            format: uuid
-        - name: user_id
-          in: query
-          required: true
+          description: UUID of the parent module
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Course progress information
+          description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: object
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
                     properties:
-                      course:
-                        $ref: '#/components/schemas/TrackCourse'
-                      modules:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            module:
-                              $ref: '#/components/schemas/Module'
-                            progress:
-                              type: number
-                            lessons:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  lesson:
-                                    $ref: '#/components/schemas/Lesson'
-                                  tracking:
-                                    $ref: '#/components/schemas/TrackLesson'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /media/{mediaId}:
-    get:
-      summary: Get media details
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Media details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    $ref: '#/components/schemas/Media'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      summary: Delete media
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Media deleted successfully
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /lessons/{lessonId}/associated-files:
-    get:
-      summary: Get associated files for a lesson
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: List of associated files
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Media'
-    post:
-      summary: Add associated file to lesson
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - mediaId
-              properties:
-                mediaId:
-                  type: string
-                  format: uuid
-                  description: ID of the media to associate
-      responses:
-        '201':
-          description: File associated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: object
-                    properties:
-                      lessonId:
-                        type: string
-                        format: uuid
-                      mediaId:
-                        type: string
-                        format: uuid
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /lessons/{lessonId}/associated-files/{mediaId}:
-    delete:
-      summary: Remove associated file from lesson
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: File association removed successfully
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /courses/{courseId}/lessons/{lessonId}:
-    get:
-      summary: Get lesson details within a course
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: courseId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: lessonId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Lesson details within course
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: object
-                    properties:
-                      lesson:
-                        $ref: '#/components/schemas/Lesson'
-                      courseSettings:
+                      result:
                         type: object
                         properties:
-                          freeLesson:
-                            type: boolean
-                          considerForPassing:
-                            type: boolean
-                          status:
-                            type: string
-                          startDate:
-                            type: string
-                            format: date-time
-                          endDate:
-                            type: string
-                            format: date-time
-                          noOfAttempts:
-                            type: string
-                          attemptsGrade:
-                            type: string
-                          eligibilityCriteria:
-                            type: string
-                          idealTime:
-                            type: integer
-                          resume:
-                            type: boolean
-                          totalMarks:
-                            type: integer
-                          passingMarks:
-                            type: integer
-                          params:
-                            type: object
-                            additionalProperties: true
+                          subModules:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Module'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons:
+    post:
+      summary: Create a new lesson
+      description: Creates a new lesson
+      operationId: createLesson
+      tags:
+        - Lessons
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                alias:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                startDatetime:
+                  type: string
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+                storage:
+                  type: string
+                  enum: [local, cloud]
+                noOfAttempts:
+                  type: string
+                attemptsGrade:
+                  type: string
+                  enum: [highest, average, latest]
+                format:
+                  type: string
+                  enum: [video, document, quiz, scorm, html]
+                eligibilityCriteria:
+                  type: string
+                idealTime:
+                  type: integer
+                resume:
+                  type: boolean
+                totalMarks:
+                  type: integer
+                passingMarks:
+                  type: integer
+                status:
+                  type: string
+                  enum: [draft, published, unpublished]
+                mediaContent:
+                  type: string
+                  description: JSON string of media content details
+              required:
+                - title
+                - description
+      responses:
+        '201':
+          description: Lesson created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/Lesson'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      summary: Get all lessons
+      description: Retrieves all lessons
+      operationId: getLessons
+      tags:
+        - Lessons
+      parameters:
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [draft, published, unpublished]
+        - name: format
+          in: query
+          description: Filter by lesson format
+          schema:
+            type: string
+            enum: [video, document, quiz, scorm, html]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Lesson'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons/{lessonId}:
+    get:
+      summary: Get lesson by ID
+      description: Retrieves a specific lesson by ID
+      operationId: getLessonById
+      tags:
+        - Lessons
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Lesson'
+        '404':
+          description: Lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
     put:
-      summary: Update lesson settings within a course
-      security:
-        - bearerAuth: []
+      summary: Update lesson
+      description: Updates an existing lesson
+      operationId: updateLesson
+      tags:
+        - Lessons
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                alias:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                startDatetime:
+                  type: string
+                  format: date-time
+                endDatetime:
+                  type: string
+                  format: date-time
+                storage:
+                  type: string
+                  enum: [local, cloud]
+                noOfAttempts:
+                  type: string
+                attemptsGrade:
+                  type: string
+                  enum: [highest, average, latest]
+                format:
+                  type: string
+                  enum: [video, document, quiz, scorm, html]
+                eligibilityCriteria:
+                  type: string
+                idealTime:
+                  type: integer
+                resume:
+                  type: boolean
+                totalMarks:
+                  type: integer
+                passingMarks:
+                  type: integer
+                status:
+                  type: string
+                  enum: [draft, published, unpublished]
+                mediaContent:
+                  type: string
+                  description: JSON string of media content details
+      responses:
+        '200':
+          description: Lesson updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Lesson'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete lesson
+      description: Deletes a lesson
+      operationId: deleteLesson
+      tags:
+        - Lessons
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Lesson deleted successfully
+        '404':
+          description: Lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}/modules/{moduleId}/lessons:
+    post:
+      summary: Add lesson to course/module
+      description: Adds an existing lesson to a specific course and module
+      operationId: addLessonToCourseModule
+      tags:
+        - Lessons
       parameters:
         - name: courseId
           in: path
           required: true
+          description: UUID of the course
           schema:
             type: string
             format: uuid
-        - name: lessonId
+        - name: moduleId
           in: path
           required: true
+          description: UUID of the module (use "null" for course-level lessons)
           schema:
             type: string
-            format: uuid
       requestBody:
         required: true
         content:
@@ -1564,22 +1761,30 @@ paths:
             schema:
               type: object
               properties:
+                lessonId:
+                  type: string
+                  format: uuid
                 freeLesson:
                   type: boolean
+                  default: false
                 considerForPassing:
                   type: boolean
+                  default: true
                 status:
                   type: string
-                startDate:
+                  enum: [published, unpublished]
+                  default: published
+                startDatetime:
                   type: string
                   format: date-time
-                endDate:
+                endDatetime:
                   type: string
                   format: date-time
                 noOfAttempts:
                   type: string
                 attemptsGrade:
                   type: string
+                  enum: [highest, average, latest]
                 eligibilityCriteria:
                   type: string
                 idealTime:
@@ -1593,151 +1798,1264 @@ paths:
                 params:
                   type: object
                   additionalProperties: true
+              required:
+                - lessonId
       responses:
-        '200':
-          description: Lesson settings updated successfully
+        '201':
+          description: Lesson added to course/module successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-                properties:
-                  result:
-                    type: object
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
                     properties:
-                      lessonId:
-                        type: string
-                        format: uuid
-                      courseId:
-                        type: string
-                        format: uuid
-                      updatedSettings:
-                        type: object
-                        additionalProperties: true
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/CourseLessonMapping'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Course, module, or lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-components:
-  parameters:
-    CourseId:
-      name: courseId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Course ID
-    ModuleId:
-      name: moduleId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Module ID
-    LessonId:
-      name: lessonId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Lesson ID
-    MediaId:
-      name: mediaId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Media ID
-    FeaturedFilter:
-      name: featured
-      in: query
-      schema:
-        type: boolean
-      description: Filter by featured status
-    FreeFilter:
-      name: free
-      in: query
-      schema:
-        type: boolean
-      description: Filter by free status
-    StatusFilter:
-      name: status
-      in: query
-      schema:
-        type: string
-      description: Filter by status
-    Page:
-      name: page
-      in: query
-      schema:
-        type: integer
-        default: 1
-        minimum: 1
-      description: Page number
-    Limit:
-      name: limit
-      in: query
-      schema:
-        type: integer
-        default: 10
-        minimum: 1
-        maximum: 100
-      description: Number of items per page
-    SearchQuery:
-      name: q
-      in: query
-      description: Search query
-    SortField:
-      name: sort
-      in: query
-      description: Sort field
-    SortOrder:
-      name: order
-      in: query
-      description: Sort order
-      schema:
-        type: string
-        enum: [asc, desc]
-        default: asc
-    TenentId:
-      name: tenentId
-      in: query
-      required: false
-      schema:
-        type: string
-        format: uuid
-      description:  Tenent ID
+  /courses/{courseId}/lessons:
+    get:
+      summary: Get lessons by course ID
+      description: Retrieves all lessons belonging to a specific course
+      operationId: getLessonsByCourseId
+      tags:
+        - Lessons
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [draft, published, unpublished]
+        - name: format
+          in: query
+          description: Filter by lesson format
+          schema:
+            type: string
+            enum: [video, document, quiz, scorm, html]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          lessons:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LessonSummary'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  responses:
-    BadRequest:
-      description: Bad Request
-      content:
-        application/json:
+  /modules/{moduleId}/lessons:
+    get:
+      summary: Get lessons by module ID
+      description: Retrieves all lessons belonging to a specific module
+      operationId: getLessonsByModuleId
+      tags:
+        - Lessons
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: UUID of the module
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Unauthorized:
-      description: Unauthorized
-      content:
-        application/json:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by lesson status
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Forbidden:
-      description: Forbidden
-      content:
-        application/json:
+            type: string
+            enum: [draft, published, unpublished]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          lessons:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LessonSummary'
+        '404':
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}/modules/{moduleId}/lessons/{lessonId}:
+    delete:
+      summary: Remove lesson from course/module
+      description: Removes a lesson from a course/module
+      operationId: removeLessonFromCourseModule
+      tags:
+        - Lessons
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    NotFound:
-      description: Not Found
-      content:
-        application/json:
+            type: string
+            format: uuid
+        - name: moduleId
+          in: path
+          required: true
+          description: UUID of the module (use "null" for course-level lessons)
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
+            type: string
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
           schema:
-            $ref: '#/components/schemas/ErrorResponse' 
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson removed from course/module successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Lesson removed from course/module successfully
+        '404':
+          description: Course, module, or lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media:
+    post:
+      summary: Upload media
+      description: Uploads a new media file
+      operationId: uploadMedia
+      tags:
+        - Media
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                format:
+                  type: string
+                  enum: [video, document, image, audio]
+                subFormat:
+                  type: string
+                storage:
+                  type: string
+                  enum: [local, cloud]
+                  default: local
+                source:
+                  type: string
+                params:
+                  type: string
+                  description: JSON string of additional parameters
+              required:
+                - file
+                - format
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/Media'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media/{mediaId}:
+    get:
+      summary: Get media by ID
+      description: Retrieves a specific media by ID
+      operationId: getMediaById
+      tags:
+        - Media
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          description: UUID of the media
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Media'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete media
+      description: Deletes a media
+      operationId: deleteMedia
+      tags:
+        - Media
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          description: UUID of the media
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Media deleted successfully
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons/{lessonId}/media/{mediaId}:
+    post:
+      summary: Associate media with lesson
+      description: Associates a media with a lesson
+      operationId: associateMediaWithLesson
+      tags:
+        - Media
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+        - name: mediaId
+          in: path
+          required: true
+          description: UUID of the media
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Media associated with lesson successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        type: object
+                        properties:
+                          filesId:
+                            type: string
+                            format: uuid
+                          lessonId:
+                            type: string
+                            format: uuid
+                          mediaId:
+                            type: string
+                            format: uuid
+        '404':
+          description: Lesson or media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /enrollments:
+    post:
+      summary: Enroll user in course
+      description: Enrolls a user in a course
+      operationId: enrollUserInCourse
+      tags:
+        - Enrollments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                courseId:
+                  type: string
+                  format: uuid
+                userId:
+                  type: string
+                  format: uuid
+                unlimitedPlan:
+                  type: boolean
+                  default: false
+                beforeExpiryMail:
+                  type: boolean
+                  default: false
+                afterExpiryMail:
+                  type: boolean
+                  default: false
+                params:
+                  type: object
+                  additionalProperties: true
+              required:
+                - courseId
+                - userId
+      responses:
+        '201':
+          description: User enrolled in course successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/Enrollment'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Course or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already enrolled in course
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      summary: Get enrollments
+      description: Retrieves enrollments with optional filtering
+      operationId: getEnrollments
+      tags:
+        - Enrollments
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+            format: uuid
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by enrollment status
+          schema:
+            type: string
+            enum: [active, expired, cancelled, extended]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+                          enrollments:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/EnrollmentWithCourse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /enrollments/{enrollmentId}:
+    get:
+      summary: Get enrollment by ID
+      description: Retrieves a specific enrollment by ID
+      operationId: getEnrollmentById
+      tags:
+        - Enrollments
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          description: UUID of the enrollment
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EnrollmentWithCourse'
+        '404':
+          description: Enrollment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update enrollment
+      description: Updates an existing enrollment
+      operationId: updateEnrollment
+      tags:
+        - Enrollments
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          description: UUID of the enrollment
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endTime:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [active, expired, cancelled, extended]
+                unlimitedPlan:
+                  type: boolean
+                beforeExpiryMail:
+                  type: boolean
+                afterExpiryMail:
+                  type: boolean
+                params:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Enrollment updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/Enrollment'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Enrollment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Cancel enrollment
+      description: Cancels an enrollment
+      operationId: cancelEnrollment
+      tags:
+        - Enrollments
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          description: UUID of the enrollment
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Enrollment cancelled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Enrollment cancelled successfully
+        '404':
+          description: Enrollment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}/tracking:
+    post:
+      summary: Start course tracking
+      description: Starts tracking a user's progress in a course
+      operationId: startCourseTracking
+      tags:
+        - Course Tracking
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                startDatetime:
+                  type: string
+                  format: date-time
+              required:
+                - userId
+                - startDatetime
+      responses:
+        '201':
+          description: Course tracking started successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/CourseTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Course or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update course tracking
+      description: Updates a user's progress in a course
+      operationId: updateCourseTracking
+      tags:
+        - Course Tracking
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                completedLessons:
+                  type: integer
+                status:
+                  type: string
+                  enum: [incomplete, in_progress, completed]
+                lastAccessedDate:
+                  type: string
+                  format: date-time
+              required:
+                - userId
+      responses:
+        '200':
+          description: Course tracking updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/CourseTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Course tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      summary: Get course tracking
+      description: Retrieves course tracking for a specific user and course
+      operationId: getCourseTracking
+      tags:
+        - Course Tracking
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          required: true
+          description: UUID of the user
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/CourseTrackingWithDetails'
+        '404':
+          description: Course tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /courses/{courseId}/tracking/complete:
+    put:
+      summary: Complete course tracking
+      description: Completes a user's progress in a course
+      operationId: completeCourseTracking
+      tags:
+        - Course Tracking
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: UUID of the course
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                endDatetime:
+                  type: string
+                  format: date-time
+                completedLessons:
+                  type: integer
+                certGenDate:
+                  type: string
+                  format: date-time
+              required:
+                - userId
+                - endDatetime
+      responses:
+        '200':
+          description: Course tracking completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/CourseTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Course tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons/{lessonId}/tracking:
+    post:
+      summary: Start lesson tracking
+      description: Starts tracking a user's progress in a lesson
+      operationId: startLessonTracking
+      tags:
+        - Lesson Tracking
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                attempt:
+                  type: integer
+                  default: 1
+                startDatetime:
+                  type: string
+                  format: date-time
+                totalContent:
+                  type: number
+                  format: float
+                currentPosition:
+                  type: number
+                  format: float
+                  default: 0
+              required:
+                - userId
+                - startDatetime
+      responses:
+        '201':
+          description: Lesson tracking started successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      responseCode:
+                        type: integer
+                        example: 201
+                      result:
+                        $ref: '#/components/schemas/LessonTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lesson or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update lesson tracking
+      description: Updates a user's progress in a lesson
+      operationId: updateLessonTracking
+      tags:
+        - Lesson Tracking
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                attempt:
+                  type: integer
+                currentPosition:
+                  type: number
+                  format: float
+                timeSpent:
+                  type: integer
+                status:
+                  type: string
+                  enum: [started, in_progress, completed]
+              required:
+                - userId
+                - attempt
+      responses:
+        '200':
+          description: Lesson tracking updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/LessonTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lesson tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      summary: Get lesson tracking
+      description: Retrieves lesson tracking for a specific user and lesson
+      operationId: getLessonTracking
+      tags:
+        - Lesson Tracking
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          required: true
+          description: UUID of the user
+          schema:
+            type: string
+            format: uuid
+        - name: attempt
+          in: query
+          description: Specific attempt number
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/LessonTrackingWithDetails'
+        '404':
+          description: Lesson tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons/{lessonId}/tracking/complete:
+    put:
+      summary: Complete lesson tracking
+      description: Completes a user's progress in a lesson
+      operationId: completeLessonTracking
+      tags:
+        - Lesson Tracking
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                attempt:
+                  type: integer
+                endDatetime:
+                  type: string
+                  format: date-time
+                score:
+                  type: integer
+                currentPosition:
+                  type: number
+                  format: float
+                timeSpent:
+                  type: integer
+              required:
+                - userId
+                - attempt
+                - endDatetime
+      responses:
+        '200':
+          description: Lesson tracking completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/LessonTracking'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lesson tracking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/lessons/{lessonId}/tracking:
+    get:
+      summary: Get user's lesson tracking history
+      description: Retrieves a user's tracking history for a specific lesson
+      operationId: getUserLessonTrackingHistory
+      tags:
+        - Lesson Tracking
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: UUID of the user
+          schema:
+            type: string
+            format: uuid
+        - name: lessonId
+          in: path
+          required: true
+          description: UUID of the lesson
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/LessonTrackingHistory'
+        '404':
+          description: User or lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
