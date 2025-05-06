@@ -16,21 +16,20 @@ The LMS will provide a complete platform for creating, managing, and delivering 
 
 ## 🚀 Product Overview
 
-### 🎯 Product Vision
 To create a flexible, scalable LMS that empowers educators to deliver high-quality learning experiences while providing learners with intuitive access to educational content.
 
 ### 👥 Target Users
-- **Administrators**: Manage the overall system, users, and content
+- **Administrators**: Manage the overall course management, enrollments, and content
 - **Instructors**: Create and manage courses and lessons
 - **Learners**: Consume educational content and track progress
 
 ## 🔐 User Management
 
-### 👥 User Roles and Permissions
+### 👥 User Roles and Authentication
 
 #### 🛠️ Administrator
 - System-wide access and configuration
-- Content approval and quality control
+- Content control
 - Analytics and reporting access
 
 #### 👨‍🏫 Instructor
@@ -47,8 +46,16 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 
 ### 🔒 Authentication & Access Control
 - All requests will be authenticated using JWT headers
-- JWT will include claims like user_id, role, and company_id
+- JWT will include claims like user_id, role, and tenentId
 - Role-Based Access Control (RBAC) enforced at route/method level
+
+## 🏢 Multi-Tenancy Support
+### 🧱 Multi-Tenant Architecture
+ - The LMS will support row-level multi-tenancy to allow multiple organizations to use the system securely and independently.
+
+ - Each data entity that is tenant-specific will include a tenant_id field.
+
+ - JWT tokens include a tenantId claim to identify and restrict access.
 
 ## 📝 Content Creation
 
@@ -57,13 +64,12 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 #### 🎯 Course Creation
 - Title, description, objectives, and outcomes
 - Cover image and promotional materials
-- Categorization and tagging
+- Categorization
 - Course parameters (as detailed in section 6.1)
 
 #### 📑 Module Management
 - Module creation within courses
 - Ordering and sequencing capabilities
-- Module-level learning objectives
 - Prerequisite relationships between modules
 
 #### 📖 Lesson Management
@@ -87,6 +93,15 @@ To create a flexible, scalable LMS that empowers educators to deliver high-quali
 
 #### 📝 Quiz Lessons
 - Integration with external quiz / exercise services (assessment)
+
+#### 📝 HTML5 Zip Lessons
+- Upload HTML 5 zip file
+
+#### 📝 SCORM Zip Lessons (future)
+- Upload SCORM 5 zip file
+
+#### 📝 TEXT and MEDIA
+- Upload SCORM 5 zip file
 
 ## 📱 Content Consumption
 
