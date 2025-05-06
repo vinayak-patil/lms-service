@@ -31,11 +31,14 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | moduleId | UUID | Primary key |
+| parentId | UUID | Foreign key referencing modules |
 | courseId | UUID | Foreign key referencing courses |
 | tenentId | UUID | Tenent ID |
 | title | VARCHAR | Module title |
 | description | VARCHAR | Module description |
 | image | VARCHAR | Module image path |
+| startDatetime | TIMESTAMPTZ | Module start date and time |
+| endDatetime | TIMESTAMPTZ | Module end date and time |
 | ordering | INTEGER | Module order |
 | status | VARCHAR | Module status |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
@@ -43,7 +46,7 @@
 | updatedAt | TIMESTAMPTZ | Last update timestamp |
 | updatedBy | UUID | User who last updated the module |
 
-## Table: Lessons
+## Table: lessons
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -56,8 +59,8 @@
 | status | VARCHAR(255) | Lesson status (default: 'unpublished') |
 | description | TEXT | Lesson description |
 | image | VARCHAR(255) | Lesson image path |
-| startDate | TIMESTAMP | Lesson start date |
-| endDate | TIMESTAMP | Lesson end date |
+| startDatetime | TIMESTAMP | Lesson start date |
+| endDatetime | TIMESTAMP | Lesson end date |
 | storage | VARCHAR(50) | Storage type |
 | noOfAttempts | VARCHAR(255) | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
@@ -74,19 +77,19 @@
 | updatedAt | TIMESTAMPTZ | Last update timestamp |
 | updatedBy | UUID | User who last updated the lesson |
 
-## Table: CourseLessons
+## Table: course_lessons
 
 | Column | Type | Description |
 |--------|------|-------------|
-| lessonId | UUID | Part of composite primary key, foreign key referencing Lessons |
-| courseId | UUID | Part of composite primary key, foreign key referencing Courses |
-| moduleId | UUID | Part of composite primary key, foreign key referencing Modules |
+| lessonId | UUID | foreign key referencing Lessons |
+| courseId | UUID | foreign key referencing Courses |
+| moduleId | UUID | foreign key referencing Modules |
 | tenentId | UUID | Tenent ID |
 | freeLesson | BOOLEAN | Whether the lesson is free |
-| considerForPassing | BOOLEAN | Whether lesson counts towards passing |
+| considerForPassing | BOOLEAN | Should consider this lesson for course passing |
 | status | VARCHAR(255) | Lesson status |
-| startDate | TIMESTAMP | Lesson start date |
-| endDate | TIMESTAMP | Lesson end date |
+| startDatetime | TIMESTAMPTZ | Lesson start date |
+| endDatetime | TIMESTAMPTZ | Lesson end date |
 | noOfAttempts | VARCHAR(255) | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
 | eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
@@ -104,10 +107,10 @@
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | UUID | Primary key |
+| mediaId | UUID | Primary key |
 | format | VARCHAR | Media format |
-| sub_format | VARCHAR | Media sub-format |
-| org_filename | VARCHAR | Original filename |
+| subFormat | VARCHAR | Media sub-format |
+| orgFilename | VARCHAR | Original filename |
 | path | VARCHAR | File path |
 | storage | VARCHAR | Storage type |
 | source | TEXT | Media source |
@@ -121,57 +124,57 @@
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | SERIAL | Primary key |
-| lesson_id | UUID | Foreign key referencing lessons |
-| media_id | UUID | Foreign key referencing media |
+| filesId | UUID | Primary key |
+| lessonId | UUID | Foreign key referencing lessons |
+| mediaId | UUID | Foreign key referencing media |
 
 ## Table: user_enrollments
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | UUID | Primary key |
+| enrollemtId | UUID | Primary key |
 | course_id | UUID | Foreign key referencing courses |
 | tenentId | UUID | Tenent ID |
-| user_id | UUID | User ID |
-| enrolled_on_time | TIMESTAMPTZ | Enrollment timestamp |
-| end_time | TIMESTAMPTZ | Enrollment end time |
-| state | INTEGER | Enrollment state (default: 0) |
-| unlimited_plan | BOOLEAN | Whether unlimited plan (default: FALSE) |
-| before_expiry_mail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
-| after_expiry_mail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
+| userId | UUID | User ID |
+| enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
+| endTime | TIMESTAMPTZ | Enrollment end time |
+| status | VARCHAR | Enrollment status (default: 'published') |
+| unlimitedPlan | BOOLEAN | Whether unlimited plan (default: FALSE) |
+| beforeExpiryMail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
+| afterExpiryMail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
 | params | JSONB | Additional parameters |
-| enrolled_by | UUID | User who enrolled |
-| enrolled_at | TIMESTAMPTZ | Enrollment timestamp |
+| enrolledBy | UUID | User who enrolled |
+| enrolledAt | TIMESTAMPTZ | Enrollment timestamp |
 
-## Table: track_course
+## Table: course_track
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | UUID | Primary key |
-| course_id | UUID | Foreign key referencing courses |
-| user_id | UUID | User ID |
-| timestart | TIMESTAMPTZ | Tracking start time |
-| timeend | TIMESTAMPTZ | Tracking end time |
-| no_of_lessons | INTEGER | Total number of lessons (default: 0) |
-| completed_lessons | INTEGER | Number of completed lessons (default: 0) |
+| courseTrackId | UUID | Primary key |
+| courseId | UUID | Foreign key referencing courses |
+| userId | UUID | User ID |
+| startDatetime | TIMESTAMPTZ | Tracking start time |
+| endDatetime | TIMESTAMPTZ | Tracking end time |
+| noOfLessons | INTEGER | Total number of lessons (default: 0) |
+| completedLessons | INTEGER | Number of completed lessons (default: 0) |
 | status | VARCHAR(40) | Course status (default: 'incomplete') |
-| last_accessed_date | TIMESTAMPTZ | Last accessed date |
-| cert_gen_date | TIMESTAMPTZ | Certificate generation date |
+| lastAccessedDate | TIMESTAMPTZ | Last accessed date |
+| certGenDate | TIMESTAMPTZ | Certificate generation date |
 
-## Table: track_lesson
+## Table: lesson_track
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | UUID | Primary key |
-| lesson_id | UUID | Foreign key referencing lessons |
-| user_id | UUID | User ID |
+| lessonTrackId | UUID | Primary key |
+| lessonId | UUID | Foreign key referencing lessons |
+| userId | UUID | User ID |
 | attempt | INTEGER | Attempt number (default: 1) |
-| timestart | TIMESTAMPTZ | Tracking start time |
-| timeend | TIMESTAMPTZ | Tracking end time |
+| startDatetime | TIMESTAMPTZ | Tracking start time |
+| endDatetime | TIMESTAMPTZ | Tracking end time |
 | score | INTEGER | Lesson score (default: 0) |
 | status | VARCHAR(255) | Lesson status (default: 'started') |
-| total_content | FLOAT | Total content length (default: 0) |
-| current_position | FLOAT | Current position (default: 0) |
-| time_spent | INTEGER | Time spent on lesson |
+| totalContent | FLOAT | Total content length (default: 0) |
+| currentPosition | FLOAT | Current position (default: 0) |
+| timeSpent | INTEGER | Time spent on lesson |
 | updatedBy | UUID | User who last updated |
 | updatedAt | TIMESTAMPTZ | Last update timestamp | 

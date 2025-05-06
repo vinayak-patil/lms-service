@@ -2,2314 +2,2503 @@
 
 ## Table of Contents 📑
 
-1. [Courses](#courses) 📚  
-2. [Modules](#modules) 📦  
-3. [Lessons](#lessons) 📝  
-4. [User Enrollment](#user-enrollment) 👥  
-5. [Lesson Tracking](#lesson-tracking) 📊  
-6. [Course Tracking](#course-tracking) 📈
+1. [Courses](#courses)
+   - [Create Course](#create-course)
+   - [Get All Courses](#get-all-courses)
+   - [Get Course by ID](#get-course-by-id)
+   - [Get Course Details with Modules and Lessons](#get-course-details-with-modules-and-lessons)
+   - [Update Course](#update-course)
+   - [Delete Course](#delete-course)
 
-7. ## [Common Response Structure](#common-response-structure) 🔄
+2. [Modules](#modules)
+   - [Create Module](#create-module)
+   - [Get Module by ID](#get-module-by-id)
+   - [Get Modules by Course ID](#get-modules-by-course-id)
+   - [Get Submodules by Parent Module ID](#get-submodules-by-parent-module-id)
+   - [Update Module](#update-module)
+   - [Delete Module](#delete-module)
 
-8. ### [Status Codes](#status-codes) ⚠️
+3. [Lessons](#lessons)
+   - [Create Lesson](#create-lesson)
+   - [Add Lesson to Course/Module](#add-lesson-to-coursemodule)
+   - [Get Lesson by ID](#get-lesson-by-id)
+   - [Get Lessons by Course ID](#get-lessons-by-course-id)
+   - [Get Lessons by Module ID](#get-lessons-by-module-id)
+   - [Update Lesson](#update-lesson)
+   - [Delete Lesson](#delete-lesson)
+   - [Remove Lesson from Course/Module](#remove-lesson-from-coursemodule)
 
-## Courses {#courses} 📚
+4. [Media Management](#media-management)
+   - [Upload Media](#upload-media)
+   - [Get Media by ID](#get-media-by-id)
+   - [Associate Media with Lesson](#associate-media-with-lesson)
+   - [Delete Media](#delete-media)
 
-### Create Course ➕
+5. [User Enrollment](#user-enrollment)
+   - [Enroll User in Course](#enroll-user-in-course)
+   - [Get User Enrollments](#get-user-enrollments)
+   - [Get Enrollment by ID](#get-enrollment-by-id)
+   - [Update Enrollment](#update-enrollment)
+   - [Cancel Enrollment](#cancel-enrollment)
 
-- **Endpoint**: `POST /courses`  
-- **Description**: Creates a new course  
-- **Content-Type**: `multipart/form-data`  
+6. [Course Tracking](#course-tracking)
+   - [Start Course Tracking](#start-course-tracking)
+   - [Update Course Tracking](#update-course-tracking)
+   - [Complete Course Tracking](#complete-course-tracking)
+   - [Get Course Tracking](#get-course-tracking)
+
+7. [Lesson Tracking](#lesson-tracking)
+   - [Start Lesson Tracking](#start-lesson-tracking)
+   - [Update Lesson Tracking](#update-lesson-tracking)
+   - [Complete Lesson Tracking](#complete-lesson-tracking)
+   - [Get Lesson Tracking](#get-lesson-tracking)
+   - [Get User's Lesson Tracking History](#get-users-lesson-tracking-history)
+
+8. [Error Handling](#error-handling)
+
+## API Endpoints
+
+### Courses
+
+#### Create Course
+
+- **Endpoint**: `POST /api/courses`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- None
+
+
+
 - **Request Body**:
 
-title (Required)*: Course Title 
-
-shortDescription (Required)*: Short course description
-
-description (Required)*: Detailed course description
-
-image: \[file\]
-
-featured: false
-
-free: true
-
-Certificate\_term: NA / PASS\_ALL / COMPLETE\_ALL 
-
-certificate\_id: sunbird-rc-id
-
-startDatetime (Required)*: 2024-03-20T00:00:00Z
-
-endDatetime (Required)*: 2024-12-31T23:59:59Z
-
-adminApproval: false
-
-autoEnroll: false
-
-status: unpublished
-
-params: {}
-
-- **Response**:
-
+```json
 {
+  "title": "Introduction to Machine Learning",
+  "alias": "intro-ml",
+  "shortDescription": "Learn the basics of machine learning",
+  "description": "Comprehensive introduction to machine learning concepts and algorithms",
+  "featured": false,
+  "free": true,
+  "certificateTerm": "PASS_ALL",
+  "certificateId": "cert-uuid-123",
+  "startDatetime": "2024-06-01T00:00:00Z",
+  "endDatetime": "2024-12-31T23:59:59Z",
+  "adminApproval": false,
+  "autoEnroll": true,
+  "status": "published",
+  "params": {
+    "difficulty": "beginner",
+    "estimatedHours": 20
+  }
+}
+```
 
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
   "id": "api.course.create",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,
-
+    "errmsg": null
   },
-
   "responseCode": 201,
-
   "result": {
-
-    "courseId": "uuid",
-
-    "tenentId": "uuid",
-
-    "title": "Course Title",
-
-    "shortDescription": "Short course description",
-
-    "description": "Detailed course description",
-
-    "image": "path/to/image",
-
+    "courseId": "course-uuid-123",
+    "tenentId": "tenant-uuid-123",
+    "title": "Introduction to Machine Learning",
+    "alias": "intro-ml",
+    "shortDescription": "Learn the basics of machine learning",
+    "description": "Comprehensive introduction to machine learning concepts and algorithms",
+    "image": null,
     "featured": false,
-
-    "paid": false,
-
-    "certificate\_term": "1",
-
-    "certificate\_id": sunbird-rc-id,
-
-    "startDatetime": "2024-03-20T00:00:00Z",
-
+    "free": true,
+    "certificateTerm": "PASS_ALL",
+    "certificateId": "cert-uuid-123",
+    "startDatetime": "2024-06-01T00:00:00Z",
     "endDatetime": "2024-12-31T23:59:59Z",
-
     "adminApproval": false,
-
-    "autoEnroll": false,
-
-    "status": "unpublished",
-
-    "params": {},
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": null,
-
-    "updatedAt": null
-
-  }
-
-}
-
-
-### Get Course by ID 🔍
-
-- **Endpoint**: `GET /courses/:id`  
-- **Description**: Retrieves a specific course by ID  
-- **Response**:
-
-{
-
-  "id": "api.course.get",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": {
-
-    "courseId": "uuid",
-
-    "title": "Course Title",
-
-    "shortDescription": "Short course description",
-
-    "description": "Detailed course description",
-
-    "image": "path/to/image",
-
-    "featured": false,
-
-    "paid": false,
-
-    "certificate\_term": "1",
-
-    "Certificate\_id": sunbird-rc-id,
-
-    "startDatetime": "2024-03-20T00:00:00Z",
-
-    "endDatetime": "2024-12-31T23:59:59Z",
-
-    "adminApproval": false,
-
-    "autoEnroll": false,
-
-    "status": "unpublished",
-
-    "params": {},
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": user-uuid,
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
-  }
-
-}
-
-### Get Course Details with Modules and Lessons 📋
-
-- **Endpoint**: `GET /courses/details/:id`  
-- **Description**: Retrieves detailed course information including its modules and lessons  
-- **Response**:
-
-{
-
-  "id": "api.course.get",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": {
-
-    "courseId": "uuid",
-
-    "title": "Course Title",
-
-    "shortDescription": "Short course description",
-
-    "description": "Detailed course description",
-
-    "image": "path/to/image",
-
-    "featured": false,
-
-    "paid": false,
-
-    "certificate\_term": "Certificate term",
-
-    "certificate\_id": false,
-
-    "startDatetime": "2024-03-20T00:00:00Z",
-
-    "endDatetime": "2024-12-31T23:59:59Z",
-
-    "adminApproval": false,
-
-    "autoEnroll": false,
-
-    "status": "draft",
-
-    "params": {},
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": null,
-
-    "updatedAt": "2024-03-20T00:00:00Z",
-
-    "modules": \[
-
-      {
-
-        "moduleId": "uuid",
-
-        "title": "Module Title",
-
-        "description": "Module description",
-
-        "ordering": 1,
-
-        "image": "path/to/image",
-
-        "status": 1,
-
-        "courseId": "course-uuid",
-
-        "createdBy": "user-uuid",
-
-        "createdAt": "2024-03-20T00:00:00Z",
-
-        "updatedBy": null,
-
-        "updatedAt": "2024-03-20T00:00:00Z",
-
-        "lessons": \[
-
-          {
-
-            "lessonId": "uuid",
-
-            "title": "Lesson Title",
-
-            "description": "Lesson description",
-
-            "ordering": 1,
-
-            "moduleId": "module-uuid",
-
-            "courseId": "course-uuid",
-
-            "status": "published",
-
-            "shortDesc": "Short description",
-
-            "image": "path/to/image",
-
-            "startDate": "2024-03-20T00:00:00Z",
-
-            "endDate": "2024-12-31T23:59:59Z",
-
-            "storage": "local",
-
-            "freeLesson": "yes",
-
-            "noOfAttempts": "3",
-
-            "attemptsGrade": "highest",
-
-            "considerMarks": "yes",
-
-            "format": "video",
-
-            "mediaId": "media-uuid",
-
-            "eligibilityCriteria": {"uuid-lesson"}
-
-            "idealTime": 45,
-
-            "resume": true,
-
-            "totalMarks": 100,
-
-            "passingMarks": 60,
-
-            "params": "{}",
-
-            "createdBy": "user-uuid",
-
-            "createdAt": "2024-03-20T00:00:00Z",
-
-            "updatedBy": user-uuid,
-
-            "updatedAt": "2024-03-20T00:00:00Z"
-
-          }
-
-        \]
-
-      }
-
-    \]
-
-  }
-
-}
-
-### Update Course ✏️
-
-- **Endpoint**: `PUT /courses/:id`  
-- **Description**: Updates an existing course  
-- **Content-Type**: `multipart/form-data`  
-- **Request Body**:
-
-title: Updated Title
-
-shortDescription: Updated short description
-
-description: Updated description
-
-image: \[file\]
-
-featured: true
-
-type: true
-
-certificate\_term: Updated certificate term
-
-certificate\_id: sunbird-rc-id
-
-startDatetime: 2024-03-20T00:00:00Z
-
-endDatetime: 2024-12-31T23:59:59Z
-
-adminApproval: true
-
-autoEnroll: true
-
-status: published
-
-params: {}
-
-- **Response**:
-
-{
-
-  "id": "api.course.update",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": {
-
-    "courseId": "uuid",
-
-    "title": "Updated Title",
-
-    "shortDescription": "Updated short description",
-
-    "description": "Updated description",
-
-    "image": "updated/image/path",
-
-    "featured": true,
-
-    "paid": true,
-
-    "certificate\_term": "Updated certificate term",
-
-    "certificate\_id": sunbird-rc-id,
-
-    "startDatetime": "2024-03-20T00:00:00Z",
-
-    "endDatetime": "2024-12-31T23:59:59Z",
-
-    "adminApproval": true,
-
     "autoEnroll": true,
-
     "status": "published",
-
-    "params": {},
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": "user-uuid",
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
+    "params": {
+      "difficulty": "beginner",
+      "estimatedHours": 20
+    },
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
+    "updatedBy": null,
+    "updatedAt": null
   }
-
 }
+```
 
-### Delete Course 🗑️
 
-- **Endpoint**: `DELETE /courses/:id`  
-- **Description**: Deletes a course  
-- **Response**:
+- Error (400 Bad Request):
 
+```json
 {
+  "id": "api.course.create",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "failed",
+    "err": "INVALID_REQUEST",
+    "errmsg": "Title is required"
+  },
+  "responseCode": 400,
+  "result": null
+}
+```
 
+
+
+
+
+
+
+#### Get All Courses
+
+- **Endpoint**: `GET /api/courses`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `status` (optional): Filter by course status (published, unpublished, draft)
+- `featured` (optional): Filter featured courses (true/false)
+- `free` (optional): Filter free courses (true/false)
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of items per page (default: 10)
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.list",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "count": 2,
+    "courses": [
+      {
+        "courseId": "course-uuid-123",
+        "title": "Introduction to Machine Learning",
+        "shortDescription": "Learn the basics of machine learning",
+        "image": "path/to/image.jpg",
+        "featured": false,
+        "free": true,
+        "status": "published",
+        "startDatetime": "2024-06-01T00:00:00Z",
+        "endDatetime": "2024-12-31T23:59:59Z"
+      },
+      {
+        "courseId": "course-uuid-456",
+        "title": "Advanced Data Science",
+        "shortDescription": "Master data science techniques",
+        "image": "path/to/image2.jpg",
+        "featured": true,
+        "free": false,
+        "status": "published",
+        "startDatetime": "2024-06-15T00:00:00Z",
+        "endDatetime": "2025-06-15T23:59:59Z"
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Course by ID
+
+- **Endpoint**: `GET /api/courses/{courseId}`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseId": "course-uuid-123",
+    "tenentId": "tenant-uuid-123",
+    "title": "Introduction to Machine Learning",
+    "alias": "intro-ml",
+    "shortDescription": "Learn the basics of machine learning",
+    "description": "Comprehensive introduction to machine learning concepts and algorithms",
+    "image": "path/to/image.jpg",
+    "featured": false,
+    "free": true,
+    "certificateTerm": "PASS_ALL",
+    "certificateId": "cert-uuid-123",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "adminApproval": false,
+    "autoEnroll": true,
+    "status": "published",
+    "params": {
+      "difficulty": "beginner",
+      "estimatedHours": 20
+    },
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
+    "updatedBy": null,
+    "updatedAt": null
+  }
+}
+```
+
+
+- Error (404 Not Found):
+
+```json
+{
+  "id": "api.course.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "failed",
+    "err": "RESOURCE_NOT_FOUND",
+    "errmsg": "Course not found"
+  },
+  "responseCode": 404,
+  "result": null
+}
+```
+
+
+
+
+
+
+
+#### Get Course Details with Modules and Lessons
+
+- **Endpoint**: `GET /api/courses/{courseId}/details`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.details",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseId": "course-uuid-123",
+    "title": "Introduction to Machine Learning",
+    "shortDescription": "Learn the basics of machine learning",
+    "description": "Comprehensive introduction to machine learning concepts and algorithms",
+    "image": "path/to/image.jpg",
+    "featured": false,
+    "free": true,
+    "certificateTerm": "PASS_ALL",
+    "certificateId": "cert-uuid-123",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "status": "published",
+    "modules": [
+      {
+        "moduleId": "module-uuid-123",
+        "title": "Fundamentals of ML",
+        "description": "Basic concepts and terminology",
+        "ordering": 1,
+        "image": "path/to/module-image.jpg",
+        "status": "published",
+        "subModules": [
+          {
+            "moduleId": "module-uuid-456",
+            "parentId": "module-uuid-123",
+            "title": "Introduction to Algorithms",
+            "description": "Overview of ML algorithms",
+            "ordering": 1,
+            "status": "published",
+            "lessons": [
+              {
+                "lessonId": "lesson-uuid-123",
+                "title": "Classification Algorithms",
+                "description": "Learn about classification algorithms",
+                "format": "video",
+                "status": "published",
+                "totalMarks": 100,
+                "passingMarks": 60,
+                "mediaContent": {
+                  "format": "video",
+                  "subFormat": "video.youtube.url",
+                  "source": "https://youtube.com/watch?v=example"
+                }
+              }
+            ]
+          }
+        ],
+        "lessons": [
+          {
+            "lessonId": "lesson-uuid-789",
+            "title": "What is Machine Learning?",
+            "description": "Introduction to machine learning concepts",
+            "format": "video",
+            "status": "published",
+            "totalMarks": 0,
+            "passingMarks": 0,
+            "mediaContent": {
+              "format": "video",
+              "subFormat": "video.youtube.url",
+              "source": "https://youtube.com/watch?v=example2"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Course
+
+- **Endpoint**: `PUT /api/courses/{courseId}`
+- **HTTP Method**: PUT
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Request Body**:
+
+```json
+{
+  "title": "Updated Machine Learning Course",
+  "shortDescription": "Updated description",
+  "description": "Comprehensive updated course content",
+  "featured": true,
+  "free": false,
+  "status": "published",
+  "startDatetime": "2024-07-01T00:00:00Z",
+  "endDatetime": "2025-01-31T23:59:59Z"
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.update",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseId": "course-uuid-123",
+    "title": "Updated Machine Learning Course",
+    "shortDescription": "Updated description",
+    "description": "Comprehensive updated course content",
+    "image": "path/to/image.jpg",
+    "featured": true,
+    "free": false,
+    "certificateTerm": "PASS_ALL",
+    "certificateId": "cert-uuid-123",
+    "startDatetime": "2024-07-01T00:00:00Z",
+    "endDatetime": "2025-01-31T23:59:59Z",
+    "adminApproval": false,
+    "autoEnroll": true,
+    "status": "published",
+    "updatedBy": "user-uuid-456",
+    "updatedAt": "2024-05-06T14:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Delete Course
+
+- **Endpoint**: `DELETE /api/courses/{courseId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin role)
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
   "id": "api.course.delete",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,  
+    "errmsg": null
   },
-
   "responseCode": 200,
-
-  "result": null
-
+  "result": {
+    "message": "Course deleted successfully"
+  }
 }
+```
 
-## Modules {#modules} 📦
 
-### Create Module ➕
 
-- **Endpoint**: `POST /modules`  
-- **Description**: Creates a new module  
-- **Content-Type**: `multipart/form-data`  
+
+
+
+
+### Modules
+
+#### Create Module
+
+- **Endpoint**: `POST /api/modules`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- None
+
+
+
 - **Request Body**:
 
-title (Required)*: Module Title
-
-description (Required)*: Module description
-
-image: \[file\]
-
-status: 'unpublished'
-
-courseId (Required)*: course-uuid
-
-- **Response**:
-
+```json
 {
+  "courseId": "course-uuid-123",
+  "parentId": null,
+  "title": "Introduction to Neural Networks",
+  "description": "Learn about neural network architecture and applications",
+  "image": "base64-encoded-image-data",
+  "startDatetime": "2024-06-01T00:00:00Z",
+  "endDatetime": "2024-12-31T23:59:59Z",
+  "ordering": 2,
+  "status": "published"
+}
+```
 
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
   "id": "api.module.create",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,
-
+    "errmsg": null
   },
-
   "responseCode": 201,
-
   "result": {
-
-    "moduleId": "uuid",
-
-    "tenentId": "uuid",
-
-    "title": "Module Title",
-
-    "description": "Module description",
-
-    "ordering": 1,
-
-    "image": "path/to/image",
-
-    "status": 1,
-
-    "courseId": "course-uuid",
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
+    "moduleId": "module-uuid-789",
+    "courseId": "course-uuid-123",
+    "parentId": null,
+    "tenentId": "tenant-uuid-123",
+    "title": "Introduction to Neural Networks",
+    "description": "Learn about neural network architecture and applications",
+    "image": "path/to/saved/image.jpg",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "ordering": 2,
+    "status": "published",
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
     "updatedBy": null,
-
-    "updatedAt": "null"
-
+    "updatedAt": null
   }
-
 }
+```
 
 
-### Get Module by ID 🔍
 
-- **Endpoint**: `GET /modules/:id`  
-- **Description**: Retrieves a specific module by ID  
-- **Response**:
 
+
+
+
+#### Get Module by ID
+
+- **Endpoint**: `GET /api/modules/{moduleId}`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `moduleId` (path): UUID of the module
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
 {
-
   "id": "api.module.get",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,
-
+    "errmsg": null
   },
-
   "responseCode": 200,
-
   "result": {
-
-    "moduleId": "uuid",
-
-    "title": "Module Title",
-
-    "description": "Module description",
-
-    "ordering": 1,
-
-    "image": "path/to/image",
-
-    "status": 1,
-
-    "courseId": "course-uuid",
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
+    "moduleId": "module-uuid-789",
+    "courseId": "course-uuid-123",
+    "parentId": null,
+    "tenentId": "tenant-uuid-123",
+    "title": "Introduction to Neural Networks",
+    "description": "Learn about neural network architecture and applications",
+    "image": "path/to/saved/image.jpg",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "ordering": 2,
+    "status": "published",
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
     "updatedBy": null,
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
+    "updatedAt": null
   }
-
 }
+```
 
-### Get Modules by Course ID 📋
 
-- **Endpoint**: `GET /modules/course/:courseId`  
-- **Description**: Retrieves all modules belonging to a specific course  
-- **Response**:
 
+
+
+
+
+#### Get Modules by Course ID
+
+- **Endpoint**: `GET /api/courses/{courseId}/modules`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `includeSubmodules` (query, optional): Whether to include submodules (default: false)
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
 {
-
-  "statusCode": 200,
-
-  "data": \[
-
-    {
-
-      "moduleId": "uuid",
-
-      "title": "Module Title",
-
-      "description": "Module description",
-
-      "ordering": 1,
-
-      "image": "path/to/image",
-
-      "status": 1,
-
-      "courseId": "course-uuid",
-
-      "createdBy": "user-uuid",
-
-      "createdAt": "2024-03-20T00:00:00Z",
-
-      "updatedBy": null,
-
-      "updatedAt": "2024-03-20T00:00:00Z"
-
-    }
-
-  \]
-
+  "id": "api.course.modules",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "modules": [
+      {
+        "moduleId": "module-uuid-123",
+        "courseId": "course-uuid-123",
+        "parentId": null,
+        "title": "Fundamentals of ML",
+        "description": "Basic concepts and terminology",
+        "image": "path/to/module-image.jpg",
+        "ordering": 1,
+        "status": "published",
+        "startDatetime": "2024-06-01T00:00:00Z",
+        "endDatetime": "2024-12-31T23:59:59Z",
+        "subModules": [
+          {
+            "moduleId": "module-uuid-456",
+            "courseId": "course-uuid-123",
+            "parentId": "module-uuid-123",
+            "title": "Introduction to Algorithms",
+            "description": "Overview of ML algorithms",
+            "ordering": 1,
+            "status": "published",
+            "startDatetime": "2024-06-01T00:00:00Z",
+            "endDatetime": "2024-12-31T23:59:59Z"
+          }
+        ]
+      },
+      {
+        "moduleId": "module-uuid-789",
+        "courseId": "course-uuid-123",
+        "parentId": null,
+        "title": "Introduction to Neural Networks",
+        "description": "Learn about neural network architecture and applications",
+        "image": "path/to/saved/image.jpg",
+        "ordering": 2,
+        "status": "published",
+        "startDatetime": "2024-06-01T00:00:00Z",
+        "endDatetime": "2024-12-31T23:59:59Z",
+        "subModules": []
+      }
+    ]
+  }
 }
+```
 
-### Update Module ✏️
 
-- **Endpoint**: `PUT /modules/:id`  
-- **Description**: Updates an existing module  
-- **Content-Type**: `multipart/form-data`  
+
+
+
+
+
+#### Get Submodules by Parent Module ID
+
+- **Endpoint**: `GET /api/modules/{moduleId}/submodules`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `moduleId` (path): UUID of the parent module
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.module.submodules",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "subModules": [
+      {
+        "moduleId": "module-uuid-456",
+        "courseId": "course-uuid-123",
+        "parentId": "module-uuid-123",
+        "title": "Introduction to Algorithms",
+        "description": "Overview of ML algorithms",
+        "ordering": 1,
+        "status": "published",
+        "startDatetime": "2024-06-01T00:00:00Z",
+        "endDatetime": "2024-12-31T23:59:59Z"
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Module
+
+- **Endpoint**: `PUT /api/modules/{moduleId}`
+- **HTTP Method**: PUT
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `moduleId` (path): UUID of the module
+
+
+
 - **Request Body**:
 
-title: Updated Title
-
-description: Updated description
-
-ordering: 2
-
-image: \[file\]
-
-status: 0
-
-courseId: course-uuid
-
-- **Response**:
-
+```json
 {
+  "title": "Updated Neural Networks Module",
+  "description": "Updated description for neural networks",
+  "image": "base64-encoded-image-data",
+  "ordering": 3,
+  "status": "published",
+  "startDatetime": "2024-07-01T00:00:00Z",
+  "endDatetime": "2025-01-31T23:59:59Z"
+}
+```
 
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
   "id": "api.module.update",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,
-
+    "errmsg": null
   },
-
   "responseCode": 200,
-
   "result": {
-
-    "moduleId": "uuid",
-
-    "title": "Updated Title",
-
-    "description": "Updated description",
-
-    "ordering": 2,
-
-    "image": "updated/image/path",
-
-    "status": 0,
-
-    "courseId": "course-uuid",
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": "user-uuid",
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
+    "moduleId": "module-uuid-789",
+    "courseId": "course-uuid-123",
+    "parentId": null,
+    "title": "Updated Neural Networks Module",
+    "description": "Updated description for neural networks",
+    "image": "path/to/updated/image.jpg",
+    "ordering": 3,
+    "status": "published",
+    "startDatetime": "2024-07-01T00:00:00Z",
+    "endDatetime": "2025-01-31T23:59:59Z",
+    "updatedBy": "user-uuid-456",
+    "updatedAt": "2024-05-06T14:24:02Z"
   }
-
 }
+```
 
-### Delete Module 🗑️
 
-- **Endpoint**: `DELETE /modules/:id`  
-- **Description**: Deletes a module  
-- **Response**:
 
+
+
+
+
+#### Delete Module
+
+- **Endpoint**: `DELETE /api/modules/{moduleId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `moduleId` (path): UUID of the module
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
 {
-
   "id": "api.module.delete",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
-
     "err": null,
-
-    "errmsg": null,
-
+    "errmsg": null
   },
-
   "responseCode": 200,
-
-  "result": null
-
+  "result": {
+    "message": "Module deleted successfully"
+  }
 }
+```
 
-## Lessons {#lessons} 📝
 
-### Create Lesson ➕
 
-- **Endpoint**: `POST /lessons`  
-- **Description**: Creates a new lesson  
-- **Content-Type**: `multipart/form-data`  
+
+
+
+
+### Lessons
+
+#### Create Lesson
+
+- **Endpoint**: `POST /api/lessons`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- None
+
+
+
 - **Request Body**:
 
-title (Required)*: Lesson Title
-
-description (Required)*: Lesson description
-
-moduleId: module-uuid
-
-courseId: course-uuid
-
-status: published
-
-duration: 60
-
-format: video
-
-startDate: 2024-03-20T00:00:00Z
-
-endDate: 2024-12-31T23:59:59Z
-
-storage: local
-
-freeLesson: true
-
-noOfAttempts: 3
-
-attemptsGrade: highest
-
-considerMarks: true
-
-mediaId: media-uuid
-
-eligibilityCriteria: Complete previous lesson
-
-idealTime: 45
-
-resume: true
-
-totalMarks: 100
-
-passingMarks: 60
-
-params: {}
-
-image: \[file\]
-
-mediaContent: {  
-  format: video  
-  sub\_format: video.youtube.url  
-  source: https://youtube.com/wQdsmn  
-  params: {}  
-}
-
-- **Response**:
-
+```json
 {
+  "title": "Introduction to Backpropagation",
+  "alias": "intro-backprop",
+  "description": "Learn how neural networks learn through backpropagation",
+  "image": "base64-encoded-image-data",
+  "startDatetime": "2024-06-01T00:00:00Z",
+  "endDatetime": "2024-12-31T23:59:59Z",
+  "storage": "local",
+  "noOfAttempts": "3",
+  "attemptsGrade": "highest",
+  "format": "video",
+  "eligibilityCriteria": null,
+  "idealTime": 45,
+  "resume": true,
+  "totalMarks": 100,
+  "passingMarks": 60,
+  "status": "published",
+  "mediaContent": {
+    "format": "video",
+    "subFormat": "video.youtube.url",
+    "source": "https://youtube.com/watch?v=example",
+    "params": {}
+  }
+}
+```
 
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
   "id": "api.lesson.create",
-
   "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 201,
-
-  "result": {
-
-    "lessonId": "uuid",
-
-    "tenentId": "uuid",
-
-    "title": "Lesson Title",
-
-    "description": "Lesson description",
-
-    "ordering": 1,
-
-    "moduleId": "module-uuid",
-
-    "courseId": "course-uuid",
-
-    "status": "published",
-
-    "shortDesc": "Short description",
-
-    "image": "path/to/image",
-
-    "startDate": "2024-03-20T00:00:00Z",
-
-    "endDate": "2024-12-31T23:59:59Z",
-
-    "storage": "local",
-
-    "freeLesson": "yes",
-
-    "noOfAttempts": "3",
-
-    "attemptsGrade": "highest",
-
-    "considerMarks": "yes",
-
-    "format": "video",
-
-    "mediaId": "media-uuid",
-
-    "eligibilityCriteria": "Complete previous lesson",
-
-    "idealTime": 45,
-
-    "resume": true,
-
-    "totalMarks": 100,
-
-    "passingMarks": 60,
-
-    "inLib": false,
-
-    "params": "{}",  
-      
-    "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": null,
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
-  }
-
-}
-
-### Get All Lessons 📋
-
-- **Endpoint**: `GET /lessons`  
-- **Description**: Retrieves all lessons  
-- **Response**:
-
-{
-
-  "id": "api.lesson.list",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": \[
-
-    {
-
-      "lessonId": "uuid",
-
-      "title": "Lesson Title",
-
-      "description": "Lesson description",
-
-      "content": "Lesson content",
-
-      "ordering": 1,
-
-      "moduleId": "module-uuid",
-
-      "courseId": "course-uuid",
-
-      "status": "published",
-
-      "shortDesc": "Short description",
-
-      "image": "path/to/image",
-
-      "startDate": "2024-03-20T00:00:00Z",
-
-      "endDate": "2024-12-31T23:59:59Z",
-
-      "storage": "local",
-
-      "freeLesson": "yes",
-
-      "noOfAttempts": "3",
-
-      "attemptsGrade": "highest",
-
-      "considerMarks": "yes",
-
-      "format": "video",
-
-      "mediaId": "media-uuid",
-
-      "eligibilityCriteria": "Complete previous lesson",
-
-      "idealTime": 45,
-
-      "resume": true,
-
-      "totalMarks": 100,
-
-      "passingMarks": 60,
-
-      "inLib": false,
-
-      "params": "{}",  
-        
-       "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },
-
-      "createdBy": "user-uuid",
-
-      "createdAt": "2024-03-20T00:00:00Z",
-
-      "updatedBy": null,
-
-      "updatedAt": "2024-03-20T00:00:00Z"
-
-    }
-
-  \]
-
-}
-
-### Add lesson into course under module ➕
-
-- **Endpoint**: `POST /courses/lessons`  
-- **Description**: Adds an existing lesson to a specific course and module  
-- **Content-Type**: `application/json`  
-- **Request Body**:
-
-courseId (Required)*: course-uuid
-
-moduleId (Required)*: module-uuid
-
-lessonId (Required)*: lesson-uuid
-
-- **Response**:
-
-{
-  "id": "api.lesson.add",
-  "ver": "1.0",
-  "ts": "2024-03-20T00:00:00Z",
-  "params": {
-    "resmsgid": "uuid",
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
     "status": "successful",
     "err": null,
-    "errmsg": null,
+    "errmsg": null
   },
   "responseCode": 201,
   "result": {
-    "lessonId": "uuid",
-    "courseId": "course-uuid",
-    "moduleId": "module-uuid",
-    "message": "Lesson successfully added to course and module"
-  }
-}
-
-### Get Lesson by ID 🔍
-
-- **Endpoint**: `GET /lessons/:id`  
-- **Description**: Retrieves a specific lesson by ID  
-- **Response**:
-
-{
-
-  "id": "api.lesson.get",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": {
-
-    "lessonId": "uuid",
-
-    "title": "Lesson Title",
-
-    "description": "Lesson description",
-
-    "content": "Lesson content",
-
-    "ordering": 1,
-
-    "moduleId": "module-uuid",
-
-    "courseId": "course-uuid",
-
-    "status": "published",
-
-    "shortDesc": "Short description",
-
-    "image": "path/to/image",
-
-    "startDate": "2024-03-20T00:00:00Z",
-
-    "endDate": "2024-12-31T23:59:59Z",
-
+    "lessonId": "lesson-uuid-123",
+    "tenentId": "tenant-uuid-123",
+    "title": "Introduction to Backpropagation",
+    "alias": "intro-backprop",
+    "description": "Learn how neural networks learn through backpropagation",
+    "image": "path/to/saved/image.jpg",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
     "storage": "local",
-
-    "freeLesson": "yes",
-
     "noOfAttempts": "3",
-
     "attemptsGrade": "highest",
-
-    "considerMarks": "yes",
-
     "format": "video",
-
-    "mediaId": "media-uuid",
-
-    "eligibilityCriteria": "Complete previous lesson",
-
+    "mediaId": "media-uuid-123",
+    "eligibilityCriteria": null,
     "idealTime": 45,
-
     "resume": true,
-
     "totalMarks": 100,
-
     "passingMarks": 60,
-
-    "inLib": false,
-
-    "params": "{}",
-
-   "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },  
- 
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": null,
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
-  }
-
-}
-
-### Get Lessons by Module ID 📋
-
-- **Endpoint**: `GET /lessons/module/:moduleId`  
-- **Description**: Retrieves all lessons belonging to a specific module  
-- **Response**:
-
-{
-
-  "statusCode": 200,
-
-  "data": \[
-
-    {
-
-      "lessonId": "uuid",
-
-      "title": "Lesson Title",
-
-      "description": "Lesson description",
-
-      "content": "Lesson content",
-
-      "ordering": 1,
-
-      "moduleId": "module-uuid",
-
-      "courseId": "course-uuid",
-
-      "alias": "lesson-alias",
-
-      "status": "published",
-
-      "shortDesc": "Short description",
-
-      "image": "path/to/image",
-
-      "startDate": "2024-03-20T00:00:00Z",
-
-      "endDate": "2024-12-31T23:59:59Z",
-
-      "storage": "local",
-
-      "freeLesson": "yes",
-
-      "noOfAttempts": "3",
-
-      "attemptsGrade": "highest",
-
-      "considerMarks": "yes",
-
-      "format": "video",
-
-      "mediaId": "media-uuid",
-
-      "eligibilityCriteria": "Complete previous lesson",
-
-      "idealTime": 45,
-
-      "resume": true,
-
-      "totalMarks": 100,
-
-      "passingMarks": 60,
-
-      "inLib": false,
-
-      "params": "{}",
-
-      "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },
-
-      "createdBy": "user-uuid",
-
-      "createdAt": "2024-03-20T00:00:00Z",
-
-      "updatedBy": null,
-
-      "updatedAt": "2024-03-20T00:00:00Z"
-
-    }
-
-  \]
-
-}
-
-### Get Lessons by Course ID 📋
-
-- **Endpoint**: `GET /lessons/course/:courseId`  
-- **Description**: Retrieves all lessons belonging to a specific course  
-- **Response**:
-
-{
-
-  "statusCode": 200,
-
-  "data": \[
-
-    {
-
-      "lessonId": "uuid",
-
-      "title": "Lesson Title",
-
-      "description": "Lesson description",
-
-      "content": "Lesson content",
-
-      "ordering": 1,
-
-      "moduleId": "module-uuid",
-
-      "courseId": "course-uuid",
-
-      "alias": "lesson-alias",
-
-      "status": "published",
-
-      "shortDesc": "Short description",
-
-      "image": "path/to/image",
-
-      "startDate": "2024-03-20T00:00:00Z",
-
-      "endDate": "2024-12-31T23:59:59Z",
-
-      "storage": "local",
-
-      "freeLesson": "yes",
-
-      "noOfAttempts": "3",
-
-      "attemptsGrade": "highest",
-
-      "considerMarks": "yes",
-
-      "format": "video",
-
-      "mediaId": "media-uuid",
-
-      "eligibilityCriteria": "Complete previous lesson",
-
-      "idealTime": 45,
-
-      "resume": true,
-
-      "totalMarks": 100,
-
-      "passingMarks": 60,
-
-      "inLib": false,
-
-      "params": "{}",  
-    
-      "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },
-
-      "createdBy": "user-uuid",
-
-      "createdAt": "2024-03-20T00:00:00Z",
-
-      "updatedBy": null,
-
-      "updatedAt": "2024-03-20T00:00:00Z"
-
-    }
-
-  \]
-
-}
-
-### Update Lesson ✏️
-
-- **Endpoint**: `PUT /lessons/:id`  
-- **Description**: Updates an existing lesson  
-- **Content-Type**: `multipart/form-data`  
-- **Request Body**:
-
-title: Updated Title
-
-description: Updated description
-
-content: Updated content
-
-ordering: 2
-
-moduleId: module-uuid
-
-courseId: course-uuid
-
-status: unpublished
-
-shortDesc: Updated short description
-
-isPublished: false
-
-duration: 60
-
-type: document
-
-videoUrl: https://example.com/updated-video
-
-resourcesUrl: https://example.com/updated-resources
-
-thumbnailUrl: https://example.com/updated-thumbnail
-
-startDate: 2024-03-20T00:00:00Z
-
-endDate: 2024-12-31T23:59:59Z
-
-storage: cloud
-
-freeLesson: no
-
-noOfAttempts: 5
-
-attemptsGrade: average
-
-considerMarks: no
-
-format: document
-
-mediaId: new-media-uuid
-
-eligibilityCriteria: Updated criteria
-
-idealTime: 60
-
-resume: false
-
-totalMarks: 200
-
-passingMarks: 120
-
-inLib: true
-
-params: {}
-
-image: \[file\]
-
-mediaContent: {  
-  format: string  video  
-  sub\_format: video.youtube.url  
-  source: https://youtube.com/wQdsmn  
-  params: {}  
-}
-
-- **Response**:
-
-{
-
-  "id": "api.lesson.update",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": {
-
-    "lessonId": "uuid",
-
-    "title": "Updated Title",
-
-    "description": "Updated description",
-
-    "content": "Updated content",
-
-    "ordering": 2,
-
-    "moduleId": "module-uuid",
-
-    "courseId": "course-uuid",
-
-    "status": "unpublished",
-
-    "shortDesc": "Updated short description",
-
-    "image": "updated/image/path",
-
-    "startDate": "2024-03-20T00:00:00Z",
-
-    "endDate": "2024-12-31T23:59:59Z",
-
-    "storage": "cloud",
-
-    "freeLesson": "no",
-
-    "noOfAttempts": "5",
-
-    "attemptsGrade": "average",
-
-    "considerMarks": "no",
-
-    "format": "document",
-
-    "mediaId": "new-media-uuid",
-
-    "eligibilityCriteria": "Updated criteria",
-
-    "idealTime": 60,
-
-    "resume": false,
-
-    "totalMarks": 200,
-
-    "passingMarks": 120,
-
-    "inLib": true,
-
-    "params": "{}",
-
-    "mediaContent": {  
-        "url": "path/to/media",  
-        "format": "video",  
-        "sub\_format": "video.youtube.url",  
-        "source": "https://youtube.com/watch?v=example",  
-        "params": {}  
-      },
-
-    "createdBy": "user-uuid",
-
-    "createdAt": "2024-03-20T00:00:00Z",
-
-    "updatedBy": "user-uuid",
-
-    "updatedAt": "2024-03-20T00:00:00Z"
-
-  }
-
-}
-
-### Delete Lesson 🗑️
-
-- **Endpoint**: `DELETE /lessons/:id`  
-- **Description**: Deletes a lesson  
-- **Response**:
-
-{
-
-  "id": "api.lesson.delete",
-
-  "ver": "1.0",
-
-  "ts": "2024-03-20T00:00:00Z",
-
-  "params": {
-
-    "resmsgid": "uuid",
-
-    "status": "successful",
-
-    "err": null,
-
-    "errmsg": null,
-
-  },
-
-  "responseCode": 200,
-
-  "result": null
-
-}
-
-## User Enrollment {#user-enrollment} 👥
-
-### Enroll User in Course ➕
-
-- **Endpoint**: `POST /enrollments`  
-- **Description**: Enrolls a user in a course  
-- **Content-Type**: `application/json`  
-- **Request Body**:
-
-course\_id\*: UUID
-
-user\_id\*: UUID
-
-unlimited\_plan: false
-
-before\_expiry\_mail: false
-
-after\_expiry\_mail: false
-
-params: {}
-
-- **Response**:
-
-{
-
-"id": "api.enrollment.create",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 201,
-
-"result": {
-
-"id": "uuid",
-
-"course\_id": "uuid",
-
-"user\_id": "uuid",
-
-"tenentId": "uuid",
-
-"enrolled\_on\_time": "2024-03-20T00:00:00Z",
-
-"end\_time": "2024-12-31T23:59:59Z",
-
-"state": 0,
-
-"unlimited\_plan": false,
-
-"before\_expiry\_mail": false,
-
-"after\_expiry\_mail": false,
-
-"params": {},
-
-"enrolled\_by": "uuid",
-
-"enrolled\_at": "2024-03-20T00:00:00Z"
-
-}
-
-}
-
-- **On user enrollment add entry into track\_course with below details**   
-  { 
-
-  course\_id: uuid  
-    
-  user\_id: uuid  
-    
-  timestart: 2024-03-20T00:00:00Z
-
-
-  no\_of\_lessons: 10 
-
-}
-
-### Get Enrollments with Course Details 📋
-
-- **Endpoint**: `GET /enrollments`  
-- **Description**: Retrieves enrollments with course details. Can be filtered by user\_id or course\_id  
-- **Query Parameters**:  
-  - user\_id: UUID (optional) \- Filter enrollments by user ID  
-  - course\_id: UUID (optional) \- Filter enrollments by course ID  
-  - page: number (optional) \- Page number for pagination  
-  - limit: number (optional) \- Number of items per page  
-- **Response**:
-
-{
-
-"id": "api.enrollment.list",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 200,
-
-"result": {
-
-"count": 1,
-
-"enrollments": \\\[
-
-  {
-
-    "id": "uuid",
-
-    "course\_id": "uuid",
-
-    "user\_id": "uuid",
-
-    "enrolled\_on\_time": "2024-03-20T00:00:00Z",
-
-    "end\_time": "2024-12-31T23:59:59Z",
-
-    "state": 0,
-
-    "unlimited\_plan": false,
-
-    "before\_expiry\_mail": false,
-
-    "after\_expiry\_mail": false,
-
+    "status": "published",
     "params": {},
-
-    "enrolled\_by": "uuid",
-
-    "enrolled\_at": "2024-03-20T00:00:00Z",
-
-    "title": "Course Title",
-
-    "shortDescription": "Short course description",
-
-    "description": "Detailed course description",
-
-    "image": "path/to/image",
-
-  }
-
-\\\]
-
-}
-
-}
-
-### Update Enrollment ✏️
-
-- **Endpoint**: `PUT /enrollments/:id`  
-- **Description**: Updates an existing enrollment  
-- **Content-Type**: `application/json`  
-- **Request Body**:
-
-course\_id: uuid
-
-user\_id: uuid
-
-end\_time: 2024-12-31T23:59:59Z
-
-state: 1
-
-unlimited\_plan: true
-
-before\_expiry\_mail: true
-
-after\_expiry\_mail: true
-
-params: {}
-
-enrolled\_by: uuid
-
-- **Response**:
-
-{
-
-"id": "api.enrollment.update",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,  
-},
-
-"responseCode": 200,
-
-"result": {
-
-"id": "uuid",
-
-"course\_id": "uuid",
-
-"user\_id": "uuid",
-
-"enrolled\_on\_time": "2024-03-20T00:00:00Z",
-
-"end\_time": "2024-12-31T23:59:59Z",
-
-"state": 1,
-
-"unlimited\_plan": true,
-
-"before\_expiry\_mail": true,
-
-"after\_expiry\_mail": true,
-
-"params": {},
-
-"enrolled\_by": "uuid",
-
-"enrolled\_at": "2024-03-20T00:00:00Z"
-
-}
-
-}
-
-### Delete Enrollment 🗑️
-
-- **Endpoint**: `DELETE /enrollments/:id`  
-- **Description**: Deletes an enrollment  
-- **Response**:
-
-{
-
-"id": "api.enrollment.delete",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 200,
-
-"result": null
-
-}
-
-## Lesson Tracking {#lesson-tracking} 📊
-
-### Start Lesson Tracking ▶️
-
-- **Endpoint**: `POST /lessons/tracking`  
-- **Description**: Starts tracking a user's progress in a lesson  
-- **Content-Type**: `application/json`  
-- **Request Body**:
-
-lesson\_id\*: UUID
-
-user\_id\*: UUID
-
-attempt: 1
-
-timestart: 2024-03-20T00:00:00Z
-
-score: 0
-
-status: started
-
-total\_content: 0
-
-current\_position: 0
-
-time\_spent: 0
-
-updatedBy\*: UUID
-
-- **Response**:
-
-{
-
-"id": "api.lesson.tracking.start",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,  
-},
-
-"responseCode": 201,
-
-"result": {
-
-"id": "uuid",
-
-"lesson\_id": "uuid"
-
-}
-
-}
-
-### Update Lesson Tracking ✏️
-
-- **Endpoint**: `PUT /lessons/tracking/:id`  
-- **Description**: Updates a user's progress in a lesson  
-- **Content-Type**: `application/json`  
-- **Request Body**:
-
-lesson\_id: uuid
-
-user\_id: uuid
-
-attempt: 2
-
-timestart: 2024-03-20T00:00:00Z
-
-timeend: 2024-03-20T01:00:00Z
-
-score: 85
-
-status: completed
-
-total\_content: 100
-
-current\_position: 100
-
-time\_spent: 3600
-
-updatedBy: uuid
-
-- **Response**:
-
-{
-
-"id": "api.lesson.tracking.update",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null  
-},
-
-"responseCode": 200,
-
-"result": {
-
-"id": "uuid",
-
-"lesson\_id": "uuid"
-
-}
-
-}
-
-### Get Lesson Tracking 📋
-
-- **Endpoint**: `GET /lessons/tracking`  
-- **Description**: Retrieves lesson tracking records with optional filters  
-- **Query Parameters**:  
-  - lesson\_id: UUID (optional) \- Filter by lesson ID  
-  - user\_id: UUID (optional) \- Filter by user ID  
-  - status: string (optional) \- Filter by status (started, completed, etc.)  
-  - page: number (optional) \- Page number for pagination  
-  - limit: number (optional) \- Number of items per page  
-- **Response**:
-
-{
-
-"id": "api.lesson.tracking.list",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 200,
-
-"result": {
-
-"count": 1,
-
-"tracking": \\\[
-
-  {
-
-    "id": "uuid",
-
-    "lesson\_id": "uuid",
-
-    "user\_id": "uuid",
-
-    "attempt": 2,
-
-    "timestart": "2024-03-20T00:00:00Z",
-
-    "timeend": "2024-03-20T01:00:00Z",
-
-    "score": 85,
-
-    "status": "completed",
-
-    "total\_content": 100,
-
-    "current\_position": 100,
-
-    "time\_spent": 3600,
-
-    "updatedBy": "uuid",
-
-    "updatedAt": "2024-03-20T00:00:00Z",
-
-    "lesson": {
-
-      "lessonId": "uuid",
-
-      "title": "Lesson Title",
-
-      "description": "Lesson description",
-
-      "content": "Lesson content",
-
-      "ordering": 1,
-
-      "moduleId": "module-uuid",
-
-      "courseId": "course-uuid",
-
-      "status": "published",
-
-      "shortDesc": "Short description",
-
-      "image": "path/to/image",
-
-      "startDate": "2024-03-20T00:00:00Z",
-
-      "endDate": "2024-12-31T23:59:59Z",
-
-      "storage": "local",
-
-      "freeLesson": "yes",
-
-      "noOfAttempts": "3",
-
-      "attemptsGrade": "highest",
-
-      "considerMarks": "yes",
-
+    "mediaContent": {
       "format": "video",
-
-      "mediaId": "media-uuid",
-
-      "eligibilityCriteria": "Complete previous lesson",
-
-      "idealTime": 45,
-
-      "resume": true,
-
-      "totalMarks": 100,
-
-      "passingMarks": 60,
-
-      "inLib": false,
-
-      "params": "{}"
-
-    }
-
+      "subFormat": "video.youtube.url",
+      "source": "https://youtube.com/watch?v=example",
+      "params": {}
+    },
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
+    "updatedBy": null,
+    "updatedAt": null
   }
-
-\\\]
-
 }
+```
 
-}
 
-## Course Tracking {#course-tracking} 📈
 
-### Update Course Tracking ✏️
 
-- **Endpoint**: `PUT /courses/tracking/:id`  
-- **Description**: Updates a user's progress in a course  
-- **Content-Type**: `application/json`  
+
+
+
+#### Add Lesson to Course/Module
+
+- **Endpoint**: `POST /api/courses/{courseId}/modules/{moduleId}/lessons`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `moduleId` (path): UUID of the module (optional, can be "null" for course-level lessons)
+
+
+
 - **Request Body**:
 
-course\_id: uuid
-
-user\_id: uuid
-
-timestart: 2024-03-20T00:00:00Z
-
-timeend: 2024-12-31T23:59:59Z
-
-no\_of\_lessons: 10
-
-completed\_lessons: 5
-
-status: in\_progress
-
-last\_accessed\_date: 2024-03-20T01:00:00Z
-
-cert\_gen\_date: 2024-03-20T01:00:00Z
-
-- **Response**:
-
+```json
 {
-
-"id": "api.course.tracking.update",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 200,
-
-"result": {
-
-"id": "uuid",
-
-"course\_id": "uuid",
-
-"user\_id": "uuid",
-
-"timestart": "2024-03-20T00:00:00Z",
-
-"timeend": "2024-12-31T23:59:59Z",
-
-"no\_of\_lessons": 10,
-
-"completed\_lessons": 5,
-
-"status": "in\_progress",
-
-"last\_accessed\_date": "2024-03-20T01:00:00Z",
-
-"cert\_gen\_date": "2024-03-20T01:00:00Z"
-
+  "lessonId": "lesson-uuid-123",
+  "freeLesson": true,
+  "considerForPassing": true,
+  "status": "published",
+  "startDatetime": "2024-06-01T00:00:00Z",
+  "endDatetime": "2024-12-31T23:59:59Z",
+  "noOfAttempts": "3",
+  "attemptsGrade": "highest",
+  "eligibilityCriteria": null,
+  "idealTime": 45,
+  "resume": true,
+  "totalMarks": 100,
+  "passingMarks": 60,
+  "params": {}
 }
-
-}
-
-- **On lesson complete add entry into track\_course to update completed\_lessons and if no\_of\_lessons==completed\_lessons then update status \= 'completed'**   
-  {   
-  course\_id: uuid
-
-  user\_id: uuid
+```
 
 
-  completed\_lessons: 10
+- **Response Structure**:
 
+- Success (201 Created):
 
-  "last\_accessed\_date": "2024-03-20T01:00:00Z",
-
-  }
-
-### Get Course Tracking 📋
-
-- **Endpoint**: `GET /courses/tracking`  
-- **Description**: Retrieves course tracking records with optional filters  
-- **Query Parameters**:  
-  - course\_id: UUID (optional) \- Filter by course ID  
-  - user\_id: UUID (optional) \- Filter by user ID  
-  - status: string (optional) \- Filter by status (incomplete, in\_progress )  
-- **Response**:
-
+```json
 {
-
-"id": "api.course.tracking.list",
-
-"ver": "1.0",
-
-"ts": "2024-03-20T00:00:00Z",
-
-"params": {
-
-"resmsgid": "uuid",
-
-"status": "successful",
-
-"err": null,
-
-"errmsg": null,
-
-},
-
-"responseCode": 200,
-
-"result": {
-
-"count": 1,
-
-"tracking": \\\[
-
-  {
-
-    "id": "uuid",
-
-    "course\_id": "uuid",
-
-    "user\_id": "uuid",
-
-    "timestart": "2024-03-20T00:00:00Z",
-
-    "timeend": "2024-12-31T23:59:59Z",
-
-    "no\_of\_lessons": 10,
-
-    "completed\_lessons": 5,
-
-    "status": "in\_progress",
-
-    "last\_accessed\_date": "2024-03-20T01:00:00Z",
-
-    "cert\_gen\_date": "2024-03-20T01:00:00Z",
-
-    "course": {
-
-      "courseId": "uuid",
-
-      "title": "Course Title",
-
-      "shortDescription": "Short course description",
-
-      "description": "Detailed course description",
-
-      "image": "path/to/image",
-
-      "total\_modules": 5,
-
-      "total\_lessons": 10,
-
-      "total\_duration": 3600,
-
-      "certificate\_eligible": true
-
-    }
-
-  }
-
-\\\]
-
-}
-
-}
-
-## Common Response Structure {#common-response-structure} 🔄
-
-All API responses follow this general structure:
-
-{
-
-  "id": "string",        // API ID
-
-  "ver": "1.0",         // API version
-
-  "ts": "2024-03-20T00:00:00Z", // Timestamp
-
+  "id": "api.course.lesson.add",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
   "params": {
-
-    "resmsgid": "uuid",  // Response message ID
-
-    "status": "successful", // 'successful' or 'failed'
-
-    "err": null,         // Error code (if any)
-
-    "errmsg": null,      // Error message (if any)
-
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
   },
-
-  "responseCode": number, // HTTP status code
-
-  "result": object | array // Response data
-
+  "responseCode": 201,
+  "result": {
+    "lessonId": "lesson-uuid-123",
+    "courseId": "course-uuid-123",
+    "moduleId": "module-uuid-456",
+    "freeLesson": true,
+    "considerForPassing": true,
+    "status": "published",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "noOfAttempts": "3",
+    "attemptsGrade": "highest",
+    "eligibilityCriteria": null,
+    "idealTime": 45,
+    "resume": true,
+    "totalMarks": 100,
+    "passingMarks": 60,
+    "params": {},
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z"
+  }
 }
+```
 
-### Status Codes {#status-codes} ⚠️
 
-- 200: Success ✅  
-- 201: Created ✅  
-- 400: Bad Request ❌  
-- 401: Unauthorized 🔒  
-- 403: Forbidden ⛔  
-- 404: Not Found 🔍  
-- 500: Internal Server Error 💥
+
+
+
+
+
+#### Get Lesson by ID
+
+- **Endpoint**: `GET /api/lessons/{lessonId}`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessonId": "lesson-uuid-123",
+    "title": "Introduction to Backpropagation",
+    "alias": "intro-backprop",
+    "description": "Learn how neural networks learn through backpropagation",
+    "image": "path/to/image.jpg",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "storage": "local",
+    "noOfAttempts": "3",
+    "attemptsGrade": "highest",
+    "format": "video",
+    "mediaId": "media-uuid-123",
+    "eligibilityCriteria": null,
+    "idealTime": 45,
+    "resume": true,
+    "totalMarks": 100,
+    "passingMarks": 60,
+    "status": "published",
+    "params": {},
+    "mediaContent": {
+      "format": "video",
+      "subFormat": "video.youtube.url",
+      "source": "https://youtube.com/watch?v=example",
+      "params": {}
+    },
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
+    "updatedBy": null,
+    "updatedAt": null
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Lessons by Course ID
+
+- **Endpoint**: `GET /api/courses/{courseId}/lessons`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `status` (query, optional): Filter by lesson status
+- `format` (query, optional): Filter by lesson format
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.lessons",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessons": [
+      {
+        "lessonId": "lesson-uuid-123",
+        "title": "Introduction to Backpropagation",
+        "description": "Learn how neural networks learn through backpropagation",
+        "image": "path/to/image.jpg",
+        "format": "video",
+        "moduleId": "module-uuid-456",
+        "status": "published",
+        "freeLesson": true,
+        "totalMarks": 100,
+        "passingMarks": 60
+      },
+      {
+        "lessonId": "lesson-uuid-456",
+        "title": "Neural Network Architectures",
+        "description": "Explore different neural network architectures",
+        "image": "path/to/image2.jpg",
+        "format": "document",
+        "moduleId": null,
+        "status": "published",
+        "freeLesson": false,
+        "totalMarks": 50,
+        "passingMarks": 30
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Lessons by Module ID
+
+- **Endpoint**: `GET /api/modules/{moduleId}/lessons`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `moduleId` (path): UUID of the module
+- `status` (query, optional): Filter by lesson status
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.module.lessons",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessons": [
+      {
+        "lessonId": "lesson-uuid-123",
+        "title": "Introduction to Backpropagation",
+        "description": "Learn how neural networks learn through backpropagation",
+        "image": "path/to/image.jpg",
+        "format": "video",
+        "status": "published",
+        "freeLesson": true,
+        "totalMarks": 100,
+        "passingMarks": 60,
+        "mediaContent": {
+          "format": "video",
+          "subFormat": "video.youtube.url",
+          "source": "https://youtube.com/watch?v=example"
+        }
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Lesson
+
+- **Endpoint**: `PUT /api/lessons/{lessonId}`
+- **HTTP Method**: PUT
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Request Body**:
+
+```json
+{
+  "title": "Updated Backpropagation Lesson",
+  "description": "Updated description for backpropagation",
+  "image": "base64-encoded-image-data",
+  "status": "published",
+  "noOfAttempts": "5",
+  "attemptsGrade": "average",
+  "idealTime": 60,
+  "totalMarks": 120,
+  "passingMarks": 70,
+  "mediaContent": {
+    "format": "video",
+    "subFormat": "video.youtube.url",
+    "source": "https://youtube.com/watch?v=updated-example",
+    "params": {}
+  }
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.update",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessonId": "lesson-uuid-123",
+    "title": "Updated Backpropagation Lesson",
+    "description": "Updated description for backpropagation",
+    "image": "path/to/updated/image.jpg",
+    "status": "published",
+    "noOfAttempts": "5",
+    "attemptsGrade": "average",
+    "idealTime": 60,
+    "totalMarks": 120,
+    "passingMarks": 70,
+    "mediaContent": {
+      "format": "video",
+      "subFormat": "video.youtube.url",
+      "source": "https://youtube.com/watch?v=updated-example",
+      "params": {}
+    },
+    "updatedBy": "user-uuid-456",
+    "updatedAt": "2024-05-06T14:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Delete Lesson
+
+- **Endpoint**: `DELETE /api/lessons/{lessonId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.delete",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "message": "Lesson deleted successfully"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Remove Lesson from Course/Module
+
+- **Endpoint**: `DELETE /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `moduleId` (path): UUID of the module (use "null" for course-level lessons)
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.lesson.remove",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "message": "Lesson removed from course/module successfully"
+  }
+}
+```
+
+
+
+
+
+
+
+### Media Management
+
+#### Upload Media
+
+- **Endpoint**: `POST /api/media`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Content-Type**: `multipart/form-data`
+- **Request Parameters**:
+
+- `file` (form): The media file to upload
+- `format` (form): Media format (video, document, image, etc.)
+- `subFormat` (form, optional): Media sub-format (video.mp4, document.pdf, etc.)
+- `storage` (form, optional): Storage type (local, cloud, etc.)
+- `source` (form, optional): External source URL if applicable
+- `params` (form, optional): Additional parameters as JSON string
+
+
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
+  "id": "api.media.upload",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 201,
+  "result": {
+    "mediaId": "media-uuid-123",
+    "format": "video",
+    "subFormat": "video.mp4",
+    "orgFilename": "lecture.mp4",
+    "path": "path/to/media/file.mp4",
+    "storage": "local",
+    "source": null,
+    "params": {},
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Media by ID
+
+- **Endpoint**: `GET /api/media/{mediaId}`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `mediaId` (path): UUID of the media
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.media.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "mediaId": "media-uuid-123",
+    "format": "video",
+    "subFormat": "video.mp4",
+    "orgFilename": "lecture.mp4",
+    "path": "path/to/media/file.mp4",
+    "storage": "local",
+    "source": null,
+    "params": {},
+    "createdBy": "user-uuid-123",
+    "createdAt": "2024-05-06T14:24:02Z",
+    "updatedBy": null,
+    "updatedAt": null
+  }
+}
+```
+
+
+
+
+
+
+
+#### Associate Media with Lesson
+
+- **Endpoint**: `POST /api/lessons/{lessonId}/media/{mediaId}`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+- `mediaId` (path): UUID of the media
+
+
+
+- **Response Structure**:k
+
+- Success (201 Created):
+
+```json
+{
+  "id": "api.lesson.media.associate",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 201,
+  "result": {
+    "filesId": "files-uuid-123",
+    "lessonId": "lesson-uuid-123",
+    "mediaId": "media-uuid-123"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Delete Media
+
+- **Endpoint**: `DELETE /api/media/{mediaId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `mediaId` (path): UUID of the media
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.media.delete",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "message": "Media deleted successfully"
+  }
+}
+```
+
+
+
+
+
+
+
+### User Enrollment
+
+#### Enroll User in Course
+
+- **Endpoint**: `POST /api/enrollments`
+- **HTTP Method**: POST
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- None
+
+
+
+- **Request Body**:
+
+```json
+{
+  "courseId": "course-uuid-123",
+  "userId": "user-uuid-456",
+  "unlimitedPlan": false,
+  "beforeExpiryMail": false,
+  "afterExpiryMail": false,
+  "params": {}
+}
+```
+
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
+  "id": "api.enrollment.create",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 201,
+  "result": {
+    "enrollmentId": "enrollment-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "tenentId": "tenant-uuid-123",
+    "enrolledOnTime": "2024-05-06T14:24:02Z",
+    "endTime": "2024-12-31T23:59:59Z",
+    "status": "active",
+    "unlimitedPlan": false,
+    "beforeExpiryMail": false,
+    "afterExpiryMail": false,
+    "params": {},
+    "enrolledBy": "user-uuid-123",
+    "enrolledAt": "2024-05-06T14:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get User Enrollments
+
+- **Endpoint**: `GET /api/enrollments`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `userId` (query, optional): Filter by user ID
+- `courseId` (query, optional): Filter by course ID
+- `status` (query, optional): Filter by enrollment status
+- `page` (query, optional): Page number for pagination
+- `limit` (query, optional): Number of items per page
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.enrollment.list",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "count": 2,
+    "enrollments": [
+      {
+        "enrollmentId": "enrollment-uuid-123",
+        "courseId": "course-uuid-123",
+        "userId": "user-uuid-456",
+        "enrolledOnTime": "2024-05-06T14:24:02Z",
+        "endTime": "2024-12-31T23:59:59Z",
+        "status": "active",
+        "unlimitedPlan": false,
+        "course": {
+          "title": "Introduction to Machine Learning",
+          "shortDescription": "Learn the basics of machine learning",
+          "image": "path/to/image.jpg"
+        }
+      },
+      {
+        "enrollmentId": "enrollment-uuid-456",
+        "courseId": "course-uuid-789",
+        "userId": "user-uuid-456",
+        "enrolledOnTime": "2024-04-01T10:00:00Z",
+        "endTime": "2024-10-31T23:59:59Z",
+        "status": "active",
+        "unlimitedPlan": true,
+        "course": {
+          "title": "Advanced Data Science",
+          "shortDescription": "Master data science techniques",
+          "image": "path/to/image2.jpg"
+        }
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Enrollment by ID
+
+- **Endpoint**: `GET /api/enrollments/{enrollmentId}`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `enrollmentId` (path): UUID of the enrollment
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.enrollment.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "enrollmentId": "enrollment-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "tenentId": "tenant-uuid-123",
+    "enrolledOnTime": "2024-05-06T14:24:02Z",
+    "endTime": "2024-12-31T23:59:59Z",
+    "status": "active",
+    "unlimitedPlan": false,
+    "beforeExpiryMail": false,
+    "afterExpiryMail": false,
+    "params": {},
+    "enrolledBy": "user-uuid-123",
+    "enrolledAt": "2024-05-06T14:24:02Z",
+    "course": {
+      "title": "Introduction to Machine Learning",
+      "shortDescription": "Learn the basics of machine learning",
+      "description": "Comprehensive introduction to machine learning concepts and algorithms",
+      "image": "path/to/image.jpg",
+      "startDatetime": "2024-06-01T00:00:00Z",
+      "endDatetime": "2024-12-31T23:59:59Z"
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Enrollment
+
+- **Endpoint**: `PUT /api/enrollments/{enrollmentId}`
+- **HTTP Method**: PUT
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `enrollmentId` (path): UUID of the enrollment
+
+
+
+- **Request Body**:
+
+```json
+{
+  "endTime": "2025-06-30T23:59:59Z",
+  "status": "extended",
+  "unlimitedPlan": true,
+  "beforeExpiryMail": true,
+  "afterExpiryMail": true,
+  "params": {
+    "extendedReason": "Customer request"
+  }
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.enrollment.update",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "enrollmentId": "enrollment-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "enrolledOnTime": "2024-05-06T14:24:02Z",
+    "endTime": "2025-06-30T23:59:59Z",
+    "status": "extended",
+    "unlimitedPlan": true,
+    "beforeExpiryMail": true,
+    "afterExpiryMail": true,
+    "params": {
+      "extendedReason": "Customer request"
+    },
+    "updatedBy": "user-uuid-123",
+    "updatedAt": "2024-05-06T14:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Cancel Enrollment
+
+- **Endpoint**: `DELETE /api/enrollments/{enrollmentId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `enrollmentId` (path): UUID of the enrollment
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.enrollment.cancel",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "message": "Enrollment cancelled successfully"
+  }
+}
+```
+
+
+
+
+
+
+
+### Course Tracking
+
+#### Start Course Tracking
+
+- **Endpoint**: `POST /api/courses/{courseId}/tracking`
+- **HTTP Method**: POST
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "startDatetime": "2024-05-06T14:24:02Z"
+}
+```
+
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
+  "id": "api.course.tracking.start",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 201,
+  "result": {
+    "courseTrackId": "course-track-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": null,
+    "noOfLessons": 10,
+    "completedLessons": 0,
+    "status": "incomplete",
+    "lastAccessedDate": "2024-05-06T14:24:02Z",
+    "certGenDate": null
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Course Tracking
+
+- **Endpoint**: `PUT /api/courses/{courseId}/tracking`
+- **HTTP Method**: PUT
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "completedLessons": 5,
+  "status": "in_progress",
+  "lastAccessedDate": "2024-05-06T15:30:00Z"
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.tracking.update",
+  "ver": "1.0",
+  "ts": "2024-05-06T15:30:00Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseTrackId": "course-track-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": null,
+    "noOfLessons": 10,
+    "completedLessons": 5,
+    "status": "in_progress",
+    "lastAccessedDate": "2024-05-06T15:30:00Z",
+    "certGenDate": null
+  }
+}
+```
+
+
+
+
+
+
+
+#### Complete Course Tracking
+
+- **Endpoint**: `PUT /api/courses/{courseId}/tracking/complete`
+- **HTTP Method**: PUT
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "endDatetime": "2024-05-10T16:45:00Z",
+  "completedLessons": 10,
+  "certGenDate": "2024-05-10T16:45:00Z"
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.tracking.complete",
+  "ver": "1.0",
+  "ts": "2024-05-10T16:45:00Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseTrackId": "course-track-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": "2024-05-10T16:45:00Z",
+    "noOfLessons": 10,
+    "completedLessons": 10,
+    "status": "completed",
+    "lastAccessedDate": "2024-05-10T16:45:00Z",
+    "certGenDate": "2024-05-10T16:45:00Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Course Tracking
+
+- **Endpoint**: `GET /api/courses/{courseId}/tracking`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `userId` (query): UUID of the user
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.tracking.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseTrackId": "course-track-uuid-123",
+    "courseId": "course-uuid-123",
+    "userId": "user-uuid-456",
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": null,
+    "noOfLessons": 10,
+    "completedLessons": 5,
+    "status": "in_progress",
+    "lastAccessedDate": "2024-05-06T15:30:00Z",
+    "certGenDate": null,
+    "course": {
+      "title": "Introduction to Machine Learning",
+      "shortDescription": "Learn the basics of machine learning",
+      "image": "path/to/image.jpg"
+    },
+    "progress": 50
+  }
+}
+```
+
+
+
+
+
+
+
+### Lesson Tracking
+
+#### Start Lesson Tracking
+
+- **Endpoint**: `POST /api/lessons/{lessonId}/tracking`
+- **HTTP Method**: POST
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "attempt": 1,
+  "startDatetime": "2024-05-06T14:24:02Z",
+  "totalContent": 100,
+  "currentPosition": 0
+}
+```
+
+
+- **Response Structure**:
+
+- Success (201 Created):
+
+```json
+{
+  "id": "api.lesson.tracking.start",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 201,
+  "result": {
+    "lessonTrackId": "lesson-track-uuid-123",
+    "lessonId": "lesson-uuid-123",
+    "userId": "user-uuid-456",
+    "attempt": 1,
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": null,
+    "score": 0,
+    "status": "started",
+    "totalContent": 100,
+    "currentPosition": 0,
+    "timeSpent": 0
+  }
+}
+```
+
+
+
+
+
+
+
+#### Update Lesson Tracking
+
+- **Endpoint**: `PUT /api/lessons/{lessonId}/tracking`
+- **HTTP Method**: PUT
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "attempt": 1,
+  "currentPosition": 50,
+  "timeSpent": 600,
+  "status": "in_progress"
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.tracking.update",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:34:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessonTrackId": "lesson-track-uuid-123",
+    "lessonId": "lesson-uuid-123",
+    "userId": "user-uuid-456",
+    "attempt": 1,
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": null,
+    "score": 0,
+    "status": "in_progress",
+    "totalContent": 100,
+    "currentPosition": 50,
+    "timeSpent": 600,
+    "updatedBy": "user-uuid-456",
+    "updatedAt": "2024-05-06T14:34:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Complete Lesson Tracking
+
+- **Endpoint**: `PUT /api/lessons/{lessonId}/tracking/complete`
+- **HTTP Method**: PUT
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Request Body**:
+
+```json
+{
+  "userId": "user-uuid-456",
+  "attempt": 1,
+  "endDatetime": "2024-05-06T15:24:02Z",
+  "score": 85,
+  "currentPosition": 100,
+  "timeSpent": 3600
+}
+```
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.tracking.complete",
+  "ver": "1.0",
+  "ts": "2024-05-06T15:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessonTrackId": "lesson-track-uuid-123",
+    "lessonId": "lesson-uuid-123",
+    "userId": "user-uuid-456",
+    "attempt": 1,
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": "2024-05-06T15:24:02Z",
+    "score": 85,
+    "status": "completed",
+    "totalContent": 100,
+    "currentPosition": 100,
+    "timeSpent": 3600,
+    "updatedBy": "user-uuid-456",
+    "updatedAt": "2024-05-06T15:24:02Z"
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get Lesson Tracking
+
+- **Endpoint**: `GET /api/lessons/{lessonId}/tracking`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+- `userId` (query): UUID of the user
+- `attempt` (query, optional): Specific attempt number
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.tracking.get",
+  "ver": "1.0",
+  "ts": "2024-05-06T15:30:00Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lessonTrackId": "lesson-track-uuid-123",
+    "lessonId": "lesson-uuid-123",
+    "userId": "user-uuid-456",
+    "attempt": 1,
+    "startDatetime": "2024-05-06T14:24:02Z",
+    "endDatetime": "2024-05-06T15:24:02Z",
+    "score": 85,
+    "status": "completed",
+    "totalContent": 100,
+    "currentPosition": 100,
+    "timeSpent": 3600,
+    "lesson": {
+      "title": "Introduction to Backpropagation",
+      "description": "Learn how neural networks learn through backpropagation",
+      "format": "video",
+      "totalMarks": 100,
+      "passingMarks": 60
+    },
+    "progress": 100,
+    "passed": true
+  }
+}
+```
+
+
+
+
+
+
+
+#### Get User's Lesson Tracking History
+
+- **Endpoint**: `GET /api/users/{userId}/lessons/{lessonId}/tracking`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `userId` (path): UUID of the user
+- `lessonId` (path): UUID of the lesson
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.user.lesson.tracking.history",
+  "ver": "1.0",
+  "ts": "2024-05-06T15:30:00Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "attempts": [
+      {
+        "lessonTrackId": "lesson-track-uuid-123",
+        "attempt": 1,
+        "startDatetime": "2024-05-06T14:24:02Z",
+        "endDatetime": "2024-05-06T15:24:02Z",
+        "score": 85,
+        "status": "completed",
+        "timeSpent": 3600
+      },
+      {
+        "lessonTrackId": "lesson-track-uuid-456",
+        "attempt": 2,
+        "startDatetime": "2024-05-07T10:00:00Z",
+        "endDatetime": "2024-05-07T11:15:00Z",
+        "score": 92,
+        "status": "completed",
+        "timeSpent": 4500
+      }
+    ],
+    "lesson": {
+      "title": "Introduction to Backpropagation",
+      "description": "Learn how neural networks learn through backpropagation",
+      "format": "video",
+      "totalMarks": 100,
+      "passingMarks": 60
+    },
+    "bestScore": 92,
+    "averageScore": 88.5,
+    "totalAttempts": 2,
+    "passed": true
+  }
+}
+```
+
+
+
+
+
+
+
+## Error Handling
+
+All API endpoints follow a consistent error handling approach:
+
+1. **Client Errors (4xx)**:
+
+1. 400 Bad Request: Invalid input parameters
+2. 401 Unauthorized: Missing or invalid authentication
+3. 403 Forbidden: Insufficient permissions
+4. 404 Not Found: Resource not found
+5. 409 Conflict: Resource already exists or conflict with existing data
+
+
+
+2. **Server Errors (5xx)**:
+
+1. 500 Internal Server Error: Unexpected server error
+
+
+
+
+
+Error response format:
+
+```json
+{
+  "id": "api.endpoint.action",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "failed",
+    "err": "ERROR_CODE",
+    "errmsg": "Detailed error message"
+  },
+  "responseCode": 4xx/5xx,
+  "result": null
+}
+```
