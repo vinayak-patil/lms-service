@@ -66,7 +66,7 @@
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
 | format | VARCHAR(255) | Lesson format |
 | mediaId | UUID | Foreign key referencing Media |
-| eligibilityCriteria | UUID | Eligibility criteria |
+| eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
 | resume | BOOLEAN | Whether lesson can be resumed (default: FALSE) |
 | totalMarks | INTEGER | Total marks |
@@ -92,7 +92,7 @@
 | endDatetime | TIMESTAMPTZ | Lesson end date |
 | noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
-| eligibilityCriteria | UUID | Eligibility criteria |
+| eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
 | resume | BOOLEAN | Whether lesson can be resumed (default: FALSE) |
 | totalMarks | INTEGER | Total marks |
