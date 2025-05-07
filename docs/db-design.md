@@ -13,7 +13,7 @@
 | image | VARCHAR | Course image path |
 | featured | BOOLEAN | Whether the course is featured (default: FALSE) |
 | free | BOOLEAN | Whether the course is free (default: FALSE) |
-| certificateTerm | VARCHAR | Certificate term - (NO_CERTIFICATE, PASS_ALL_LESSONS, COMPLETE_ALL_LESSONS) |
+| certificateTerm | VARCHAR | Certificate term - (NA, PASS_ALL_LESSONS, COMPLETE_ALL_LESSONS) |
 | certificateId | UUID | Certificate ID |
 | startDatetime | TIMESTAMPTZ | Course start date and time |
 | endDatetime | TIMESTAMPTZ | Course end date and time |
