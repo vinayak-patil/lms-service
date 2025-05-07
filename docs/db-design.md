@@ -62,7 +62,7 @@
 | startDatetime | TIMESTAMP | Lesson start date |
 | endDatetime | TIMESTAMP | Lesson end date |
 | storage | VARCHAR(50) | Storage type |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method - (FIRST_ATTEMPT, LAST_ATTEMPT, AVERAGE, HIGHEST) |
 | format | VARCHAR(255) | Lesson format - (Video, Document, Quiz, Event) |
 | mediaId | UUID | Foreign key referencing Media |
@@ -87,10 +87,10 @@
 | tenantId | UUID | Tenent ID |
 | freeLesson | BOOLEAN | Whether the lesson is free |
 | considerForPassing | BOOLEAN | Should consider this lesson for course passing |
-| status | VARCHAR(255) | Lesson status - published, unpublished, archived |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | startDatetime | TIMESTAMPTZ | Lesson start date |
 | endDatetime | TIMESTAMPTZ | Lesson end date |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method - (FIRST_ATTEMPT, LAST_ATTEMPT, AVERAGE, HIGHEST) |
 | eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
@@ -133,12 +133,12 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | enrollemtId | UUID | Primary key |
-| course_id | UUID | Foreign key referencing courses |
+| courseId | UUID | Foreign key referencing courses |
 | tenantId | UUID | Tenent ID |
 | userId | UUID | User ID |
 | enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
 | endTime | TIMESTAMPTZ | Enrollment end time |
-| status | VARCHAR | Enrollment status (default: 'published') -published, unpublished, archived  |
+| status | VARCHAR | Enrollment status (default: 'published') - (published, unpublished, archived) |
 | unlimitedPlan | BOOLEAN | Whether unlimited plan (default: FALSE) |
 | beforeExpiryMail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
 | afterExpiryMail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
@@ -157,7 +157,7 @@
 | endDatetime | TIMESTAMPTZ | Tracking end time |
 | noOfLessons | INTEGER | Total number of lessons (default: 0) |
 | completedLessons | INTEGER | Number of completed lessons (default: 0) |
-| status | VARCHAR(40) | Course status (default: 'incomplete') - started, incomplete, complete |
+| status | VARCHAR(40) | Course status (default: 'incomplete') - (started, incomplete, completed) |
 | lastAccessedDate | TIMESTAMPTZ | Last accessed date |
 | certGenDate | TIMESTAMPTZ | Certificate generation date |
 
@@ -172,7 +172,7 @@
 | startDatetime | TIMESTAMPTZ | Tracking start time |
 | endDatetime | TIMESTAMPTZ | Tracking end time |
 | score | INTEGER | Lesson score (default: 0) |
-| status | VARCHAR(255) | Lesson status (default: 'started') - started, incomplete, complete |
+| status | VARCHAR(255) | Lesson status (default: 'started') - (started, incomplete, completed) |
 | totalContent | FLOAT | Total content length (default: 0) |
 | currentPosition | FLOAT | Current position (default: 0) |
 | timeSpent | INTEGER | Time spent on lesson |
