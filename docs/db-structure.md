@@ -62,11 +62,11 @@
 | startDatetime | TIMESTAMP | Lesson start date |
 | endDatetime | TIMESTAMP | Lesson end date |
 | storage | VARCHAR(50) | Storage type |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
 | format | VARCHAR(255) | Lesson format |
 | mediaId | UUID | Foreign key referencing Media |
-| eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
+| eligibilityCriteria | UUID | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
 | resume | BOOLEAN | Whether lesson can be resumed (default: FALSE) |
 | totalMarks | INTEGER | Total marks |
@@ -90,9 +90,9 @@
 | status | VARCHAR(255) | Lesson status |
 | startDatetime | TIMESTAMPTZ | Lesson start date |
 | endDatetime | TIMESTAMPTZ | Lesson end date |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
-| eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
+| eligibilityCriteria | UUID | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
 | resume | BOOLEAN | Whether lesson can be resumed (default: FALSE) |
 | totalMarks | INTEGER | Total marks |
@@ -133,7 +133,7 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | enrollemtId | UUID | Primary key |
-| course_id | UUID | Foreign key referencing courses |
+| courseId | UUID | Foreign key referencing courses |
 | tenantId | UUID | Tenent ID |
 | userId | UUID | User ID |
 | enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
