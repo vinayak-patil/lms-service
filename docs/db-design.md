@@ -142,7 +142,7 @@
 | userId | UUID | User ID |
 | enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
 | endTime | TIMESTAMPTZ | Enrollment end time |
-| status | VARCHAR(255) | ENrollements status - (published, unpublished, archived) |
+| status | VARCHAR(255) | Enrollements status - (published, unpublished, archived) |
 | unlimitedPlan | BOOLEAN | Whether unlimited plan (default: FALSE) |
 | beforeExpiryMail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
 | afterExpiryMail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
