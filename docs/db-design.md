@@ -19,7 +19,7 @@
 | endDatetime | TIMESTAMPTZ | Course end date and time |
 | adminApproval | BOOLEAN | Whether admin approval is required (default: FALSE) |
 | autoEnroll | BOOLEAN | Whether auto-enrollment is enabled (default: FALSE) |
-| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
+| status | VARCHAR(255) | Course status - (published, unpublished, archived) |
 | params | JSONB | Additional parameters |
 | createdBy | VARCHAR | User who created the course |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
@@ -43,7 +43,7 @@
 | badgeTerm | JSONB | Badge term |
 | badgeId | UUID | Foreign key referencing badges |
 | ordering | INTEGER | Module order |
-| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
+| status | VARCHAR(255) | Module status - (published, unpublished, archived) |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
 | createdBy | UUID | User who created the module |
 | updatedAt | TIMESTAMPTZ | Last update timestamp |
@@ -91,7 +91,7 @@
 | tenantId | UUID | Tenent ID |
 | freeLesson | BOOLEAN | Whether the lesson is free |
 | considerForPassing | BOOLEAN | Should consider this lesson for course passing |
-| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
+| status | VARCHAR(255) | course_lesson status - (published, unpublished, archived) |
 | startDatetime | TIMESTAMPTZ | Lesson start date |
 | endDatetime | TIMESTAMPTZ | Lesson end date |
 | noOfAttempts | INTEGER | Number of attempts allowed |
@@ -142,7 +142,7 @@
 | userId | UUID | User ID |
 | enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
 | endTime | TIMESTAMPTZ | Enrollment end time |
-| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
+| status | VARCHAR(255) | ENrollements status - (published, unpublished, archived) |
 | unlimitedPlan | BOOLEAN | Whether unlimited plan (default: FALSE) |
 | beforeExpiryMail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
 | afterExpiryMail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
@@ -172,7 +172,7 @@
 | moduleTrackId | UUID | Primary key |
 | moduleId | UUID | Foreign key referencing module |
 | userId | UUID | User ID |
-| status | VARCHAR(40) | module status ('incomplete,completed') |
+| status | VARCHAR(40) | Module status ('incomplete,completed') |
 | badgeGenDate | TIMESTAMPTZ | Badge generation date |
 
 ## Table: lesson_track
