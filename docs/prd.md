@@ -88,6 +88,14 @@ Develop a scalable, multi-tenant Learning Management System (LMS) that enables o
 - Quiz scoring and history
 - Certificate eligibility based on rules
 
+### 3.7 Eligibility and Prerequisites:
+ - Module-Level Prerequisite: Users must complete at least 2 lessons from Module 1 Or selected prerequisite lessons must be completed.
+ - Lesson-Level Prerequisite: Similar to module-level, users must complete at least 2 specified lessons from Module 1  Ors selected lessons must be completed before proceeding.
+       
+### 3.8 Badges and Certificates:
+ - Module-level badges on module completion, Module completion rules (including prerequisites) will apply for badge generation in the image format.
+ - Certificate eligibility can be considered as both Module-Level and Lesson-Level prerequisites or An configurable criteria can be defined, such as completion of Module 1 being mandatory.
+
 ---
 
 ## 4. Functional Requirements
