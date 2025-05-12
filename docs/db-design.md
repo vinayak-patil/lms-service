@@ -66,8 +66,8 @@
 | endDatetime | TIMESTAMP | Lesson end date |
 | storage | VARCHAR(50) | Storage type |
 | noOfAttempts | INTEGER | Number of attempts allowed |
-| attemptsGrade | VARCHAR(255) | Grade calculation method |
-| format | VARCHAR(255) | Lesson format |
+| attemptsGrade | VARCHAR(255) | Grade calculation method - (FIRST_ATTEMPT, LAST_ATTEMPT, AVERAGE, HIGHEST) |
+| format | VARCHAR(255) | Lesson format - (Video, Document, Quiz, Event) |
 | mediaId | UUID | Foreign key referencing Media |
 | eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
@@ -95,7 +95,7 @@
 | startDatetime | TIMESTAMPTZ | Lesson start date |
 | endDatetime | TIMESTAMPTZ | Lesson end date |
 | noOfAttempts | INTEGER | Number of attempts allowed |
-| attemptsGrade | VARCHAR(255) | Grade calculation method |
+| attemptsGrade | VARCHAR(255) | Grade calculation method - (FIRST_ATTEMPT, LAST_ATTEMPT, AVERAGE, HIGHEST) |
 | eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
 | resume | BOOLEAN | Whether lesson can be resumed (default: FALSE) |
@@ -112,8 +112,8 @@
 | Column | Type | Description |
 |--------|------|-------------|
 | mediaId | UUID | Primary key |
-| format | VARCHAR | Media format |
-| subFormat | VARCHAR | Media sub-format |
+| format | VARCHAR | Media format  - Video, Document, Quiz, Event |
+| subFormat | VARCHAR | Media sub-format (video.youtube, document.pdf, quiz) |
 | orgFilename | VARCHAR | Original filename |
 | path | VARCHAR | File path |
 | storage | VARCHAR | Storage type |
