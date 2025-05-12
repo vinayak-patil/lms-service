@@ -13,7 +13,7 @@
 | image | VARCHAR | Course image path |
 | featured | BOOLEAN | Whether the course is featured (default: FALSE) |
 | free | BOOLEAN | Whether the course is free (default: FALSE) |
-| certificateTerm | VARCHAR | Certificate term |
+| certificateTerm | JSONB | Certificate term |
 | certificateId | UUID | Certificate ID |
 | startDatetime | TIMESTAMPTZ | Course start date and time |
 | endDatetime | TIMESTAMPTZ | Course end date and time |
@@ -39,6 +39,9 @@
 | image | VARCHAR | Module image path |
 | startDatetime | TIMESTAMPTZ | Module start date and time |
 | endDatetime | TIMESTAMPTZ | Module end date and time |
+| eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
+| badgeTerm | JSONB | Badge term |
+| badgeId | UUID | Foreign key referencing badges |
 | ordering | INTEGER | Module order |
 | status | VARCHAR | Module status |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
@@ -81,6 +84,7 @@
 
 | Column | Type | Description |
 |--------|------|-------------|
+| courseLessonId | UUID | foreign key referencing Lessons |
 | lessonId | UUID | foreign key referencing Lessons |
 | courseId | UUID | foreign key referencing Courses |
 | moduleId | UUID | foreign key referencing Modules |
@@ -161,12 +165,23 @@
 | lastAccessedDate | TIMESTAMPTZ | Last accessed date |
 | certGenDate | TIMESTAMPTZ | Certificate generation date |
 
+## Table: module_track
+
+| Column | Type | Description |
+|--------|------|-------------|
+| moduleTrackId | UUID | Primary key |
+| moduleId | UUID | Foreign key referencing module |
+| userId | UUID | User ID |
+| status | VARCHAR(40) | module status ('incomplete,completed') |
+| badgeGenDate | TIMESTAMPTZ | Badge generation date |
+
 ## Table: lesson_track
 
 | Column | Type | Description |
 |--------|------|-------------|
 | lessonTrackId | UUID | Primary key |
 | lessonId | UUID | Foreign key referencing lessons |
+| courseId | UUID | Foreign key referencing course |
 | userId | UUID | User ID |
 | attempt | INTEGER | Attempt number (default: 1) |
 | startDatetime | TIMESTAMPTZ | Tracking start time |
@@ -177,4 +192,4 @@
 | currentPosition | FLOAT | Current position (default: 0) |
 | timeSpent | INTEGER | Time spent on lesson |
 | updatedBy | UUID | User who last updated |
-| updatedAt | TIMESTAMPTZ | Last update timestamp | 
+| updatedAt | TIMESTAMPTZ | Last update timestamp |

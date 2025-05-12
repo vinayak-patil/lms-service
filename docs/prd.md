@@ -88,6 +88,35 @@ Develop a scalable, multi-tenant Learning Management System (LMS) that enables o
 - Quiz scoring and history
 - Certificate eligibility based on rules
 
+### 3.7 Eligibility and Prerequisites
+
+- **Module-Level Prerequisite**  
+  check **set of configured prerequisite lessons** before accessing the module.
+
+- **Lesson-Level Prerequisite**  
+  Similar to module-level, check  **configured prerequisite lessons** before accessing the lesson.
+
+- **API Enforcement**  
+  All **Module and Lesson access APIs** for learner/student must enforce eligibility checks based on defined prerequisites.  
+  If the prerequisites are not satisfied, the API should return a **403 Forbidden** or a configurable error response indicating unmet requirements.
+
+---
+
+### 3.8 Badges and Certificates
+
+- **Badges (Module-Level Only)**  
+  - Upon successful completion of a module (with prerequisites met), the system should emit a **`module.badge.eligible`** event.  
+  - This event will include relevant user and module metadata.  
+  - Badge generation (e.g., image creation) is handled externally and is **not part of this system**.
+
+- **Certificates**  
+  - Certificate eligibility can be based on **Module-Level prerequisites**, **Lesson-Level prerequisites**, or **custom-defined criteria** (e.g., "Completion of Module 1 is mandatory").  
+  - When the criteria are met, emit a **`certificate.eligible`** event with relevant user, module, and progress data.  
+  - Certificate generation and distribution will be managed by an external service.
+
+
+
+
 ---
 
 ## 4. Functional Requirements
@@ -133,28 +162,12 @@ Develop a scalable, multi-tenant Learning Management System (LMS) that enables o
 - Tenant resolution via JWT/header
 - Shared services, isolated data
 
-### 5.3 Frontend
-
-- React.js frontend (web)
-- Multilingual support using i18next
-- Responsive design
-- Role-based content display
-
-### 5.4 Security & Access Control
+### 5.3 Security & Access Control
 
 - JWT-based authentication (via external user service)
 - Role-based access enforcement
 - HTTPS only, input validation and sanitation
 
-### 5.5 DevOps & Monitoring
-
-- Docker + Kubernetes (Helm for config)
-- CI/CD with GitHub Actions or GitLab CI
-- Logging: Fluentd or ELK stack
-- Monitoring: Prometheus + Grafana
-- Alerts via Slack/email integrations
-
----
 
 ## 6. Non-Functional Requirements
 
