@@ -19,7 +19,7 @@
 | endDatetime | TIMESTAMPTZ | Course end date and time |
 | adminApproval | BOOLEAN | Whether admin approval is required (default: FALSE) |
 | autoEnroll | BOOLEAN | Whether auto-enrollment is enabled (default: FALSE) |
-| status | VARCHAR | Course status |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | params | JSONB | Additional parameters |
 | createdBy | VARCHAR | User who created the course |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
@@ -43,7 +43,7 @@
 | badgeTerm | JSONB | Badge term |
 | badgeId | UUID | Foreign key referencing badges |
 | ordering | INTEGER | Module order |
-| status | VARCHAR | Module status |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | createdAt | TIMESTAMPTZ | Creation timestamp |
 | createdBy | UUID | User who created the module |
 | updatedAt | TIMESTAMPTZ | Last update timestamp |
@@ -59,13 +59,13 @@
 | checkedOutTime | TIMESTAMPTZ | Checkout timestamp |
 | title | VARCHAR(255) | Lesson title |
 | alias | VARCHAR(255) | Lesson alias |
-| status | VARCHAR(255) | Lesson status (default: 'unpublished') |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | description | TEXT | Lesson description |
 | image | VARCHAR(255) | Lesson image path |
 | startDatetime | TIMESTAMP | Lesson start date |
 | endDatetime | TIMESTAMP | Lesson end date |
 | storage | VARCHAR(50) | Storage type |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
 | format | VARCHAR(255) | Lesson format |
 | mediaId | UUID | Foreign key referencing Media |
@@ -91,10 +91,10 @@
 | tenantId | UUID | Tenent ID |
 | freeLesson | BOOLEAN | Whether the lesson is free |
 | considerForPassing | BOOLEAN | Should consider this lesson for course passing |
-| status | VARCHAR(255) | Lesson status |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | startDatetime | TIMESTAMPTZ | Lesson start date |
 | endDatetime | TIMESTAMPTZ | Lesson end date |
-| noOfAttempts | VARCHAR(255) | Number of attempts allowed |
+| noOfAttempts | INTEGER | Number of attempts allowed |
 | attemptsGrade | VARCHAR(255) | Grade calculation method |
 | eligibilityCriteria | VARCHAR(255) | Eligibility criteria |
 | idealTime | INTEGER | Ideal completion time |
@@ -142,7 +142,7 @@
 | userId | UUID | User ID |
 | enrolledOnTime | TIMESTAMPTZ | Enrollment timestamp |
 | endTime | TIMESTAMPTZ | Enrollment end time |
-| status | VARCHAR | Enrollment status (default: 'published') |
+| status | VARCHAR(255) | Lesson status - (published, unpublished, archived) |
 | unlimitedPlan | BOOLEAN | Whether unlimited plan (default: FALSE) |
 | beforeExpiryMail | BOOLEAN | Whether before expiry mail sent (default: FALSE) |
 | afterExpiryMail | BOOLEAN | Whether after expiry mail sent (default: FALSE) |
@@ -161,7 +161,7 @@
 | endDatetime | TIMESTAMPTZ | Tracking end time |
 | noOfLessons | INTEGER | Total number of lessons (default: 0) |
 | completedLessons | INTEGER | Number of completed lessons (default: 0) |
-| status | VARCHAR(40) | Course status (default: 'incomplete') |
+| status | VARCHAR(40) | Course status (default: 'incomplete') - (started, incomplete, completed) |
 | lastAccessedDate | TIMESTAMPTZ | Last accessed date |
 | certGenDate | TIMESTAMPTZ | Certificate generation date |
 
@@ -187,7 +187,7 @@
 | startDatetime | TIMESTAMPTZ | Tracking start time |
 | endDatetime | TIMESTAMPTZ | Tracking end time |
 | score | INTEGER | Lesson score (default: 0) |
-| status | VARCHAR(255) | Lesson status (default: 'started') |
+| status | VARCHAR(255) | Lesson status (default: 'started') - (started, incomplete, completed) |
 | totalContent | FLOAT | Total content length (default: 0) |
 | currentPosition | FLOAT | Current position (default: 0) |
 | timeSpent | INTEGER | Time spent on lesson |
