@@ -6,7 +6,8 @@
    - [Create Course](#create-course)
    - [Get All Courses](#get-all-courses)
    - [Get Course by ID](#get-course-by-id)
-   - [Get Course Details with Modules and Lessons](#get-course-details-with-modules-and-lessons)
+   - [Get Course Hierarchy by Id (Modules and Lessons)](#get-course-hierarchy-by-id-modules-and-lessons)
+   - [Get Course Hierarchy with Tracking](#get-course-hierarchy-with-tracking)
    - [Update Course](#update-course)
    - [Delete Course](#delete-course)
 
@@ -20,6 +21,7 @@
 
 3. [Lessons](#lessons)
    - [Create Lesson](#create-lesson)
+   - [Get All Lessons](#get-all-lessons)
    - [Add Lesson to Course/Module](#add-lesson-to-coursemodule)
    - [Get Lesson by ID](#get-lesson-by-id)
    - [Get Lessons by Course ID](#get-lessons-by-course-id)
@@ -27,22 +29,26 @@
    - [Update Lesson](#update-lesson)
    - [Delete Lesson](#delete-lesson)
    - [Remove Lesson from Course/Module](#remove-lesson-from-coursemodule)
+   - [Get Lesson to Display](#get-lesson-to-display)
 
 4. [Media Management](#media-management)
    - [Upload Media](#upload-media)
+   - [Get Media List](#get-media-list)
    - [Get Media by ID](#get-media-by-id)
    - [Associate Media with Lesson](#associate-media-with-lesson)
    - [Delete Media](#delete-media)
+   - [Remove Associate Media from Lesson](#remove-associate-media-from-lesson)
+
 
 5. [User Enrollment](#user-enrollment)
-   - [Enroll User in Course](#enroll-user-in-course)
+   - [Enroll for the Course and Track](#enroll-for-the-course-and-track)
    - [Get User Enrollments](#get-user-enrollments)
    - [Get Enrollment by ID](#get-enrollment-by-id)
    - [Update Enrollment](#update-enrollment)
    - [Cancel Enrollment](#cancel-enrollment)
 
 6. [Course Tracking](#course-tracking)
-   - [Start Course Tracking](#start-course-tracking)
+   - [Start Course Tracking](#start-course-tracking) (Optional)
    - [Update Course Tracking](#update-course-tracking)
    - [Complete Course Tracking](#complete-course-tracking)
    - [Get Course Tracking](#get-course-tracking)
@@ -52,9 +58,12 @@
    - [Update Lesson Tracking](#update-lesson-tracking)
    - [Complete Lesson Tracking](#complete-lesson-tracking)
    - [Get Lesson Tracking](#get-lesson-tracking)
+   - [Get Last Lesson Tracking](#get-lesson-tracking) 
    - [Get User's Lesson Tracking History](#get-users-lesson-tracking-history)
 
 8. [Error Handling](#error-handling)
+
+9. [Assessment API Sequence Diagram](https://whimsical.com/assessments-Rc235e6TUgZeoeBUR57zUv)
 
 ## API Endpoints
 
@@ -62,7 +71,7 @@
 
 #### Create Course
 
-- **Endpoint**: `POST /api/courses`
+- **Endpoint**: `POST /v1/courses`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Content-Type**: `multipart/form-data`
@@ -157,7 +166,7 @@
 
 #### Get All Courses
 
-- **Endpoint**: `GET /api/courses`
+- **Endpoint**: `GET /v1/courses`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -224,7 +233,7 @@
 
 #### Get Course by ID
 
-- **Endpoint**: `GET /api/courses/{courseId}`
+- **Endpoint**: `GET /v1/courses/{courseId}`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -303,9 +312,9 @@
 
 
 
-#### Get Course Details with Modules and Lessons
+#### Get Course Hierarchy by Id (Modules and Lessons)
 
-- **Endpoint**: `GET /api/courses/{courseId}/details`
+- **Endpoint**: `GET /v1/courses/{courseId}/details`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -369,10 +378,17 @@
                 "totalMarks": 100,
                 "passingMarks": 60,
                 "mediaContent": {
-                  "format": "video",
-                  "subFormat": "video.youtube.url",
-                  "source": "https://youtube.com/watch?v=example"
-                }
+                    "mediaId": "media-uuid-123",
+                    "format": "document",
+                    "subFormat": "document.pdf",
+                    "orgFilename": "lecture.pdf",
+                    "path": "path/to/media/",
+                    "source": "121212_lecture.pdf",      
+                    "storage": "local",
+                    "createdBy": "user-uuid-123",
+                    "createdAt": "2024-05-06T14:24:02Z",      
+                    "params": {}
+                  }
               }
             ]
           }
@@ -387,9 +403,145 @@
             "totalMarks": 0,
             "passingMarks": 0,
             "mediaContent": {
-              "format": "video",
-              "subFormat": "video.youtube.url",
-              "source": "https://youtube.com/watch?v=example2"
+                "mediaId": "media-uuid-123",
+                "format": "video",
+                "subFormat": "video.youtube.url",
+                "orgFilename": "lecture.mp4",
+                "path": "path/to/media/file.mp4",
+                "source": "https://youtube.com/watch?v=updated-example",      
+                "storage": "local",
+                "createdBy": "user-uuid-123",
+                "createdAt": "2024-05-06T14:24:02Z",      
+                "params": {}
+              }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+#### Get Course Hierarchy with Tracking
+
+- **Endpoint**: `GET /v1/courses/{courseId}/hierarchy/tracking`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+
+- **Query Parameters**:
+- `userId` (query): UUID of the user
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.hierarchy.tracking",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "courseId": "course-uuid-123",
+    "title": "Introduction to Machine Learning",
+    "shortDescription": "Learn the basics of machine learning",
+    "description": "Comprehensive introduction to machine learning concepts and algorithms",
+    "image": "path/to/image.jpg",
+    "featured": false,
+    "free": true,
+    "certificateTerm": "PASS_ALL",
+    "certificateId": "cert-uuid-123",
+    "startDatetime": "2024-06-01T00:00:00Z",
+    "endDatetime": "2024-12-31T23:59:59Z",
+    "status": "published",
+    "tracking": {
+      "status": "in_progress",
+      "progress": 45,
+      "completedLessons": 5,
+      "totalLessons": 12,
+      "lastAccessed": "2024-05-06T14:24:02Z",
+      "timeSpent": 7200
+    },
+    "modules": [
+      {
+        "moduleId": "module-uuid-123",
+        "title": "Fundamentals of ML",
+        "description": "Basic concepts and terminology",
+        "ordering": 1,
+        "image": "path/to/module-image.jpg",
+        "status": "published",
+        "tracking": {
+          "status": "completed",
+          "progress": 100,
+          "completedLessons": 3,
+          "totalLessons": 3,
+          "lastAccessed": "2024-05-05T16:30:00Z",
+          "timeSpent": 3600
+        },
+        "subModules": [
+          {
+            "moduleId": "module-uuid-456",
+            "parentId": "module-uuid-123",
+            "title": "Introduction to Algorithms",
+            "description": "Overview of ML algorithms",
+            "ordering": 1,
+            "status": "published",
+            "tracking": {
+              "status": "completed",
+              "progress": 100,
+              "completedLessons": 2,
+              "totalLessons": 2,
+              "lastAccessed": "2024-05-05T15:45:00Z",
+              "timeSpent": 1800
+            },
+            "lessons": [
+              {
+                "lessonId": "lesson-uuid-123",
+                "title": "Classification Algorithms",
+                "description": "Learn about classification algorithms",
+                "format": "video",
+                "status": "published",
+                "totalMarks": 100,
+                "passingMarks": 60,
+                "tracking": {
+                  "status": "completed",
+                  "attempt": 1,
+                  "score": 85,
+                  "currentPosition": 100,
+                  "timeSpent": 1800,
+                  "lastAccessed": "2024-05-05T15:30:00Z",
+                  "canResume": false
+                }
+              }
+            ]
+          }
+        ],
+        "lessons": [
+          {
+            "lessonId": "lesson-uuid-789",
+            "title": "What is Machine Learning?",
+            "description": "Introduction to machine learning concepts",
+            "format": "video",
+            "status": "published",
+            "totalMarks": 0,
+            "passingMarks": 0,
+            "tracking": {
+              "status": "in_progress",
+              "attempt": 1,
+              "currentPosition": 50,
+              "timeSpent": 900,
+              "lastAccessed": "2024-05-06T14:24:02Z",
+              "canResume": true
             }
           }
         ]
@@ -403,12 +555,10 @@
 
 
 
-
-
 #### Update Course
 
-- **Endpoint**: `PUT /api/courses/{courseId}`
-- **HTTP Method**: PUT
+- **Endpoint**: `PATCH /v1/courses/{courseId}`
+- **HTTP Method**: PATCH
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
@@ -477,7 +627,7 @@
 
 #### Delete Course
 
-- **Endpoint**: `DELETE /api/courses/{courseId}`
+- **Endpoint**: `DELETE /v1/courses/{courseId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin role)
 - **Request Parameters**:
@@ -518,7 +668,7 @@
 
 #### Create Module
 
-- **Endpoint**: `POST /api/modules`
+- **Endpoint**: `POST /v1/modules`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Content-Type**: `multipart/form-data`
@@ -580,7 +730,7 @@
 
 #### Get Module by ID
 
-- **Endpoint**: `GET /api/modules/{moduleId}`
+- **Endpoint**: `GET /v1/modules/{moduleId}`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -633,7 +783,7 @@
 
 #### Get Modules by Course ID
 
-- **Endpoint**: `GET /api/courses/{courseId}/modules`
+- **Endpoint**: `GET /v1/courses/{courseId}/modules`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -712,7 +862,7 @@
 
 #### Get Submodules by Parent Module ID
 
-- **Endpoint**: `GET /api/modules/{moduleId}/submodules`
+- **Endpoint**: `GET /v1/modules/{moduleId}/submodules`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -763,8 +913,8 @@
 
 #### Update Module
 
-- **Endpoint**: `PUT /api/modules/{moduleId}`
-- **HTTP Method**: PUT
+- **Endpoint**: `PATCH /v1/modules/{moduleId}`
+- **HTTP Method**: PATCH
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
@@ -828,7 +978,7 @@
 
 #### Delete Module
 
-- **Endpoint**: `DELETE /api/modules/{moduleId}`
+- **Endpoint**: `DELETE /v1/modules/{moduleId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -869,7 +1019,7 @@
 
 #### Create Lesson
 
-- **Endpoint**: `POST /api/lessons`
+- **Endpoint**: `POST /v1/lessons`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Content-Type**: `multipart/form-data`
@@ -891,15 +1041,25 @@
 - `totalMarks` (form): Total marks
 - `passingMarks` (form): Passing marks
 - `status` (form): Lesson status
-- `mediaContent` (form): JSON string in format:
-```json
-{
-  "format": "video",
-  "subFormat": "video.youtube.url",
-  "source": "https://youtube.com/watch?v=example",
-  "params": {}
-}
-```
+- `mediaId` (form): MediaId format
+- `courseId` (form): UUID of the course
+- `moduleId` (form): UUID of the module
+- `freeLesson` (form): Whether the lesson is free
+- `considerForPassing` (form): Should consider this lesson for course passing
+
+Lesson Creation Behavior:
+
+1. Combined Creation and Association:
+   - When courseId and moduleId are provided in the request:
+     * Creates the lesson
+     * Automatically creates course_lessons entry with all matching parameters
+     * Use this when you want to create and associate a lesson in one step
+
+2. Lesson-Only Creation:
+   - When courseId and moduleId are NOT provided:
+     * Creates only the lesson
+     * No course/module associations are created
+     * Use this when you want to create a standalone lesson
 
 - **Response Structure**:
 
@@ -938,12 +1098,18 @@
     "passingMarks": 60,
     "status": "published",
     "params": {},
-    "mediaContent": {
-      "format": "video",
-      "subFormat": "video.youtube.url",
-      "source": "https://youtube.com/watch?v=example",
-      "params": {}
-    },
+        "mediaContent": {
+        "mediaId": "media-uuid-123",
+        "format": "video",
+        "subFormat": "video.youtube.url",
+        "orgFilename": "lecture.mp4",
+        "path": "path/to/media/file.mp4",
+        "source": "https://youtube.com/watch?v=updated-example",      
+        "storage": "local",
+        "createdBy": "user-uuid-123",
+        "createdAt": "2024-05-06T14:24:02Z",      
+        "params": {}
+      },
     "createdBy": "user-uuid-123",
     "createdAt": "2024-05-06T14:24:02Z",
     "updatedBy": null,
@@ -960,13 +1126,13 @@
 
 #### Add Lesson to Course/Module
 
-- **Endpoint**: `POST /api/courses/{courseId}/modules/{moduleId}/lessons`
+- **Endpoint**: `POST /v1/courses/{courseId}/modules/{moduleId}/lessons`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
 - `courseId` (path): UUID of the course
-- `moduleId` (path): UUID of the module (optional, can be "null" for course-level lessons)
+- `moduleId` (path): UUID of the module
 
 
 
@@ -1039,7 +1205,7 @@
 
 #### Get Lesson by ID
 
-- **Endpoint**: `GET /api/lessons/{lessonId}`
+- **Endpoint**: `GET /v1/lessons/{lessonId}`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1084,12 +1250,40 @@
     "passingMarks": 60,
     "status": "published",
     "params": {},
-    "mediaContent": {
+        "mediaContent": {
+        "mediaId": "media-uuid-123",
+        "format": "video",
+        "subFormat": "video.youtube.url",
+        "orgFilename": "lecture.mp4",
+        "path": "path/to/media/file.mp4",
+        "source": "https://youtube.com/watch?v=updated-example",      
+        "storage": "local",
+        "createdBy": "user-uuid-123",
+        "createdAt": "2024-05-06T14:24:02Z",      
+        "params": {}
+      },
+    "associatedFiles": [
+    {
+      "mediaId": "media-uuid-123",
       "format": "video",
-      "subFormat": "video.youtube.url",
-      "source": "https://youtube.com/watch?v=example",
+      "subFormat": "video.mp4",
+      "orgFilename": "lecture.mp4",
+      "path": "path/to/media/file.mp4",
+      "storage": "local",
+      "source": null,
       "params": {}
     },
+    {
+      "mediaId": "media-uuid-456",
+      "format": "document",
+      "subFormat": "document.pdf",
+      "orgFilename": "notes.pdf",
+      "path": "path/to/media/notes.pdf",
+      "storage": "local",
+      "source": null,
+      "params": {}
+    }
+    ],
     "createdBy": "user-uuid-123",
     "createdAt": "2024-05-06T14:24:02Z",
     "updatedBy": null,
@@ -1099,14 +1293,9 @@
 ```
 
 
-
-
-
-
-
 #### Get Lessons by Course ID
 
-- **Endpoint**: `GET /api/courses/{courseId}/lessons`
+- **Endpoint**: `GET /v1/courses/{courseId}/lessons`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1172,7 +1361,7 @@
 
 #### Get Lessons by Module ID
 
-- **Endpoint**: `GET /api/modules/{moduleId}/lessons`
+- **Endpoint**: `GET /v1/modules/{moduleId}/lessons`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1210,11 +1399,18 @@
         "freeLesson": true,
         "totalMarks": 100,
         "passingMarks": 60,
-        "mediaContent": {
-          "format": "video",
-          "subFormat": "video.youtube.url",
-          "source": "https://youtube.com/watch?v=example"
-        }
+            "mediaContent": {
+            "mediaId": "media-uuid-123",
+            "format": "video",
+            "subFormat": "video.youtube.url",
+            "orgFilename": "lecture.mp4",
+            "path": "path/to/media/file.mp4",
+            "source": "https://youtube.com/watch?v=updated-example",      
+            "storage": "local",
+            "createdBy": "user-uuid-123",
+            "createdAt": "2024-05-06T14:24:02Z",      
+            "params": {}
+          },
       }
     ]
   }
@@ -1229,36 +1425,47 @@
 
 #### Update Lesson
 
-- **Endpoint**: `PUT /api/lessons/{lessonId}`
+- **Endpoint**: `PUT /v1/lessons/{lessonId}`
 - **HTTP Method**: PUT
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
 - `lessonId` (path): UUID of the lesson
 
-
-
 - **Request Body**:
 
-```json
-{
-  "title": "Updated Backpropagation Lesson",
-  "description": "Updated description for backpropagation",
-  "image": "base64-encoded-image-data",
-  "status": "published",
-  "noOfAttempts": "5",
-  "attemptsGrade": "average",
-  "idealTime": 60,
-  "totalMarks": 120,
-  "passingMarks": 70,
-  "mediaContent": {
-    "format": "video",
-    "subFormat": "video.youtube.url",
-    "source": "https://youtube.com/watch?v=updated-example",
-    "params": {}
-  }
-}
-```
+- `title` (form): Lesson title
+- `description` (form): Lesson description
+- `image` (form): Lesson image file
+- `startDatetime` (form): Lesson start date and time
+- `endDatetime` (form): Lesson end date and time
+- `storage` (form): Storage type
+- `noOfAttempts` (form): Number of allowed attempts
+- `attemptsGrade` (form): Grade calculation method
+- `format` (form): Lesson format
+- `eligibilityCriteria` (form): Eligibility criteria
+- `idealTime` (form): Ideal time to complete
+- `resume` (form): Whether lesson can be resumed
+- `totalMarks` (form): Total marks
+- `passingMarks` (form): Passing marks
+- `status` (form): Lesson status
+- `mediaId` (form): MediaId format
+- `courseId` (form): UUID of the course
+- `moduleId` (form): UUID of the module
+
+Lesson Update Behavior:
+
+1. Course-Module Association Update:
+   - When courseId and moduleId are provided in the request:
+     * Updates the course_lessons table with all form parameters
+     * Updates only the lesson's basic details (title, description, image)
+     * Use this when modifying both lesson content and its course/module placement
+
+2. Lesson-Only Update:
+   - When courseId and moduleId are NOT provided:
+     * Updates only the lesson's details
+     * Does not modify course/module associations
+     * Use this when only updating lesson content without changing its placement
 
 
 - **Response Structure**:
@@ -1289,9 +1496,15 @@
     "totalMarks": 120,
     "passingMarks": 70,
     "mediaContent": {
+      "mediaId": "media-uuid-123",
       "format": "video",
       "subFormat": "video.youtube.url",
-      "source": "https://youtube.com/watch?v=updated-example",
+      "orgFilename": "",
+      "path": "",
+      "source": "https://youtube.com/watch?v=updated-example",      
+      "storage": "local",
+      "createdBy": "user-uuid-123",
+      "createdAt": "2024-05-06T14:24:02Z",      
       "params": {}
     },
     "updatedBy": "user-uuid-456",
@@ -1308,13 +1521,26 @@
 
 #### Delete Lesson
 
-- **Endpoint**: `DELETE /api/lessons/{lessonId}`
+- **Endpoint**: `DELETE /v1/lessons/{lessonId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
 - `lessonId` (path): UUID of the lesson
 
+- **Request Body**:
+
+- `courseId` (form): course id
+
+Lesson Delete Behavior:
+
+1. Course-Module Association:
+   - When courseId provided in the request:
+     * remove from the course_lessons table
+
+2. Else:
+   - When courseId  NOT provided:
+     * update status to archived
 
 
 - **Response Structure**:
@@ -1347,7 +1573,7 @@
 
 #### Remove Lesson from Course/Module
 
-- **Endpoint**: `DELETE /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}`
+- **Endpoint**: `DELETE /v1/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -1380,7 +1606,68 @@
 }
 ```
 
+#### Get Lesson to Display
 
+- **Endpoint**: `GET /v1/courses/{courseId}/lesson`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `courseId` (path): UUID of the course
+- `userId` (query): UUID of the user
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.course.lesson",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "lesson": {
+      "lessonId": "lesson-uuid-123",
+      "title": "Introduction to Backpropagation",
+      "description": "Learn how neural networks learn through backpropagation",
+      "format": "video",
+      "status": "published",
+      "totalMarks": 100,
+      "passingMarks": 60,
+      "mediaContent": {
+        "mediaId": "media-uuid-123",
+        "format": "video",
+        "subFormat": "video.youtube.url",
+        "orgFilename": "lecture.mp4",
+        "path": "path/to/media/file.mp4",
+        "source": "https://youtube.com/watch?v=example",
+        "storage": "local"
+      }
+    },
+    "module": {
+      "moduleId": "module-uuid-456",
+      "title": "Neural Networks Basics",
+      "description": "Introduction to neural network concepts",
+      "ordering": 1
+    },
+    "attempt": {
+      "attemptId": "attempt-uuid-123",
+      "status": "in_progress",
+      "currentPosition": 50,
+      "timeSpent": 1800,
+      "lastAccessed": "2024-05-06T14:24:02Z",
+      "resume": true
+    }    
+  }
+}
+```
 
 
 
@@ -1390,7 +1677,7 @@
 
 #### Upload Media
 
-- **Endpoint**: `POST /api/media`
+- **Endpoint**: `POST /v1/media`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Content-Type**: `multipart/form-data`
@@ -1442,9 +1729,77 @@
 
 
 
+#### Get Media List
+
+- **Endpoint**: `GET /v1/media`
+- **HTTP Method**: GET
+- **Authentication**: Required
+- **Request Parameters**:
+
+- `format` (query, optional): Filter by media format (video, document, image, etc.)
+- `storage` (query, optional): Filter by storage type (local, cloud, etc.)
+- `page` (query, optional): Page number for pagination (default: 1)
+- `limit` (query, optional): Number of items per page (default: 10)
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.media.list",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "count": 2,
+    "media": [
+      {
+        "mediaId": "media-uuid-123",
+        "format": "video",
+        "subFormat": "video.mp4",
+        "orgFilename": "lecture.mp4",
+        "path": "path/to/media/file.mp4",
+        "storage": "local",
+        "source": null,
+        "params": {},
+        "createdBy": "user-uuid-123",
+        "createdAt": "2024-05-06T14:24:02Z"
+      },
+      {
+        "mediaId": "media-uuid-456",
+        "format": "document",
+        "subFormat": "document.pdf",
+        "orgFilename": "notes.pdf",
+        "path": "path/to/media/notes.pdf",
+        "storage": "local",
+        "source": null,
+        "params": {},
+        "createdBy": "user-uuid-123",
+        "createdAt": "2024-05-06T14:24:02Z"
+      }
+    ]
+  }
+}
+```
+
+
+
+
+
+
+
 #### Get Media by ID
 
-- **Endpoint**: `GET /api/media/{mediaId}`
+- **Endpoint**: `GET /v1/media/{mediaId}`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1494,7 +1849,7 @@
 
 #### Associate Media with Lesson
 
-- **Endpoint**: `POST /api/lessons/{lessonId}/media/{mediaId}`
+- **Endpoint**: `POST /v1/lessons/{lessonId}/media/{mediaId}`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -1536,7 +1891,7 @@
 
 #### Delete Media
 
-- **Endpoint**: `DELETE /api/media/{mediaId}`
+- **Endpoint**: `DELETE /v1/media/{mediaId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -1573,17 +1928,56 @@
 
 
 
+#### Remove Associate Media from Lesson
+
+- **Endpoint**: `DELETE /v1/lessons/{lessonId}/media/{mediaId}`
+- **HTTP Method**: DELETE
+- **Authentication**: Required (Admin, Instructor roles)
+- **Request Parameters**:
+
+- `lessonId` (path): UUID of the lesson
+- `mediaId` (path): UUID of the media
+
+
+
+- **Response Structure**:
+
+- Success (200 OK):
+
+```json
+{
+  "id": "api.lesson.media.remove",
+  "ver": "1.0",
+  "ts": "2024-05-06T14:24:02Z",
+  "params": {
+    "resmsgid": "c8e1a2b3-4d5e-6f7g-8h9i-j0k1l2m3n4o5",
+    "status": "successful",
+    "err": null,
+    "errmsg": null
+  },
+  "responseCode": 200,
+  "result": {
+    "message": "Media removed from lesson successfully"
+  }
+}
+```
+
+
+
+
+
+
+
 ### User Enrollment
 
-#### Enroll User in Course
+#### Enroll for the Course and Track
 
-- **Endpoint**: `POST /api/enrollments`
+- **Endpoint**: `POST /v1/enrollments`
 - **HTTP Method**: POST
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
 
 - None
-
 
 
 - **Request Body**:
@@ -1598,6 +1992,10 @@
   "params": {}
 }
 ```
+
+- Course Enrollment Behavior: 
+1. Create Enrollment:Record that user is enrolled in the course
+2. Start Tracking: tracking user's progress in the course
 
 
 - **Response Structure**:
@@ -1642,7 +2040,7 @@
 
 #### Get User Enrollments
 
-- **Endpoint**: `GET /api/enrollments`
+- **Endpoint**: `GET /v1/enrollments`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1715,7 +2113,7 @@
 
 #### Get Enrollment by ID
 
-- **Endpoint**: `GET /api/enrollments/{enrollmentId}`
+- **Endpoint**: `GET /v1/enrollments/{enrollmentId}`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1774,7 +2172,7 @@
 
 #### Update Enrollment
 
-- **Endpoint**: `PUT /api/enrollments/{enrollmentId}`
+- **Endpoint**: `PUT /v1/enrollments/{enrollmentId}`
 - **HTTP Method**: PUT
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -1842,7 +2240,7 @@
 
 #### Cancel Enrollment
 
-- **Endpoint**: `DELETE /api/enrollments/{enrollmentId}`
+- **Endpoint**: `DELETE /v1/enrollments/{enrollmentId}`
 - **HTTP Method**: DELETE
 - **Authentication**: Required (Admin, Instructor roles)
 - **Request Parameters**:
@@ -1883,7 +2281,7 @@
 
 #### Start Course Tracking
 
-- **Endpoint**: `POST /api/courses/{courseId}/tracking`
+- **Endpoint**: `POST /v1/courses/{courseId}/tracking`
 - **HTTP Method**: POST
 - **Authentication**: Required
 - **Request Parameters**:
@@ -1941,7 +2339,7 @@
 
 #### Update Course Tracking
 
-- **Endpoint**: `PUT /api/courses/{courseId}/tracking`
+- **Endpoint**: `PUT /v1/courses/{courseId}/tracking`
 - **HTTP Method**: PUT
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2001,7 +2399,7 @@
 
 #### Complete Course Tracking
 
-- **Endpoint**: `PUT /api/courses/{courseId}/tracking/complete`
+- **Endpoint**: `PUT /v1/courses/{courseId}/tracking/complete`
 - **HTTP Method**: PUT
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2061,7 +2459,7 @@
 
 #### Get Course Tracking
 
-- **Endpoint**: `GET /api/courses/{courseId}/tracking`
+- **Endpoint**: `GET /v1/courses/{courseId}/tracking`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2118,7 +2516,7 @@
 
 #### Start Lesson Tracking
 
-- **Endpoint**: `POST /api/lessons/{lessonId}/tracking`
+- **Endpoint**: `POST /v1/lessons/{lessonId}/tracking`
 - **HTTP Method**: POST
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2180,7 +2578,7 @@
 
 #### Update Lesson Tracking
 
-- **Endpoint**: `PUT /api/lessons/{lessonId}/tracking`
+- **Endpoint**: `PUT /v1/lessons/{lessonId}/tracking`
 - **HTTP Method**: PUT
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2244,7 +2642,7 @@
 
 #### Complete Lesson Tracking
 
-- **Endpoint**: `PUT /api/lessons/{lessonId}/tracking/complete`
+- **Endpoint**: `PUT /v1/lessons/{lessonId}/tracking/complete`
 - **HTTP Method**: PUT
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2309,7 +2707,7 @@
 
 #### Get Lesson Tracking
 
-- **Endpoint**: `GET /api/lessons/{lessonId}/tracking`
+- **Endpoint**: `GET /v1/lessons/{lessonId}/tracking`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2369,7 +2767,7 @@
 
 #### Get User's Lesson Tracking History
 
-- **Endpoint**: `GET /api/users/{userId}/lessons/{lessonId}/tracking`
+- **Endpoint**: `GET /v1/users/{userId}/lessons/{lessonId}/tracking`
 - **HTTP Method**: GET
 - **Authentication**: Required
 - **Request Parameters**:
@@ -2432,6 +2830,7 @@
 ```
 
 
+- Extract `tenantId` and `userId` from JWT authorization token and use wherever required
 
 
 
