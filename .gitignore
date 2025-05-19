@@ -1,48 +1,48 @@
 # compiled output
-/dist
-/node_modules
+/app/dist
+/app/node_modules
 
 # Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+/app/logs
+/app/*.log
+/app/npm-debug.log*
+/app/pnpm-debug.log*
+/app/yarn-debug.log*
+/app/yarn-error.log*
+/app/lerna-debug.log*
 
 # OS
 .DS_Store
 
 # Tests
-/coverage
-/.nyc_output
+/app/coverage
+/app/.nyc_output
 
 # IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+/app/.idea
+/app/.project
+/app/.classpath
+/app/.c9/
+/app/*.launch
+/app/.settings/
+/app/*.sublime-workspace
 
 # IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+/app/.vscode/*
+!/app/.vscode/settings.json
+!/app/.vscode/tasks.json
+!/app/.vscode/launch.json
+!/app/.vscode/extensions.json
 
 # Environment
-.env
-.env.local
-.env.development
-.env.test
-.env.production
+/app/.env
+/app/.env.local
+/app/.env.development
+/app/.env.test
+/app/.env.production
 
 # Uploads
-/uploads
+/app/uploads
 
 # Temp files
-/tmp
+/app/tmp
