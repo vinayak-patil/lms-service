@@ -1,0 +1,49 @@
+{
+  "name": "shiksha-lms-service",
+  "version": "1.0.0",
+  "description": "A comprehensive Learning Management System (LMS) microservice built with NestJS. This service provides robust functionality for managing courses, modules, lessons, user enrollments, and progress tracking.",
+  "main": "index.js",
+  "scripts": {
+    "prestart:dev": "fuser -k 5000/tcp || true",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "migration:run": "npx typeorm-ts-node-commonjs migration:run -d src/config/migration.config.ts",
+    "migration:revert": "npx typeorm-ts-node-commonjs migration:revert -d src/config/migration.config.ts",
+    "schema:drop": "npx typeorm-ts-node-commonjs schema:drop -d src/config/migration.config.ts",
+    "schema:sync": "npx typeorm-ts-node-commonjs schema:sync -d src/config/migration.config.ts",
+    "schema:log": "npx typeorm-ts-node-commonjs schema:log -d src/config/migration.config.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^1.4.12",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "jsonwebtoken": "^9.0.2",
+    "nestjs-i18n": "^10.5.1",
+    "pg": "^8.16.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.23",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.27",
+    "ts-node": "^10.9.2"
+  }
+}
