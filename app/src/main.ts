@@ -11,7 +11,7 @@ async function bootstrap() {
     // Now we can connect to our target database
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
-    const port = configService.get('PORT', 5000);
+    const port = configService.get('PORT', 4000);
     
     // Set global prefix
     app.setGlobalPrefix(configService.get('API_PREFIX', 'api/v1'));
