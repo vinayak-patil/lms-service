@@ -3,6 +3,9 @@ version: "3.6"
 services:
   backend:
     image: shiksha-lms-service
+      build:
+        context: .
+        dockerfile: Dockerfile
     container_name: "shiksha-lms-service"
     restart: always
     ports:
