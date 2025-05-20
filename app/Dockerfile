@@ -1,8 +1,8 @@
 FROM node:20 as dependencies
-WORKDIR /usr/src/app
+WORKDIR /usr/app/src
 COPY package*.json  ./
 RUN npm install
-RUN mkdir -p /usr/src/app/node_modules && chown -R node:node /usr/src/app
+RUN mkdir -p /usr/app/src/node_modules && chown -R node:node /usr/app/src
 USER node
 COPY . .
 RUN npm run build
