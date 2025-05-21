@@ -50,3 +50,4 @@ npm run migration:run
 
 # Start the development server
 npm run start:dev
+.
