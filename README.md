@@ -47,7 +47,6 @@ npm install
 
 # Run database migrations
 npm run migration:run
-.
 
 # Start the development server
 npm run start:dev
