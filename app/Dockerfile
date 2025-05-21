@@ -1,8 +1,23 @@
-FROM node:20 as dependencies
+# Build stage
+FROM node:20-alpine AS builder
+
 WORKDIR /app
-COPY . ./
-RUN npm i --force
-RUN npm install fcm-node --force
-RUN apt-get update 
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+
+# Expose the application port
 EXPOSE 4000
-CMD ["npm", "start"]
+
+# Start the application
+CMD ["npm", "run", "start:dev"]
