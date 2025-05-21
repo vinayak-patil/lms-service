@@ -1,14 +1,58 @@
 version: "3.6"
 
 services:
-  backend:
-    image: shiksha-lms-service
-      build:
-        context: .
-        dockerfile: Dockerfile
-    container_name: "shiksha-lms-service"
-    restart: always
+  lms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shiksha-lms-service
     ports:
-      - 4000:4000
+      - "${PORT}:${PORT}"
     env_file:
-      - /.env
+      - .env  # Load all environment variables from file
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - DB_HOST=postgres
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./src:/app/src
+    depends_on:
+      - postgres
+    networks:
+      - shiksha-lms-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: shiksha-lms-db
+    restart: unless-stopped
+    env_file:
+      - .env  # Shared environment file
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - shiksha-lms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  shiksha-lms-network:
+    driver: bridge
