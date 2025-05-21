@@ -1,8 +1,8 @@
-name: Deploy to dev
+name: Aspire-Deploy to dev
 on:
   push:
     branches:
-      - main
+      - release-1.0.0
 jobs:
   deploy_to_server1:
     runs-on: ubuntu-latest
