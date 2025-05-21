@@ -1,4 +1,4 @@
-name: Aspire- Deploy to dev
+name: Aspire-Deploy to dev
 on:
   push:
     branches:
