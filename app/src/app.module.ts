@@ -9,6 +9,7 @@ import { DatabaseModule } from './common/database.module';
 import { CoursesModule } from './courses/courses.module';
 import { AppService } from './app.service';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { HealthModule } from './health/health.module';
 @Module({
   imports: [
     // Configuration
@@ -25,6 +26,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
     LessonsModule,
     MediaModule,
     EnrollmentsModule,
+    HealthModule
   ],
   controllers: [AppController],
   providers: [AppService],
