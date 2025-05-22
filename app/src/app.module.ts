@@ -1,9 +1,14 @@
-import { Module, NestModule } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ModulesModule } from './modules/modules.module';
+import { LessonsModule } from './lessons/lessons.module';
+import { MediaModule } from './media/media.module';
 import { AppController } from './app.controller';
-
-
+import { CommonModule } from './common/common.module';
+import { DatabaseModule } from './common/database.module';
+import { CoursesModule } from './courses/courses.module';
+import { AppService } from './app.service';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
 @Module({
   imports: [
     // Configuration
@@ -11,30 +16,17 @@ import { AppController } from './app.controller';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
-    
-    // Database
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('PGHOST'),
-        port: configService.get('PGPORT'),
-        username: configService.get('PGUSER'),
-        password: configService.get('PGPASSWORD'),
-        database: configService.get('PGDATABASE'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
-        logging: configService.get('NODE_ENV') === 'development',
-        autoLoadEntities: false,
-        ssl: configService.get('PGSSLMODE') === 'no-verify' ? false : {
-          rejectUnauthorized: false
-        },
-      }),
-    }),
-    
+    DatabaseModule,
+    // Common module
+    CommonModule,    
+    // Feature modules
+    CoursesModule,
+    ModulesModule,
+    LessonsModule,
+    MediaModule,
+    EnrollmentsModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule{}

@@ -9,6 +9,6 @@ services:
     container_name: "shiksha-lms-service"
     restart: always
     ports:
-      - 5000:5000
+      - 4000:4000
     env_file:
-      - /home/ubuntu-shiksha-lms-service/.env
+      - /.env
