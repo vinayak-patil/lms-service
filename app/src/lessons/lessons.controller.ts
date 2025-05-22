@@ -102,7 +102,7 @@ export class LessonsController   {
     );
   }
 
-  @Post('course')
+  @Post('course/:courseId/module/:moduleId')
   @ApiId(API_IDS.LESSON.ADD_TO_COURSE)
   @ApiOperation({ summary: 'Add lesson to course/module' })
   @ApiResponse({ status: 201, description: 'Lesson added to course successfully' })
@@ -110,9 +110,23 @@ export class LessonsController   {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Lesson or course/module not found' })
+  @ApiParam({ name: 'courseId', description: 'UUID of the course' })
+  @ApiParam({ name: 'moduleId', description: 'UUID of the module' })
   @ApiBody({ type: AddLessonToCourseDto })
-  async addLessonToCourse(@Body() addLessonToCourseDto: AddLessonToCourseDto, @Query() query: CommonQueryDto) {
-    return this.lessonsService.addToCourse(addLessonToCourseDto, query.userId, query.tenantId, query.organisationId);
+  async addLessonToCourse(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('moduleId', ParseUUIDPipe) moduleId: string,
+    @Body() addLessonToCourseDto: AddLessonToCourseDto,
+    @Query() query: CommonQueryDto
+  ) {
+    return this.lessonsService.addToCourse(
+      addLessonToCourseDto,
+      courseId,
+      moduleId,
+      query.userId,
+      query.tenantId,
+      query.organisationId
+    );
   }
 
   @Get(':lessonId')

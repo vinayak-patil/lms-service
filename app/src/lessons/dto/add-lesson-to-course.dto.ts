@@ -27,6 +27,7 @@ export class AddLessonToCourseDto {
   @Min(0, { message: 'Sequence must not be negative' })
   @Type(() => Number)
   sequence?: number;
+
   @ApiProperty({
     description: 'Lesson ID',
     format: 'uuid',
@@ -34,32 +35,6 @@ export class AddLessonToCourseDto {
   @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
   @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
   lessonId: string;
-
-  @ApiProperty({
-    description: 'Course ID',
-    format: 'uuid',
-  })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  courseId: string;
-
-  @ApiProperty({
-    description: 'Module ID',
-    format: 'uuid',
-    required: false,
-  })
-  @IsOptional()
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
-  moduleId?: string;
-
-  @ApiProperty({
-    description: 'Tenant ID',
-    format: 'uuid',
-    required: false,
-  })
-  @IsOptional()
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
-  tenantId?: string;
 
   @ApiProperty({
     description: 'Whether the lesson is free',
@@ -108,7 +83,6 @@ export class AddLessonToCourseDto {
     example: '2024-12-31T23:59:59Z',
     required: false,
   })
-  @IsOptional()
   @ValidateIf(o => o.startDatetime != null)
   @IsDateString({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_DATE })
   endDatetime?: string;
@@ -193,13 +167,4 @@ export class AddLessonToCourseDto {
   })
   @IsOptional()
   params?: any;
-
-  @ApiProperty({
-    description: 'User who created the course-lesson association',
-    example: 'user-123',
-    required: false,
-  })
-  @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
-  createdBy?: string;
 }

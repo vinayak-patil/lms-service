@@ -256,12 +256,14 @@ export class LessonsService {
    */
   async addToCourse(
     addLessonToCourseDto: AddLessonToCourseDto,
+    courseId: string,
+    moduleId: string,
     userId: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<CourseLesson> {
     try {
-      const { lessonId, courseId, moduleId, ...restDto } = addLessonToCourseDto;
+      const { lessonId, ...restDto } = addLessonToCourseDto;
 
       // Build where clause with data isolation
       const lessonWhereClause: any = { 
@@ -340,7 +342,7 @@ export class LessonsService {
       const existingCourseLessonWhereClause: any = {
         lessonId,
         courseId,
-        moduleId: moduleId || null,
+        moduleId,
         status: Not(CourseLessonStatus.ARCHIVED as any),
       };
       
@@ -369,8 +371,9 @@ export class LessonsService {
         courseLessonId,
         lessonId,
         courseId,
-        moduleId: moduleId || undefined,
+        moduleId,
         tenantId,
+        organisationId,
         freeLesson: restDto.freeLesson,
         considerForPassing: restDto.considerForPassing,
         status: restDto.status || CourseLessonStatus.PUBLISHED,
