@@ -33,7 +33,7 @@ export const validationConfig: ValidationConfig = {
   lessonMedia: {
     path: '/uploads/lessons/media',
     allowedMimeTypes: ['application/pdf'],
-    maxSizeInBytes: 1 * 1024 * 1024, // 1MB
+    maxSizeInBytes: 10 * 1024 * 1024, // 1MB
 },
 lessonAssociatedMedia: {
   path: '/uploads/lessons/associated-media',

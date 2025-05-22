@@ -35,21 +35,17 @@ export const createStorage = (
         const fileExtName = path.extname(file.originalname);
         const fileName = `${uuidv4()}${fileExtName}`;
         callback(null, fileName);
-      },
+      },      
     }),
+    limits: {
+      fileSize: config.maxSizeInBytes,
+    },
     fileFilter: async (req, file, callback) => {
       try {
-        // Check file type
+        // Check file type first
         if (!config.allowedMimeTypes.includes(file.mimetype)) {
           throw new FileValidationError(
             `Invalid file type. Allowed types are: ${config.allowedMimeTypes.join(', ')}`
-          );
-        }
-        
-        // Check file size
-        if (file.size > config.maxSizeInBytes) {
-          throw new FileValidationError(
-            `File size exceeds the limit of ${config.maxSizeInBytes / (1024 * 1024)}MB`
           );
         }
 

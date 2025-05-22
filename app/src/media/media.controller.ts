@@ -55,7 +55,7 @@ export class MediaController {
       throw new BadRequestException('File is required for document format');
     }
     if (file) {
-      const filePath = getUploadPath('media', file.filename);
+      const filePath = getUploadPath('lessonMedia', file.filename);
       createMediaDto.path = filePath;
     }
 

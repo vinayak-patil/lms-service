@@ -19,6 +19,7 @@ export enum MediaSubFormat {
   VIDEO_YOUTUBE = 'video.youtube',
   EVENT = 'event',
   TEST_QUIZ = 'test.quiz',
+  DOCUMENT_PDF = 'document.pdf',
 }
 
 export class MediaContentDto {
