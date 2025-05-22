@@ -13,10 +13,13 @@ import { CourseLesson } from '../lessons/entities/course-lesson.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class ModulesService {
   private readonly logger = new Logger(ModulesService.name);
+  private readonly CACHE_TTL = 3600; // 1 hour for module listings
+  private readonly USER_CACHE_TTL = 600; // 10 minutes for user-specific data
 
   constructor(
     @InjectRepository(Module)
@@ -25,6 +28,7 @@ export class ModulesService {
     private readonly courseRepository: Repository<Course>,
     @InjectRepository(CourseLesson)
     private readonly courseLessonRepository: Repository<CourseLesson>,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -139,6 +143,14 @@ export class ModulesService {
     // Create the module
     const module = this.moduleRepository.create(moduleData);
     const savedModule = await this.moduleRepository.save(module);
+
+    // Invalidate relevant caches
+    await this.cacheService.invalidatePattern(`modules:course:${createModuleDto.courseId}:*`);
+    if (createModuleDto.parentId) {
+      await this.cacheService.invalidatePattern(`modules:parent:${createModuleDto.parentId}:*`);
+    }
+    await this.cacheService.invalidatePattern(`courses:hierarchy:${createModuleDto.courseId}:*`);
+
     return Array.isArray(savedModule) ? savedModule[0] : savedModule;
   }
 
@@ -153,6 +165,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module> {
+    const cacheKey = `modules:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    // Try to get from cache first
+    const cachedModule = await this.cacheService.get<Module>(cacheKey);
+    if (cachedModule) {
+      return cachedModule;
+    }
+
     // Build where clause with optional filters
     const whereClause: FindOptionsWhere<Module> = { moduleId };
     
@@ -173,6 +193,9 @@ export class ModulesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
+    // Cache the module
+    await this.cacheService.set(cacheKey, module, this.CACHE_TTL);
+
     return module;
   }
 
@@ -187,6 +210,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
+    const cacheKey = `modules:course:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    // Try to get from cache first
+    const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
+    if (cachedModules) {
+      return cachedModules;
+    }
+
     // Build where clause with required filters
     const whereClause: FindOptionsWhere<Module> = { 
       courseId, 
@@ -203,10 +234,15 @@ export class ModulesService {
       whereClause.organisationId = organisationId;
     }
     
-    return this.moduleRepository.find({
+    const modules = await this.moduleRepository.find({
       where: whereClause,
       order: { ordering: 'ASC' },
     });
+
+    // Cache the modules
+    await this.cacheService.set(cacheKey, modules, this.CACHE_TTL);
+
+    return modules;
   }
 
   /**
@@ -220,6 +256,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
+    const cacheKey = `modules:parent:${parentId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    // Try to get from cache first
+    const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
+    if (cachedModules) {
+      return cachedModules;
+    }
+
     // Build where clause with required filters
     const whereClause: FindOptionsWhere<Module> = { 
       parentId,
@@ -235,10 +279,15 @@ export class ModulesService {
       whereClause.organisationId = organisationId;
     }
     
-    return this.moduleRepository.find({
+    const modules = await this.moduleRepository.find({
       where: whereClause,
       order: { ordering: 'ASC' },
     });
+
+    // Cache the modules
+    await this.cacheService.set(cacheKey, modules, this.CACHE_TTL);
+
+    return modules;
   }
 
   /**
@@ -297,7 +346,20 @@ export class ModulesService {
     
     // Update the module
     const updatedModule = this.moduleRepository.merge(module, updateData);
-    return this.moduleRepository.save(updatedModule);
+    const savedModule = await this.moduleRepository.save(updatedModule);
+
+    // Invalidate relevant caches
+    await this.cacheService.del(`modules:${moduleId}:${tenantId}:${organisationId || 'global'}`);
+    await this.cacheService.invalidatePattern(`modules:course:${module.courseId}:*`);
+    if (module.parentId) {
+      await this.cacheService.invalidatePattern(`modules:parent:${module.parentId}:*`);
+    }
+    if (updateModuleDto.parentId) {
+      await this.cacheService.invalidatePattern(`modules:parent:${updateModuleDto.parentId}:*`);
+    }
+    await this.cacheService.invalidatePattern(`courses:hierarchy:${module.courseId}:*`);
+
+    return savedModule;
   }
 
   /**
@@ -391,6 +453,14 @@ export class ModulesService {
       // Archive the module
       module.status = ModuleStatus.ARCHIVED;
       await this.moduleRepository.save(module);
+
+      // Invalidate relevant caches
+      await this.cacheService.del(`modules:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`);
+      await this.cacheService.invalidatePattern(`modules:course:${module.courseId}:*`);
+      if (module.parentId) {
+        await this.cacheService.invalidatePattern(`modules:parent:${module.parentId}:*`);
+      }
+      await this.cacheService.invalidatePattern(`courses:hierarchy:${module.courseId}:*`);
 
       return { 
         success: true, 

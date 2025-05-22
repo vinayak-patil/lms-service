@@ -10,6 +10,8 @@ import { CoursesModule } from './courses/courses.module';
 import { AppService } from './app.service';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
+import { CacheModule } from './cache';
+
 @Module({
   imports: [
     // Configuration
@@ -18,6 +20,8 @@ import { HealthModule } from './health/health.module';
       envFilePath: ['.env'],
     }),
     DatabaseModule,
+    // Cache module
+    CacheModule,
     // Common module
     CommonModule,    
     // Feature modules

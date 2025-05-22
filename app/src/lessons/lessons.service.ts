@@ -25,10 +25,13 @@ import { HelperUtil } from '../common/utils/helper.util';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { MediaContentDto, MediaFormat, MediaSubFormat } from './dto/media-content.dto';
 import { AttemptsGradeMethod } from './entities/lesson.entity';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class LessonsService {
   private readonly logger = new Logger(LessonsService.name);
+  private readonly CACHE_TTL = 3600; // 1 hour for lesson listings
+  private readonly USER_CACHE_TTL = 600; // 10 minutes for user-specific data
 
   constructor(
     @InjectRepository(Lesson)
@@ -42,7 +45,8 @@ export class LessonsService {
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(LessonTrack)
-    private readonly lessonTrackRepository: Repository<LessonTrack>
+    private readonly lessonTrackRepository: Repository<LessonTrack>,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -219,6 +223,13 @@ export class LessonsService {
         // Create and save the course-lesson association
         const courseLesson = this.courseLessonRepository.create(courseLessonData);
         const savedCourseLesson = await this.courseLessonRepository.save(courseLesson);
+        
+        // Invalidate relevant caches
+        await this.cacheService.invalidatePattern(`lessons:course:${createLessonDto.courseId}:*`);
+        if (createLessonDto.moduleId) {
+          await this.cacheService.invalidatePattern(`lessons:module:${createLessonDto.moduleId}:*`);
+        }
+        await this.cacheService.invalidatePattern(`courses:hierarchy:${createLessonDto.courseId}:*`);
         
         // Return the course lesson association which includes the lesson reference
         return Array.isArray(savedCourseLesson) ? savedCourseLesson[0] : savedCourseLesson;
@@ -424,6 +435,18 @@ export class LessonsService {
   ): Promise<{ count: number; lessons: Lesson[] }> {
     try {
       const { page = 1, limit = 10 } = paginationDto;
+      const cacheKey = this.cacheService.generatePaginationKey(
+        `lessons:all:${tenantId || 'global'}:${organisationId || 'global'}`,
+        page,
+        limit
+      );
+
+      // Try to get from cache first
+      const cachedResult = await this.cacheService.get<{ count: number; lessons: Lesson[] }>(cacheKey);
+      if (cachedResult) {
+        return cachedResult;
+      }
+
       const skip = (page - 1) * limit;
 
       // Build query with filters
@@ -460,7 +483,12 @@ export class LessonsService {
         relations: ['media'],
       });
 
-      return { count, lessons };
+      const result = { count, lessons };
+
+      // Cache the result
+      await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+
+      return result;
     } catch (error) {
       this.logger.error(`Error finding lessons: ${error.message}`);
       throw new InternalServerErrorException('Error retrieving lessons');
@@ -480,6 +508,14 @@ export class LessonsService {
     organisationId?: string    
   ): Promise<Lesson> {
     try {
+      const cacheKey = `lessons:${lessonId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+      
+      // Try to get from cache first
+      const cachedLesson = await this.cacheService.get<Lesson>(cacheKey);
+      if (cachedLesson) {
+        return cachedLesson;
+      }
+
       // Build where clause with required filters
       const whereClause: any = { 
         lessonId: lessonId, 
@@ -497,12 +533,14 @@ export class LessonsService {
       
       const lesson = await this.lessonRepository.findOne({
         where: whereClause,
-       
       });
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
       }
+
+      // Cache the lesson
+      await this.cacheService.set(cacheKey, lesson, this.CACHE_TTL);
 
       return lesson;
     } catch (error) {
@@ -526,6 +564,14 @@ export class LessonsService {
     organisationId?: string
   ): Promise<any[]> {
     try {
+      const cacheKey = `lessons:course:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+      
+      // Try to get from cache first
+      const cachedLessons = await this.cacheService.get<any[]>(cacheKey);
+      if (cachedLessons) {
+        return cachedLessons;
+      }
+
       // Build where clause for course validation
       const courseWhereClause: any = { 
         courseId, 
@@ -582,6 +628,9 @@ export class LessonsService {
         media: courseLesson.lesson.media,
       }));
 
+      // Cache the lessons
+      await this.cacheService.set(cacheKey, lessons, this.CACHE_TTL);
+
       return lessons;
     } catch (error) {
       this.logger.error(`Error finding lessons by course ID: ${error.message}`);
@@ -604,6 +653,14 @@ export class LessonsService {
     organisationId?: string
   ): Promise<any[]> {
     try {
+      const cacheKey = `lessons:module:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+      
+      // Try to get from cache first
+      const cachedLessons = await this.cacheService.get<any[]>(cacheKey);
+      if (cachedLessons) {
+        return cachedLessons;
+      }
+
       // Build where clause for module validation
       const moduleWhereClause: any = { 
         moduleId, 
@@ -663,6 +720,9 @@ export class LessonsService {
         status: courseLesson.status,
         media: courseLesson.lesson.media,
       }));
+
+      // Cache the lessons
+      await this.cacheService.set(cacheKey, lessons, this.CACHE_TTL);
 
       return lessons;
     } catch (error) {
@@ -839,7 +899,26 @@ export class LessonsService {
       
       // Update the lesson
       const updatedLesson = this.lessonRepository.merge(lesson, updateData);
-      return this.lessonRepository.save(updatedLesson);
+      const savedLesson = await this.lessonRepository.save(updatedLesson);
+
+      // Invalidate relevant caches
+      await this.cacheService.del(`lessons:${lessonId}:${tenantId || 'global'}:${organisationId || 'global'}`);
+      
+      // Find all course-lesson associations for this lesson
+      const courseLessons = await this.courseLessonRepository.find({
+        where: { lessonId } as any,
+      });
+
+      // Invalidate caches for all associated courses and modules
+      for (const courseLesson of courseLessons) {
+        await this.cacheService.invalidatePattern(`lessons:course:${courseLesson.courseId}:*`);
+        if (courseLesson.moduleId) {
+          await this.cacheService.invalidatePattern(`lessons:module:${courseLesson.moduleId}:*`);
+        }
+        await this.cacheService.invalidatePattern(`courses:hierarchy:${courseLesson.courseId}:*`);
+      }
+
+      return savedLesson;
     } catch (error) {
       this.logger.error(`Error updating lesson: ${error.message}`);
       if (
@@ -901,6 +980,18 @@ export class LessonsService {
         courseLesson.status = CourseLessonStatus.ARCHIVED;
         courseLesson.updatedAt = new Date();
         await this.courseLessonRepository.save(courseLesson);
+      }
+
+      // Invalidate relevant caches
+      await this.cacheService.del(`lessons:${lessonId}:${tenantId || 'global'}:${organisationId || 'global'}`);
+      
+      // Invalidate caches for all associated courses and modules
+      for (const courseLesson of courseLessons) {
+        await this.cacheService.invalidatePattern(`lessons:course:${courseLesson.courseId}:*`);
+        if (courseLesson.moduleId) {
+          await this.cacheService.invalidatePattern(`lessons:module:${courseLesson.moduleId}:*`);
+        }
+        await this.cacheService.invalidatePattern(`courses:hierarchy:${courseLesson.courseId}:*`);
       }
 
       return { success: true, message: RESPONSE_MESSAGES.LESSON_DELETED };
@@ -980,6 +1071,14 @@ export class LessonsService {
     organisationId?: string
   ): Promise<any> {
     try {
+      const cacheKey = `lessons:display:${lessonId}:${courseLessonId || 'global'}:${tenantId || 'global'}:${organisationId || 'global'}`;
+      
+      // Try to get from cache first
+      const cachedLesson = await this.cacheService.get<any>(cacheKey);
+      if (cachedLesson) {
+        return cachedLesson;
+      }
+
       // Build where clause for lesson with required filters
       const lessonWhereClause: any = { 
         lessonId, 
@@ -1052,6 +1151,9 @@ export class LessonsService {
           params: courseLesson.params,
         } : null,
       };
+
+      // Cache the result with a shorter TTL for user-specific data
+      await this.cacheService.set(cacheKey, result, this.USER_CACHE_TTL);
 
       return result;
     } catch (error) {

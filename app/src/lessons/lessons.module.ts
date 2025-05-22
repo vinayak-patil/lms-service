@@ -10,6 +10,7 @@ import { Media } from '../media/entities/media.entity';
 import { AssociatedFile } from '../media/entities/associated-file.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CommonModule } from '../common/common.module';
+import { CacheModule } from '../cache';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CommonModule } from '../common/common.module';
       LessonTrack,
     ]),
     CommonModule,
+    CacheModule,
   ],
   controllers: [LessonsController],
   providers: [LessonsService],

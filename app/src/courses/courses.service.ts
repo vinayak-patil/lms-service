@@ -18,10 +18,13 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
+  private readonly CACHE_TTL = 3600; // 1 hour for course listings
+  private readonly USER_CACHE_TTL = 600; // 10 minutes for user-specific data
 
   constructor(
     @InjectRepository(Course)
@@ -34,6 +37,7 @@ export class CoursesService {
     private readonly courseTrackRepository: Repository<CourseTrack>,
     @InjectRepository(LessonTrack)
     private readonly lessonTrackRepository: Repository<LessonTrack>,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -109,6 +113,13 @@ export class CoursesService {
     
     const course = this.courseRepository.create(courseData);
     const savedCourse = await this.courseRepository.save(course);
+    
+    // Invalidate relevant caches
+    await this.cacheService.invalidatePattern(`courses:search:${tenantId}:*`);
+    if (organisationId) {
+      await this.cacheService.invalidatePattern(`courses:search:${tenantId}:${organisationId}:*`);
+    }
+    
     return Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
   }
 
@@ -123,6 +134,18 @@ export class CoursesService {
     organisationId?: string,
   ): Promise<{ items: Course[]; total: number }> {
     const { page = 1, limit = 10 } = paginationDto;
+    const cacheKey = this.cacheService.generatePaginationKey(
+      `courses:search:${tenantId}:${organisationId || 'global'}`,
+      page,
+      limit
+    );
+
+    // Try to get from cache first
+    const cachedResult = await this.cacheService.get<{ items: Course[]; total: number }>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     const skip = (page - 1) * limit;
 
     const whereClause: any = { 
@@ -188,12 +211,17 @@ export class CoursesService {
     }
 
     // If no search query, just use filters
-    return this.courseRepository.findAndCount({
+    const result = await this.courseRepository.findAndCount({
       where: whereClause,
       order: { createdAt: 'DESC' },
       take: limit,
       skip,
     }).then(([items, total]) => ({ items, total }));
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+
+    return result;
   }
 
   /**
@@ -213,6 +241,18 @@ export class CoursesService {
     }
   ): Promise<{ items: Course[]; total: number }> {
     const { page = 1, limit = 10 } = paginationDto;
+    const cacheKey = this.cacheService.generatePaginationKey(
+      `courses:all:${tenantId}:${organisationId || 'global'}`,
+      page,
+      limit
+    );
+
+    // Try to get from cache first
+    const cachedResult = await this.cacheService.get<{ items: Course[]; total: number }>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     const skip = (page - 1) * limit;
 
     const whereClause: any = { 
@@ -250,7 +290,12 @@ export class CoursesService {
       skip,
     });
 
-    return { items, total };
+    const result = { items, total };
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+
+    return result;
   }
 
   /**
@@ -265,6 +310,14 @@ export class CoursesService {
     tenantId?: string, 
     organisationId?: string
   ): Promise<Course> {
+    const cacheKey = `courses:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    // Try to get from cache first
+    const cachedCourse = await this.cacheService.get<Course>(cacheKey);
+    if (cachedCourse) {
+      return cachedCourse;
+    }
+
     const whereClause: FindOptionsWhere<Course> = { courseId };
     
     // Apply tenant and organization filters if provided
@@ -284,6 +337,9 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
+    // Cache the course
+    await this.cacheService.set(cacheKey, course, this.CACHE_TTL);
+
     return course;
   }
 
@@ -298,6 +354,14 @@ export class CoursesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<any> {
+    const cacheKey = `courses:hierarchy:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    // Try to get from cache first
+    const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
+    if (cachedHierarchy) {
+      return cachedHierarchy;
+    }
+
     // Find the course with tenant/org filtering
     const course = await this.findOne(courseId, tenantId, organisationId);
     
@@ -394,10 +458,15 @@ export class CoursesService {
       })
     );
 
-    return {
+    const result = {
       ...course,
       modules: enrichedModules,
     };
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+
+    return result;
   }
 
   /**
@@ -700,6 +769,13 @@ export class CoursesService {
       updatedBy: userId,
     });
     
+        // Invalidate relevant caches
+    await this.cacheService.del(`courses:${courseId}:${tenantId}:${organisationId || 'global'}`);
+    await this.cacheService.invalidatePattern(`courses:search:${tenantId}:*`);
+    if (organisationId) {
+      await this.cacheService.invalidatePattern(`courses:search:${tenantId}:${organisationId}:*`);
+    }
+    
     return this.courseRepository.save(updatedCourse);
   }
 
@@ -721,6 +797,14 @@ export class CoursesService {
     
     await this.courseRepository.save(course);
     
+    // Invalidate relevant caches
+    await this.cacheService.del(`courses:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`);
+    if (tenantId) {
+      await this.cacheService.invalidatePattern(`courses:search:${tenantId}:*`);
+      if (organisationId) {
+        await this.cacheService.invalidatePattern(`courses:search:${tenantId}:${organisationId}:*`);
+      }
+    }
     return { 
       success: true, 
       message: RESPONSE_MESSAGES.COURSE_DELETED,
