@@ -148,23 +148,6 @@ export class LessonsController   {
     );
   }
 
-  @Get('course/:courseId')
-  @ApiOperation({ summary: 'Get lessons by course ID' })
-  @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Course not found' })
-  @ApiParam({ name: 'courseId', type: String, format: 'uuid' })
-  async getLessonsByCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
-  ) {
-    return this.lessonsService.findByCourse(
-      courseId,
-      query.tenantId,
-      query.organisationId
-    );
-  }
-
   @Get('module/:moduleId')
   @ApiOperation({ summary: 'Get lessons by module ID' })
   @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
