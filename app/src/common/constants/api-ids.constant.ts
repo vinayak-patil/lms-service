@@ -8,7 +8,6 @@ export const API_IDS = {
   GET_COURSE_HIERARCHY_WITH_TRACKING: 'api.lms.course.hierarchy.tracking',
   UPDATE_COURSE: 'api.lms.course.update',
   DELETE_COURSE: 'api.lms.course.delete',
-  GET_TENANT_INFO: 'api.lms.tenant.info',
 
   // Module APIs
   CREATE_MODULE: 'api.lms.module.create',
@@ -18,16 +17,6 @@ export const API_IDS = {
   UPDATE_MODULE: 'api.lms.module.update',
   DELETE_MODULE: 'api.lms.module.delete',
   
-  // Module namespace for nested properties
-  MODULE: {
-    CREATE: 'api.lms.module.create',
-    GET: 'api.lms.module.read',
-    GET_BY_COURSE: 'api.lms.module.list.bycourse',
-    GET_SUBMODULES: 'api.lms.module.list.byparent',
-    UPDATE: 'api.lms.module.update',
-    DELETE: 'api.lms.module.delete',
-  },
-
   // Lesson APIs
   CREATE_LESSON: 'api.lms.lesson.create',
   GET_ALL_LESSONS: 'api.lms.lesson.list',
@@ -40,21 +29,7 @@ export const API_IDS = {
   REMOVE_LESSON_FROM_COURSE: 'api.lms.lesson.course.remove',
   GET_LESSON_TO_DISPLAY: 'api.lms.lesson.display',
   
-  // Lesson namespace for nested properties
-  LESSON: {
-    CREATE: 'api.lms.lesson.create',
-    LIST: 'api.lms.lesson.list',
-    ADD_TO_COURSE: 'api.lms.lesson.course.add',
-    GET: 'api.lms.lesson.read',
-    GET_BY_COURSE: 'api.lms.lesson.list.bycourse',
-    GET_BY_MODULE: 'api.lms.lesson.list.bymodule',
-    UPDATE: 'api.lms.lesson.update',
-    DELETE: 'api.lms.lesson.delete',
-    REMOVE_FROM_COURSE: 'api.lms.lesson.course.remove',
-    GET_TO_DISPLAY: 'api.lms.lesson.display',
-  },
-
-  // Media APIs
+    // Media APIs
   UPLOAD_MEDIA: 'api.lms.media.upload',
   GET_MEDIA_LIST: 'api.lms.media.list',
   GET_MEDIA_BY_ID: 'api.lms.media.read',
@@ -62,32 +37,13 @@ export const API_IDS = {
   DELETE_MEDIA: 'api.lms.media.delete',
   REMOVE_MEDIA_ASSOCIATION: 'api.lms.media.lesson.disassociate',
   
-  // Media namespace for nested properties
-  MEDIA: {
-    UPLOAD: 'api.lms.media.upload',
-    LIST: 'api.lms.media.list',
-    GET: 'api.lms.media.read',
-    ASSOCIATE: 'api.lms.media.lesson.associate',
-    DELETE: 'api.lms.media.delete',
-    REMOVE_ASSOCIATION: 'api.lms.media.lesson.disassociate',
-  },
-
-  // Enrollment APIs
+   // Enrollment APIs
   ENROLL_USER: 'api.lms.enrollment.create',
   GET_USER_ENROLLMENTS: 'api.lms.enrollment.list.byuser',
   GET_ENROLLMENT_BY_ID: 'api.lms.enrollment.read',
   UPDATE_ENROLLMENT: 'api.lms.enrollment.update',
   CANCEL_ENROLLMENT: 'api.lms.enrollment.cancel',
   
-  // Enrollment namespace for nested properties
-  ENROLLMENT: {
-    CREATE: 'api.lms.enrollment.create',
-    LIST: 'api.lms.enrollment.list.byuser',
-    GET: 'api.lms.enrollment.read',
-    UPDATE: 'api.lms.enrollment.update',
-    CANCEL: 'api.lms.enrollment.cancel',
-  },
-
   // Tracking APIs
   START_COURSE_TRACKING: 'api.lms.tracking.course.start',
   UPDATE_COURSE_TRACKING: 'api.lms.tracking.course.update',

@@ -113,41 +113,6 @@ export class CoursesController {
     );
   }
 
-  @Get()
-  @ApiId(API_IDS.GET_ALL_COURSES)
-  @ApiOperation({ summary: 'Get all courses' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Courses retrieved successfully',
-    schema: {
-      properties: {
-        items: {
-          type: 'array',
-          items: { $ref: '#/components/schemas/Course' }
-        },
-        total: { type: 'number' }
-      }
-    }
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  async getAllCourses(
-    @Query() paginationDto: PaginationDto,
-    @Query() query: CommonQueryDto,
-    @Query('status') status?: CourseStatus,
-  ) {
-    const filters = {
-      status,
-    };
-    return this.coursesService.findAll(
-      paginationDto,
-      query.userId,
-      query.tenantId,
-      query.organisationId,
-      filters
-    );
-  }
-
   @Get(':courseId')
   @ApiId(API_IDS.GET_COURSE_BY_ID)
   @ApiOperation({ summary: 'Get a course by ID' })

@@ -78,7 +78,7 @@ export class LessonsController   {
   }
 
   @Get()
-  @ApiId(API_IDS.LESSON.LIST)
+  @ApiId(API_IDS.GET_ALL_LESSONS)
   @ApiOperation({ summary: 'Get all lessons' })
   @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -103,7 +103,7 @@ export class LessonsController   {
   }
 
   @Post('course/:courseId/module/:moduleId')
-  @ApiId(API_IDS.LESSON.ADD_TO_COURSE)
+  @ApiId(API_IDS.ADD_LESSON_TO_COURSE)
   @ApiOperation({ summary: 'Add lesson to course/module' })
   @ApiResponse({ status: 201, description: 'Lesson added to course successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -143,23 +143,6 @@ export class LessonsController   {
     return this.lessonsService.findOne(
       lessonId,
       query.userId,
-      query.tenantId,
-      query.organisationId
-    );
-  }
-
-  @Get('course/:courseId')
-  @ApiOperation({ summary: 'Get lessons by course ID' })
-  @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Course not found' })
-  @ApiParam({ name: 'courseId', type: String, format: 'uuid' })
-  async getLessonsByCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
-  ) {
-    return this.lessonsService.findByCourse(
-      courseId,
       query.tenantId,
       query.organisationId
     );
