@@ -37,7 +37,7 @@ export class MediaController {
   }
 
   @Post('upload')
-  @ApiId(API_IDS.MEDIA.UPLOAD)
+  @ApiId(API_IDS.UPLOAD_MEDIA)
   @ApiOperation({ summary: 'Upload media file' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
@@ -68,7 +68,7 @@ export class MediaController {
   }
 
   @Get()
-  @ApiId(API_IDS.MEDIA.LIST)
+  @ApiId(API_IDS.GET_MEDIA_LIST)
   @ApiOperation({ summary: 'Get media list' })
   @ApiResponse({ status: 200, description: 'Media list retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -88,7 +88,7 @@ export class MediaController {
   }
 
   @Get(':mediaId')
-  @ApiId(API_IDS.MEDIA.GET)
+  @ApiId(API_IDS.GET_MEDIA_BY_ID)
   @ApiOperation({ summary: 'Get media by ID' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media retrieved successfully' })
@@ -99,7 +99,7 @@ export class MediaController {
   }
 
   @Post(':mediaId/associate/:lessonId')
-  @ApiId(API_IDS.MEDIA.ASSOCIATE)
+  @ApiId(API_IDS.ASSOCIATE_MEDIA_WITH_LESSON)
   @ApiOperation({ summary: 'Associate media with lesson' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lessonId', description: 'Lesson ID', type: 'string', format: 'uuid' })
@@ -114,7 +114,7 @@ export class MediaController {
   }
 
   @Delete(':mediaId')
-  @ApiId(API_IDS.MEDIA.DELETE)
+  @ApiId(API_IDS.DELETE_MEDIA)
   @ApiOperation({ summary: 'Delete media' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media deleted successfully' })
@@ -125,7 +125,7 @@ export class MediaController {
   }
 
   @Delete(':mediaId/disassociate/:lessonId')
-  @ApiId(API_IDS.MEDIA.REMOVE_ASSOCIATION)
+  @ApiId(API_IDS.REMOVE_MEDIA_ASSOCIATION)
   @ApiOperation({ summary: 'Remove media association from lesson' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lessonId', description: 'Lesson ID', type: 'string', format: 'uuid' })
