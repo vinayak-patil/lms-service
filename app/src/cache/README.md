@@ -1,16 +1,16 @@
 # Caching Implementation
 
-This module provides a robust caching solution for the LMS microservice using Redis as the cache store.
+This module provides a robust caching solution for the LMS microservice using in-memory cache.
 
 ## Features
 
-- Redis-based distributed caching
+- In-memory caching
 - Configurable TTL (Time To Live) for cached items
 - Cache versioning support
 - Automatic cache invalidation on data modifications
 - Pagination-aware caching
 - User-specific caching
-- Health checks for Redis connection
+- Health checks for cache functionality
 
 ## Configuration
 
@@ -19,10 +19,6 @@ The caching system can be configured through environment variables:
 ```env
 # Cache Configuration
 CACHE_ENABLED=true
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
 CACHE_TTL=3600
 CACHE_MAX_ITEMS=1000
 CACHE_VERSION=v1
@@ -88,7 +84,7 @@ async getUserPreferences(): Promise<any> {
 
 ## Health Checks
 
-The Redis connection can be monitored through the health check endpoint:
+The cache functionality can be monitored through the health check endpoint:
 
 ```bash
 GET /health
@@ -100,18 +96,9 @@ GET /health
    - Course listings: 1 hour
    - User-specific data: 10 minutes
    - Search results: 1 hour
-
-2. Implement proper cache invalidation:
-   - Invalidate on POST/PUT/PATCH/DELETE operations
-   - Use pattern-based invalidation for related data
-
-3. Handle cache failures gracefully:
-   - Implement fallback to database queries
-   - Log cache errors for monitoring
-
-4. Use cache versioning for breaking changes:
-   - Increment CACHE_VERSION when data structure changes
-   - This ensures clean cache invalidation
+2. Be mindful of memory usage since this is an in-memory cache
+3. Use cache versioning to invalidate all cache entries when needed
+4. Use pattern-based invalidation for related data
 
 ## Error Handling
 

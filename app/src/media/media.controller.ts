@@ -68,7 +68,7 @@ export class MediaController {
   }
 
   @Get()
-  @ApiId(API_IDS.GET_ALL_MEDIA)
+  @ApiId(API_IDS.GET_MEDIA_LIST)
   @ApiOperation({ summary: 'Get media list' })
   @ApiResponse({ status: 200, description: 'Media list retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

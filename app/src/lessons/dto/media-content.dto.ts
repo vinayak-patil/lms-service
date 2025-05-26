@@ -6,7 +6,7 @@ import {
   IsNotEmpty,
   ValidateIf,
 } from 'class-validator';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export enum MediaFormat {
   VIDEO = 'video',
@@ -24,13 +24,13 @@ export enum MediaSubFormat {
 
 export class MediaContentDto {
   @ApiProperty({
-    description: 'Media format',
+    description: VALIDATION_MESSAGES.MEDIA.TYPE,
     enum: MediaFormat,
     example: MediaFormat.VIDEO,
     required: true,
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsEnum(MediaFormat, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_ENUM })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Format') })
+  @IsEnum(MediaFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Format') })
   format: MediaFormat;
 
   @ApiProperty({
@@ -40,17 +40,17 @@ export class MediaContentDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(MediaSubFormat, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_ENUM })
+  @IsEnum(MediaSubFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Sub-format') })
   subFormat?: MediaSubFormat;
 
   @ApiProperty({
-    description: 'Media source (URL, UUID, etc.)',
+    description: VALIDATION_MESSAGES.MEDIA.URL,
     example: 'https://youtube.com/watch?v=example',
     required: false,
   })
   @ValidateIf(o => o.format !== MediaFormat.DOCUMENT)
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Source') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Source') })
   source?: string;
 
   @ApiProperty({
@@ -60,7 +60,7 @@ export class MediaContentDto {
     default: 'local',
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Storage') })
   storage?: string = 'local';
 
   @ApiProperty({
@@ -69,6 +69,6 @@ export class MediaContentDto {
     required: false,
   })
   @ValidateIf(o => o.format === MediaFormat.DOCUMENT)
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media ID') })
   mediaId?: string;
 } 

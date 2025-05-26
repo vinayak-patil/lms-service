@@ -135,4 +135,35 @@ export class HelperUtil {
     return this.generateUniqueAlias(title, existingAliases, attempt + 1);
   }
 
+  // Custom validator for datetime constraints
+  static validateDatetimeConstraints(value: string, args: any) {
+    const startDate = new Date(args.object.startDatetime);
+  const endDate = new Date(value);
+  const now = new Date();
+
+  // Check if start date is in the future
+  if (startDate <= now) {
+    return false;
+  }
+
+  // Check if end date follows start date
+  if (endDate <= startDate) {
+    return false;
+  }
+
+  // Check minimum duration (1 day)
+  const minDuration = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+  if (endDate.getTime() - startDate.getTime() < minDuration) {
+    return false;
+  }
+
+  // Check maximum duration (1 year)
+  const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
+  if (endDate.getTime() - startDate.getTime() > maxDuration) {
+    return false;
+  }
+
+  return true;  
+}
+
 }

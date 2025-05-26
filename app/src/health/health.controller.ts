@@ -1,19 +1,30 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
-import { RedisHealthIndicator } from './redis.health';
+import { DataSource } from 'typeorm';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
-  constructor(
-    private health: HealthCheckService,
-    private redis: RedisHealthIndicator,
-  ) {}
+  constructor(private dataSource: DataSource) {}
 
   @Get()
-  @HealthCheck()
-  check() {
-    return this.health.check([
-      () => this.redis.isHealthy('redis'),
-    ]);
+  async checkHealth() {
+    let dbStatus = 'disconnected';
+
+    try {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.release();
+      dbStatus = 'connected';
+    } catch (error) {
+      dbStatus = 'error';
+    }
+
+    return {
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+      db: dbStatus,
+    };
   }
 }

@@ -5,7 +5,7 @@ import {
   IsEnum,
   IsNotEmpty,
 } from 'class-validator';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import { RESPONSE_MESSAGES, VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export enum MediaFormat {
   VIDEO = 'video',
@@ -16,12 +16,12 @@ export enum MediaFormat {
 
 export class CreateMediaDto {
   @ApiProperty({
-    description: 'Media format',
+    description: VALIDATION_MESSAGES.MEDIA.TYPE,
     example: 'video',
     required: true,
   })
-  @IsEnum(MediaFormat, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_ENUM })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
+  @IsEnum(MediaFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Format') })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Format') })
   format: MediaFormat;
 
   @ApiProperty({
@@ -30,17 +30,16 @@ export class CreateMediaDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Sub-format') })
   subFormat?: string;
 
- 
   @ApiProperty({
     description: 'Media path',
     example: '/uploads/media/example.pdf',
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Path') })
   path?: string;
 
   @ApiProperty({
@@ -49,7 +48,7 @@ export class CreateMediaDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Source') })
   source?: string;
 
   @ApiProperty({
@@ -59,11 +58,11 @@ export class CreateMediaDto {
     default: 'local',
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Storage') })
   storage?: string;
 
   @ApiProperty({
-    description: 'Additional parameters as JSON',
+    description: VALIDATION_MESSAGES.COURSE.PARAMS,
     example: '{"duration": 120, "resolution": "720p"}',
     required: false,
   })
@@ -76,6 +75,6 @@ export class CreateMediaDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Created by') })
   createdBy?: string;
 }

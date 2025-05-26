@@ -10,7 +10,7 @@ import { CoursesModule } from './courses/courses.module';
 import { AppService } from './app.service';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
-import { CacheModule } from './cache';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [

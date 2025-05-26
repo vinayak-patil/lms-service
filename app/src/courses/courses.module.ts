@@ -8,7 +8,7 @@ import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CoursesController } from './courses.controller';
 import { CoursesService } from './courses.service';
 import { CommonModule } from '../common/common.module';
-import { CacheModule } from '../cache';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
