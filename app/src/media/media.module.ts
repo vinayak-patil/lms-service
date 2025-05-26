@@ -7,6 +7,7 @@ import { AssociatedFile } from './entities/associated-file.entity';
 import { Lesson } from '../lessons/entities/lesson.entity';
 import { CommonModule } from '../common/common.module';
 import { Course } from '../courses/entities/course.entity';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Course } from '../courses/entities/course.entity';
       Course,
     ]),
     CommonModule,
+    CacheModule,
   ],
   controllers: [MediaController],
   providers: [MediaService],

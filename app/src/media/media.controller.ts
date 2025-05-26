@@ -42,8 +42,6 @@ export class MediaController {
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @UseInterceptors(FileInterceptor('file', uploadConfigs.media))
   async uploadMedia(
     @Body() createMediaDto: CreateMediaDto,
@@ -71,7 +69,6 @@ export class MediaController {
   @ApiId(API_IDS.GET_MEDIA_LIST)
   @ApiOperation({ summary: 'Get media list' })
   @ApiResponse({ status: 200, description: 'Media list retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiQuery({ name: 'format', required: false, enum: ['video', 'document', 'quiz', 'event'] })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -92,7 +89,6 @@ export class MediaController {
   @ApiOperation({ summary: 'Get media by ID' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Media not found' })
   async getMediaById(@Param('mediaId', ParseUUIDPipe) mediaId: string) {
     return this.mediaService.findOne(mediaId);
@@ -104,7 +100,6 @@ export class MediaController {
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lessonId', description: 'Lesson ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media associated successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Media or lesson not found' })
   async associateMediaWithLesson(
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
@@ -118,7 +113,6 @@ export class MediaController {
   @ApiOperation({ summary: 'Delete media' })
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Media not found' })
   async deleteMedia(@Param('mediaId', ParseUUIDPipe) mediaId: string) {
     return this.mediaService.remove(mediaId);
@@ -130,7 +124,6 @@ export class MediaController {
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lessonId', description: 'Lesson ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media association removed successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Media or lesson not found' })
   async removeMediaAssociation(
     @Param('mediaId', ParseUUIDPipe) mediaId: string,

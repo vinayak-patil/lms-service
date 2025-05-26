@@ -1,6 +1,7 @@
 import path from 'path';
 import { validationConfig } from 'src/config/file-validation.config';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+import { Not } from 'typeorm';
 
 export class HelperUtil {
   /**
@@ -82,57 +83,56 @@ export class HelperUtil {
   }
 
   /**
-   * Generate a unique alias by appending a suffix if needed
-   * @param title The original title
-   * @param existingAliases Array of existing aliases to check against
-   * @param attempt Current attempt number (for recursion)
+   * Generate a unique alias using repository pattern
+   * @param title The title to convert to an alias
+   * @param repository The repository to check for existing aliases
+   * @param tenantId The tenant ID for data isolation
+   * @param organisationId Optional organization ID for data isolation
    * @returns A unique alias
    */
-  static generateUniqueAlias(
-    title: string, 
-    existingAliases: string[] = [], 
-    attempt: number = 0
-  ): string {
+  static async generateUniqueAliasWithRepo(
+    title: string,
+    repository: any,
+    tenantId: string,
+    organisationId?: string
+  ): Promise<string> {
     const baseAlias = this.generateAlias(title);
     
-    if (attempt === 0) {
-      // First attempt - try with the original title
-      if (!existingAliases.includes(baseAlias)) {
-        return baseAlias;
+    // First try with the original alias
+    const existingWithBase = await repository.findOne({
+      where: { 
+        alias: baseAlias,
+        tenantId,
+        ...(organisationId && { organisationId }),
+        status: Not('ARCHIVED')
       }
+    });
+
+    if (!existingWithBase) {
+      return baseAlias;
     }
+
+    // Try with incremental number
+    let attempt = 1;
+    let finalAlias = `${baseAlias}-${attempt}`;
     
-    // On second attempt, add a short timestamp or random string to make it more unique
-    if (attempt === 1) {
-      // Use last 5 digits of current timestamp
-      const timestamp = Date.now().toString().slice(-5);
-      const newAlias = `${baseAlias}-${timestamp}`;
-      
-      if (!existingAliases.includes(newAlias)) {
-        return newAlias;
+    while (true) {
+      const existing = await repository.findOne({
+        where: { 
+          alias: finalAlias,
+          tenantId,
+          ...(organisationId && { organisationId }),
+          status: Not('ARCHIVED')
+        }
+      });
+
+      if (!existing) {
+        return finalAlias;
       }
+
+      attempt++;
+      finalAlias = `${baseAlias}-${attempt}`;
     }
-    
-    // On third attempt, add a random string
-    if (attempt === 2) {
-      const randomString = Math.random().toString(36).substring(2, 6);
-      const newAlias = `${baseAlias}-${randomString}`;
-      
-      if (!existingAliases.includes(newAlias)) {
-        return newAlias;
-      }
-    }
-    
-    // After that, use a combination of timestamp and incrementing number
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const newAlias = `${baseAlias}-${timestamp}-${attempt - 2}`;
-    
-    if (!existingAliases.includes(newAlias)) {
-      return newAlias;
-    }
-    
-    // Recursively try with incremented attempt
-    return this.generateUniqueAlias(title, existingAliases, attempt + 1);
   }
 
   // Custom validator for datetime constraints

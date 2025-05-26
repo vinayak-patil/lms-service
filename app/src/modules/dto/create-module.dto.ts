@@ -22,6 +22,15 @@ export class CreateModuleDto {
   title: string;
 
   @ApiProperty({ 
+    description: 'Module alias/slug',
+    example: 'intro-html',
+    required: false
+  })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Alias') })
+  alias?: string;
+
+  @ApiProperty({ 
     description: VALIDATION_MESSAGES.MODULE.COURSE_ID,
     required: true
   })

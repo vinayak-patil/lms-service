@@ -51,8 +51,6 @@ export class CoursesController {
     type: Course 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
   async createCourse(
@@ -92,8 +90,6 @@ export class CoursesController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   async searchCourses(
     @Query() searchDto: SearchCourseDto,
     @Query() query: CommonQueryDto,
@@ -122,8 +118,6 @@ export class CoursesController {
     description: 'Course retrieved successfully', 
     type: Course 
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
@@ -161,8 +155,6 @@ export class CoursesController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseHierarchyById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
@@ -215,8 +207,6 @@ export class CoursesController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseHierarchyWithTracking(
     @Param('courseId', ParseUUIDPipe) courseId: string,
@@ -241,8 +231,6 @@ export class CoursesController {
     type: Course 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
@@ -281,8 +269,6 @@ export class CoursesController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async deleteCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,

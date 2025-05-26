@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike } from 'typeorm';
@@ -13,13 +14,16 @@ import { CourseLesson } from '../lessons/entities/course-lesson.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { CacheService } from '../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ModulesService {
   private readonly logger = new Logger(ModulesService.name);
-  private readonly CACHE_TTL = 3600; // 1 hour for module listings
-  private readonly USER_CACHE_TTL = 600; // 10 minutes for user-specific data
+  private readonly cache_ttl_default: number;
+  private readonly cache_prefix_module: string;
+  private readonly cache_enabled: boolean;
 
   constructor(
     @InjectRepository(Module)
@@ -29,7 +33,12 @@ export class ModulesService {
     @InjectRepository(CourseLesson)
     private readonly courseLessonRepository: Repository<CourseLesson>,
     private readonly cacheService: CacheService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.cache_enabled = this.configService.get('cache.enabled') === 'true';
+    this.cache_ttl_default = this.configService.get('cache.ttl.default') || 3600;
+    this.cache_prefix_module = this.configService.get('cache.prefix.module') || 'modules';
+  }
 
   /**
    * Create a new module
@@ -145,13 +154,100 @@ export class ModulesService {
     const savedModule = await this.moduleRepository.save(module);
 
     // Invalidate relevant caches
-    await this.cacheService.invalidatePattern(`modules:course:${createModuleDto.courseId}:*`);
-    if (createModuleDto.parentId) {
-      await this.cacheService.invalidatePattern(`modules:parent:${createModuleDto.parentId}:*`);
+    if (this.cache_enabled) {
+      await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${createModuleDto.courseId}:*`);
+      if (createModuleDto.parentId) {
+        await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${createModuleDto.parentId}:*`);
+      }
+      await this.cacheService.delByPattern(`courses:hierarchy:${createModuleDto.courseId}:*`);
     }
-    await this.cacheService.invalidatePattern(`courses:hierarchy:${createModuleDto.courseId}:*`);
-
     return Array.isArray(savedModule) ? savedModule[0] : savedModule;
+  }
+
+  /**
+   * Find all modules with pagination and filters
+   */
+  async findAll(
+    paginationDto: PaginationDto,
+    filters: any,
+    tenantId: string,
+  ): Promise<[Module[], number]> {
+    try {
+      const { page, limit, skip } = paginationDto;
+      const { search, courseId, parentId } = filters;
+
+      const cacheKey = `${this.cache_prefix_module}:all:${tenantId}:${page}:${limit}:${search || 'none'}:${courseId || 'none'}:${parentId || 'none'}`;
+
+      if (this.cache_enabled) {
+        // Try to get from cache first
+        const cachedResult = await this.cacheService.get<[Module[], number]>(cacheKey);
+        if (cachedResult) {
+          return cachedResult;
+        }
+    }
+
+      const queryOptions: any = {
+        where: { 
+          tenantId,
+          status: Not(ModuleStatus.ARCHIVED),
+        } as FindOptionsWhere<Module>,
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      };
+
+      // Add search condition if provided
+      if (search) {
+        queryOptions.where = [
+          { 
+            title: ILike(`%${search}%`),
+            tenantId,
+            status: Not(ModuleStatus.ARCHIVED),
+          } as FindOptionsWhere<Module>,
+          { 
+            description: ILike(`%${search}%`),
+            tenantId,
+            status: Not(ModuleStatus.ARCHIVED),
+          } as FindOptionsWhere<Module>,
+        ];
+      }
+
+      // Add course filter if provided
+      if (courseId) {
+        if (Array.isArray(queryOptions.where)) {
+          queryOptions.where = queryOptions.where.map(cond => ({
+            ...cond,
+            courseId,
+          }));
+        } else {
+          queryOptions.where.courseId = courseId;
+        }
+      }
+
+      // Add parent filter if provided
+      if (parentId) {
+        if (Array.isArray(queryOptions.where)) {
+          queryOptions.where = queryOptions.where.map(cond => ({
+            ...cond,
+            parentId,
+          }));
+        } else {
+          queryOptions.where.parentId = parentId;
+        }
+      }
+
+      const result = await this.moduleRepository.findAndCount(queryOptions);
+
+      // Cache the result
+      if (this.cache_enabled) {
+        await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Error finding modules: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -165,12 +261,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module> {
-    const cacheKey = `modules:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`;
     
-    // Try to get from cache first
-    const cachedModule = await this.cacheService.get<Module>(cacheKey);
-    if (cachedModule) {
-      return cachedModule;
+    if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedModule = await this.cacheService.get<Module>(cacheKey);
+      if (cachedModule) {
+        return cachedModule;
+      }
     }
 
     // Build where clause with optional filters
@@ -193,8 +291,10 @@ export class ModulesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
-    // Cache the module
-    await this.cacheService.set(cacheKey, module, this.CACHE_TTL);
+    // Cache the module if caching is enabled
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, module, this.cache_ttl_default);
+    }
 
     return module;
   }
@@ -210,12 +310,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
-    const cacheKey = `modules:course:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
     
-    // Try to get from cache first
-    const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
-    if (cachedModules) {
-      return cachedModules;
+    if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
+      if (cachedModules) {
+        return cachedModules;
+      }
     }
 
     // Build where clause with required filters
@@ -240,7 +342,9 @@ export class ModulesService {
     });
 
     // Cache the modules
-    await this.cacheService.set(cacheKey, modules, this.CACHE_TTL);
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, modules, this.cache_ttl_default);
+    }
 
     return modules;
   }
@@ -256,12 +360,14 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
-    const cacheKey = `modules:parent:${parentId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:parent:${parentId}:${tenantId || 'global'}:${organisationId || 'global'}`;
     
-    // Try to get from cache first
-    const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
-    if (cachedModules) {
-      return cachedModules;
+    if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
+      if (cachedModules) {
+        return cachedModules;
+      }
     }
 
     // Build where clause with required filters
@@ -285,7 +391,9 @@ export class ModulesService {
     });
 
     // Cache the modules
-    await this.cacheService.set(cacheKey, modules, this.CACHE_TTL);
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, modules, this.cache_ttl_default);
+    }
 
     return modules;
   }
@@ -300,66 +408,36 @@ export class ModulesService {
     tenantId: string,
     organisationId?: string,
   ): Promise<Module> {
-    // Get existing module
-    const module = await this.findOne(moduleId, tenantId, organisationId);
+    try {
+      // Find the module to update
+      const module = await this.findOne(moduleId, tenantId, organisationId);
 
-   
-    // Map DTO properties to entity properties
-    const updateData: any = {
-      updatedBy: userId,
-    };
-    
-    // Map fields that exist in both DTO and entity
-    if (updateModuleDto.title !== undefined) {
-      updateData.title = updateModuleDto.title;
-    }
-    
-    if (updateModuleDto.description !== undefined) {
-      updateData.description = updateModuleDto.description;
-    }
-    
-    if (updateModuleDto.ordering !== undefined) {
-      updateData.ordering = updateModuleDto.ordering;
-    }
-    
-    if (updateModuleDto.status !== undefined) {
-      updateData.status = updateModuleDto.status;
-    }
-    
-    
-    if (updateModuleDto.parentId !== undefined) {
-      updateData.parentId = updateModuleDto.parentId;
-    }
-    
-    if (updateModuleDto.badgeTerm !== undefined) {
-      updateData.badgeTerm = { term: updateModuleDto.badgeTerm };
-    }
-    
-    // Handle image field mapping
-    if (updateModuleDto.image) {
-      updateData.image = updateModuleDto.image;
-    }
-    
-    if (updateModuleDto.params !== undefined) {
-      updateData.params = updateModuleDto.params;
-    }
-    
-    // Update the module
-    const updatedModule = this.moduleRepository.merge(module, updateData);
-    const savedModule = await this.moduleRepository.save(updatedModule);
+      // Update module
+      const updatedModule = this.moduleRepository.merge(module, {
+        ...updateModuleDto,
+        updatedBy: userId,
+      });
 
-    // Invalidate relevant caches
-    await this.cacheService.del(`modules:${moduleId}:${tenantId}:${organisationId || 'global'}`);
-    await this.cacheService.invalidatePattern(`modules:course:${module.courseId}:*`);
-    if (module.parentId) {
-      await this.cacheService.invalidatePattern(`modules:parent:${module.parentId}:*`);
-    }
-    if (updateModuleDto.parentId) {
-      await this.cacheService.invalidatePattern(`modules:parent:${updateModuleDto.parentId}:*`);
-    }
-    await this.cacheService.invalidatePattern(`courses:hierarchy:${module.courseId}:*`);
+      const savedModule = await this.moduleRepository.save(updatedModule);
 
-    return savedModule;
+      // Invalidate relevant caches
+      if (this.cache_enabled) {
+        await this.cacheService.del(`${this.cache_prefix_module}:${moduleId}`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${module.courseId}:*`);
+        if (module.parentId) {
+          await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${module.parentId}:*`);
+        }
+        await this.cacheService.delByPattern(`courses:hierarchy:${module.courseId}:*`);
+      }
+
+      return savedModule;
+    } catch (error) {
+      this.logger.error(`Error updating module: ${error.message}`);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 
   /**
@@ -455,12 +533,14 @@ export class ModulesService {
       await this.moduleRepository.save(module);
 
       // Invalidate relevant caches
-      await this.cacheService.del(`modules:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`);
-      await this.cacheService.invalidatePattern(`modules:course:${module.courseId}:*`);
-      if (module.parentId) {
-        await this.cacheService.invalidatePattern(`modules:parent:${module.parentId}:*`);
+      if (this.cache_enabled) {
+        await this.cacheService.del(`${this.cache_prefix_module}:${moduleId}`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${module.courseId}:*`);
+        if (module.parentId) {
+          await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${module.parentId}:*`);
+        }
+        await this.cacheService.delByPattern(`courses:hierarchy:${module.courseId}:*`);
       }
-      await this.cacheService.invalidatePattern(`courses:hierarchy:${module.courseId}:*`);
 
       return { 
         success: true, 

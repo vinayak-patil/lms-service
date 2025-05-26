@@ -18,7 +18,7 @@ import { CacheModule } from '../cache/cache.module';
       ModuleTrack,
     ]),
     CommonModule,
-    CacheModule,  
+    CacheModule,
   ],
   controllers: [ModulesController],
   providers: [ModulesService],

@@ -19,9 +19,8 @@ import { CacheModule } from './cache/cache.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
-    DatabaseModule,
-    // Cache module
     CacheModule,
+    DatabaseModule,
     // Common module
     CommonModule,    
     // Feature modules

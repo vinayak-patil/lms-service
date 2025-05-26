@@ -1,77 +1,104 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CacheService {
-  private readonly cacheVersion: string;
   private readonly logger = new Logger(CacheService.name);
 
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private configService: ConfigService,
-  ) {
-    this.cacheVersion = this.configService.get<string>('CACHE_VERSION') || 'v1';
-  }
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
-  private generateKey(key: string): string {
-    return `${this.cacheVersion}:${key}`;
-  }
-
+  /**
+   * Get value from cache
+   * @param key Cache key
+   * @returns Cached value or null if not found
+   */
   async get<T>(key: string): Promise<T | null> {
     try {
-      const value = await this.cacheManager.get<T>(this.generateKey(key));
-      return value || null;
+      this.logger.debug(`Getting cache for key ${key}`);
+      const value = await this.cacheManager.get<T>(key);
+      if (value) {
+        this.logger.debug(`Cache HIT for key ${key}`);
+      } else {
+        this.logger.debug(`Cache MISS for key ${key}`);
+      }
+      return value;
     } catch (error) {
-      this.logger.error(`Cache get error for key ${key}:`, error);
+      this.logger.error(`Error getting cache for key ${key}: ${error.message}`);
       return null;
     }
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  /**
+   * Set value in cache
+   * @param key Cache key
+   * @param value Value to cache
+   * @param ttl Time to live in seconds
+   */
+  async set(key: string, value: any, ttl: number): Promise<void> {
     try {
-      await this.cacheManager.set(this.generateKey(key), value, ttl);
+      this.logger.debug(`Setting cache for key ${key} with TTL ${ttl}s`);
+      await this.cacheManager.set(key, value, ttl * 1000); // Convert to milliseconds
     } catch (error) {
-      this.logger.error(`Cache set error for key ${key}:`, error);
+      this.logger.error(`Error setting cache for key ${key}: ${error.message}`);
     }
   }
 
+  /**
+   * Delete value from cache
+   * @param key Cache key
+   */
   async del(key: string): Promise<void> {
     try {
-      await this.cacheManager.del(this.generateKey(key));
+      this.logger.debug(`Deleting cache for key ${key}`);
+      await this.cacheManager.del(key);
     } catch (error) {
-      this.logger.error(`Cache delete error for key ${key}:`, error);
+      this.logger.error(`Error deleting cache for key ${key}: ${error.message}`);
     }
   }
 
-  async clear(): Promise<void> {
+  /**
+   * Delete multiple values from cache using pattern
+   * @param pattern Cache key pattern
+   */
+  async delByPattern(pattern: string): Promise<void> {
     try {
-      await this.cacheManager.del(this.cacheVersion + ':*');
-    } catch (error) {
-      this.logger.error('Cache clear error:', error);
-    }
-  }
+      this.logger.debug(`Deleting cache by pattern ${pattern}`);
+      // Get all keys from the cache store
+      const store = (this.cacheManager as any).store;
+      if (!store || typeof store.keys !== 'function') {
+        this.logger.warn('Cache store does not support pattern deletion');
+        return;
+      }
 
-  generatePaginationKey(baseKey: string, page: number, limit: number): string {
-    return `${baseKey}:page:${page}:limit:${limit}`;
-  }
-
-  generateUserKey(baseKey: string, userId: string): string {
-    return `${baseKey}:user:${userId}`;
-  }
-
-  async invalidatePattern(pattern: string): Promise<void> {
-    try {
-      const redisClient = (this.cacheManager as any).store.getClient();
-      if (redisClient && typeof redisClient.keys === 'function') {
-        const keys = await redisClient.keys(this.generateKey(pattern) + '*');
-        if (keys.length > 0) {
-          await redisClient.del(keys);
-        }
+      const keys = await store.keys();
+      const matchingKeys = keys.filter(key => key.includes(pattern));
+      
+      if (matchingKeys.length > 0) {
+        this.logger.debug(`Found ${matchingKeys.length} keys matching pattern ${pattern}`);
+        await Promise.all(matchingKeys.map(key => this.del(key)));
+      } else {
+        this.logger.debug(`No keys found matching pattern ${pattern}`);
       }
     } catch (error) {
-      this.logger.error(`Cache pattern invalidation error for pattern ${pattern}:`, error);
+      this.logger.error(`Error deleting cache by pattern ${pattern}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clear all cache
+   */
+  async clear(): Promise<void> {
+    try {
+      this.logger.debug('Clearing all cache');
+      const store = (this.cacheManager as any).store;
+      if (!store || typeof store.reset !== 'function') {
+        this.logger.warn('Cache store does not support reset');
+        return;
+      }
+      await store.reset();
+    } catch (error) {
+      this.logger.error(`Error clearing cache: ${error.message}`);
     }
   }
 } 
