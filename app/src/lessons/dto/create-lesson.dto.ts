@@ -14,12 +14,14 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RESPONSE_MESSAGES, VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 import { LessonStatus } from '../entities/lesson.entity';
 import { LessonFormat, AttemptsGradeMethod } from '../entities/lesson.entity';
 import { MediaContentDto } from './media-content.dto';
+import { HelperUtil } from 'src/common/utils/helper.util';
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -120,8 +122,11 @@ export class CreateLessonDto {
     required: false
   })
   @IsOptional()
-  @ValidateIf(o => o.startDatetime != null)
   @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End datetime') })
+  @ValidateIf((o) => o.startDatetime)
+  @Validate(HelperUtil.validateDatetimeConstraints, {
+    message: 'Invalid datetime constraints. Start date must be in the future, end date must follow start date, and duration must be between 1 day and 1 year.'
+  })
   endDatetime?: string;
 
   @ApiProperty({
