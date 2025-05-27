@@ -55,8 +55,6 @@ export class LessonsController   {
     type: Lesson 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
   async createLesson(
@@ -81,8 +79,6 @@ export class LessonsController   {
   @ApiId(API_IDS.GET_ALL_LESSONS)
   @ApiOperation({ summary: 'Get all lessons' })
   @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiQuery({ name: 'status', required: false, enum: ['published', 'unpublished', 'archived'] })
   @ApiQuery({ name: 'format', required: false, enum: ['video', 'document', 'quiz', 'event'] })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -107,8 +103,6 @@ export class LessonsController   {
   @ApiOperation({ summary: 'Add lesson to course/module' })
   @ApiResponse({ status: 201, description: 'Lesson added to course successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Lesson or course/module not found' })
   @ApiParam({ name: 'courseId', description: 'UUID of the course' })
   @ApiParam({ name: 'moduleId', description: 'UUID of the module' })
@@ -132,8 +126,6 @@ export class LessonsController   {
   @Get(':lessonId')
   @ApiOperation({ summary: 'Get lesson by ID' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
   async getLessonById(
@@ -151,7 +143,6 @@ export class LessonsController   {
   @Get('module/:moduleId')
   @ApiOperation({ summary: 'Get lessons by module ID' })
   @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Module not found' })
   @ApiParam({ name: 'moduleId', type: String, format: 'uuid' })
   async getLessonsByModule(
@@ -175,8 +166,6 @@ export class LessonsController   {
     type: Lesson 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
@@ -203,8 +192,6 @@ export class LessonsController   {
   @Delete(':lessonId')
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiResponse({ status: 200, description: 'Lesson deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
   async deleteLesson(
@@ -221,7 +208,6 @@ export class LessonsController   {
   @Delete('course/:courseLessonId')
   @ApiOperation({ summary: 'Remove lesson from course/module' })
   @ApiResponse({ status: 200, description: 'Lesson removed from course successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Course lesson association not found' })
   @ApiParam({ name: 'courseLessonId', type: String, format: 'uuid' })
   async removeLessonFromCourse(
@@ -238,7 +224,6 @@ export class LessonsController   {
   @Get(':lessonId/display')
   @ApiOperation({ summary: 'Get lesson to display' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
   @ApiQuery({ name: 'courseLessonId', required: false, type: String, format: 'uuid' })

@@ -10,9 +10,11 @@ import {
   IsEnum,
   ValidateIf,
   Matches,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import { RESPONSE_MESSAGES, VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 import { LessonFormat, AttemptsGradeMethod } from '../entities/lesson.entity';
 import { LessonStatus } from '../entities/lesson.entity';
 import { CreateLessonDto } from './create-lesson.dto';
@@ -27,16 +29,18 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Checked out user ID') })
   checkedOut?: string;
 
   @ApiProperty({
-    description: 'Lesson title',
+    description: VALIDATION_MESSAGES.LESSON.TITLE,
     example: 'Introduction to Machine Learning',
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Title') })
+  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Title', 3) })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Title', 255) })  
   title?: string;
 
   @ApiProperty({
@@ -45,54 +49,54 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Alias') })
   alias?: string;
 
   @ApiProperty({
-    description: 'Lesson status',
+    description: VALIDATION_MESSAGES.LESSON.STATUS,
     example: LessonStatus.PUBLISHED,
     required: false,
     enum: LessonStatus,
   })
   @IsOptional()
-  @IsEnum(LessonStatus, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_STATUS })
+  @IsEnum(LessonStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
   status?: LessonStatus;
 
   @ApiProperty({
-    description: 'Lesson description',
+    description: VALIDATION_MESSAGES.LESSON.DESCRIPTION,
     example: 'Learn the basics of machine learning algorithms',
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Description') })
   description?: string;
 
   @ApiPropertyOptional({ 
-    description: 'Lesson thumbnail image Path',
+    description: VALIDATION_MESSAGES.COURSE.IMAGE,
     example: '/images/lesson-thumbnail.jpg'
   })
   @IsOptional()
-  @IsString({ message: "Image must be a path to an image" })
-  @Matches(/\.(jpg|jpeg|png)$/i, { message: 'Image must be in JPG or PNG format' })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Image') })
+  @Matches(/\.(jpg|jpeg|png)$/i, { message: VALIDATION_MESSAGES.COMMON.IMAGE_FORMAT })
   image?: string;
 
   @ApiProperty({
-    description: 'Lesson start date and time',
+    description: VALIDATION_MESSAGES.COURSE.START_DATE,
     example: '2024-06-01T00:00:00Z',
     required: false,
   })
   @IsOptional()
-  @IsDateString({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_DATE })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start datetime') })
   startDatetime?: string;
 
   @ApiProperty({
-    description: 'Lesson end date and time',
+    description: VALIDATION_MESSAGES.COURSE.END_DATE,
     example: '2024-12-31T23:59:59Z',
     required: false,
   })
   @IsOptional()
   @ValidateIf(o => o.startDatetime != null)
-  @IsDateString({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_DATE })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End datetime') })
   endDatetime?: string;
 
   @ApiProperty({
@@ -101,7 +105,7 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Storage') })
   storage?: string;
 
   @ApiProperty({
@@ -110,8 +114,8 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(1, { message: 'Number of attempts must be at least 1' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Number of attempts') })
+  @Min(1, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Number of attempts') })
   @Type(() => Number)
   noOfAttempts?: number;
 
@@ -122,7 +126,7 @@ export class UpdateLessonDto extends PartialType(
     enum: ['FIRST_ATTEMPT', 'LAST_ATTEMPT', 'AVERAGE', 'HIGHEST'],
   })
   @IsOptional()
-  @IsEnum(AttemptsGradeMethod, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_ENUM })
+  @IsEnum(AttemptsGradeMethod, { message: VALIDATION_MESSAGES.COMMON.ENUM('Grade calculation method') })
   attemptsGrade?: AttemptsGradeMethod;
 
   @ApiProperty({
@@ -131,17 +135,17 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Eligibility criteria') })
   eligibilityCriteria?: string;
 
   @ApiProperty({
-    description: 'Ideal completion time (in minutes)',
+    description: VALIDATION_MESSAGES.LESSON.DURATION,
     example: 30,
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(1, { message: 'Ideal time must be at least 1 minute' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Ideal time') })
+  @Min(1, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Ideal time') })
   @Type(() => Number)
   idealTime?: number;
 
@@ -151,7 +155,7 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsBoolean({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_BOOLEAN })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Resume') })
   @Type(() => Boolean)
   resume?: boolean;
 
@@ -161,8 +165,8 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(0, { message: 'Total marks must not be negative' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Total marks') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Total marks') })
   @Type(() => Number)
   totalMarks?: number;
 
@@ -172,13 +176,13 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(0, { message: 'Passing marks must not be negative' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Passing marks') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Passing marks') })
   @Type(() => Number)
   passingMarks?: number;
 
   @ApiProperty({
-    description: 'Additional parameters as JSON',
+    description: VALIDATION_MESSAGES.COURSE.PARAMS,
     example: '{"difficulty": "beginner", "keywords": ["ml", "ai"]}',
     required: false,
   })
@@ -191,6 +195,6 @@ export class UpdateLessonDto extends PartialType(
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Updated by') })
   updatedBy?: string;
 }

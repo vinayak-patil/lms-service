@@ -7,6 +7,8 @@ import { Course } from '../courses/entities/course.entity';
 import { CourseLesson } from '../lessons/entities/course-lesson.entity';
 import { ModuleTrack } from '../tracking/entities/module-track.entity';
 import { CommonModule } from '../common/common.module';
+import { CacheModule } from '../cache/cache.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -16,6 +18,7 @@ import { CommonModule } from '../common/common.module';
       ModuleTrack,
     ]),
     CommonModule,
+    CacheModule,
   ],
   controllers: [ModulesController],
   providers: [ModulesService],

@@ -12,19 +12,19 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
 import { AttemptsGradeMethod } from '../entities/lesson.entity';
-import { CourseLessonStatus } from '../entities/course-lesson.status';
+import { CourseLessonStatus } from '../entities/course-lesson.entity';
+import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export class AddLessonToCourseDto {
   @ApiProperty({
-    description: 'Sequence order of lesson in course/module',
+    description: VALIDATION_MESSAGES.LESSON.ORDER,
     example: 1,
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(0, { message: 'Sequence must not be negative' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Sequence') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Sequence') })
   @Type(() => Number)
   sequence?: number;
 
@@ -32,8 +32,8 @@ export class AddLessonToCourseDto {
     description: 'Lesson ID',
     format: 'uuid',
   })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Lesson ID') })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Lesson ID') })
   lessonId: string;
 
   @ApiProperty({
@@ -43,7 +43,7 @@ export class AddLessonToCourseDto {
     default: false,
   })
   @IsOptional()
-  @IsBoolean({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_BOOLEAN })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Free lesson') })
   @Type(() => Boolean)
   freeLesson?: boolean = false;
 
@@ -54,37 +54,37 @@ export class AddLessonToCourseDto {
     default: true,
   })
   @IsOptional()
-  @IsBoolean({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_BOOLEAN })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Consider for passing') })
   @Type(() => Boolean)
   considerForPassing?: boolean = true;
 
   @ApiProperty({
-    description: 'Status',
+    description: VALIDATION_MESSAGES.LESSON.STATUS,
     example: CourseLessonStatus.PUBLISHED,
     required: false,
     enum: CourseLessonStatus,
     default: CourseLessonStatus.PUBLISHED,
   })
   @IsOptional()
-  @IsEnum(CourseLessonStatus, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_STATUS })
+  @IsEnum(CourseLessonStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
   status?: CourseLessonStatus = CourseLessonStatus.PUBLISHED;
 
   @ApiProperty({
-    description: 'Lesson start date and time',
+    description: VALIDATION_MESSAGES.COURSE.START_DATE,
     example: '2024-06-01T00:00:00Z',
     required: false,
   })
   @IsOptional()
-  @IsDateString({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_DATE })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start datetime') })
   startDatetime?: string;
 
   @ApiProperty({
-    description: 'Lesson end date and time',
+    description: VALIDATION_MESSAGES.COURSE.END_DATE,
     example: '2024-12-31T23:59:59Z',
     required: false,
   })
   @ValidateIf(o => o.startDatetime != null)
-  @IsDateString({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_DATE })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End datetime') })
   endDatetime?: string;
 
   @ApiProperty({
@@ -93,8 +93,8 @@ export class AddLessonToCourseDto {
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(1, { message: 'Number of attempts must be at least 1' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Number of attempts') })
+  @Min(1, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Number of attempts') })
   @Type(() => Number)
   noOfAttempts?: number;
 
@@ -105,7 +105,7 @@ export class AddLessonToCourseDto {
     enum: ['FIRST_ATTEMPT', 'LAST_ATTEMPT', 'AVERAGE', 'HIGHEST'],
   })
   @IsOptional()
-  @IsEnum(AttemptsGradeMethod, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_ENUM })
+  @IsEnum(AttemptsGradeMethod, { message: VALIDATION_MESSAGES.COMMON.ENUM('Attempts grade') })
   attemptsGrade?: AttemptsGradeMethod;
 
   @ApiProperty({
@@ -114,17 +114,17 @@ export class AddLessonToCourseDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_FORMAT })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Eligibility criteria') })
   eligibilityCriteria?: string;
 
   @ApiProperty({
-    description: 'Ideal completion time (in minutes)',
+    description: VALIDATION_MESSAGES.LESSON.DURATION,
     example: 30,
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(1, { message: 'Ideal time must be at least 1 minute' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Ideal time') })
+  @Min(1, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Ideal time') })
   @Type(() => Number)
   idealTime?: number;
 
@@ -134,7 +134,7 @@ export class AddLessonToCourseDto {
     required: false,
   })
   @IsOptional()
-  @IsBoolean({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_BOOLEAN })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Resume') })
   @Type(() => Boolean)
   resume?: boolean;
 
@@ -144,8 +144,8 @@ export class AddLessonToCourseDto {
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(0, { message: 'Total marks must not be negative' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Total marks') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Total marks') })
   @Type(() => Number)
   totalMarks?: number;
 
@@ -155,13 +155,13 @@ export class AddLessonToCourseDto {
     required: false,
   })
   @IsOptional()
-  @IsInt({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
-  @Min(0, { message: 'Passing marks must not be negative' })
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Passing marks') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Passing marks') })
   @Type(() => Number)
   passingMarks?: number;
 
   @ApiProperty({
-    description: 'Additional parameters as JSON',
+    description: VALIDATION_MESSAGES.COURSE.PARAMS,
     example: '{"difficulty": "beginner", "keywords": ["ml", "ai"]}',
     required: false,
   })

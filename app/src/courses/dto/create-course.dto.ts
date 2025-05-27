@@ -2,179 +2,147 @@ import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsUUID, 
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CourseStatus } from '../entities/course.entity';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
-
-// Custom validator for datetime constraints
-function validateDatetimeConstraints(value: string, args: any) {
-  const startDate = new Date(args.object.startDatetime);
-  const endDate = new Date(value);
-  const now = new Date();
-
-  // Check if start date is in the future
-  if (startDate <= now) {
-    return false;
-  }
-
-  // Check if end date follows start date
-  if (endDate <= startDate) {
-    return false;
-  }
-
-  // Check minimum duration (1 day)
-  const minDuration = 24 * 60 * 60 * 1000; // 1 day in milliseconds
-  if (endDate.getTime() - startDate.getTime() < minDuration) {
-    return false;
-  }
-
-  // Check maximum duration (1 year)
-  const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
-  if (endDate.getTime() - startDate.getTime() > maxDuration) {
-    return false;
-  }
-
-  return true;
-}
+import { HelperUtil } from '../../common/utils/helper.util';
+import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export class CreateCourseDto {
   @ApiProperty({ 
-    description: 'Course title',
+    description: VALIDATION_MESSAGES.COURSE.TITLE,
     example: 'Introduction to Web Development',
     required: true
   })
-  @IsNotEmpty({ message: "Title is required field" })
-  @IsString({ message: "Title must be a string" })
-  @MinLength(3, { message: 'Title must be at least 3 characters long' })
-  @MaxLength(255, { message: 'Title cannot exceed 255 characters' })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Title') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Title') })
+  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Title', 3) })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Title', 255) })
   title: string;
 
   @ApiProperty({ 
-    description: 'Course alias/slug',
+    description: VALIDATION_MESSAGES.COURSE.ALIAS,
     example: 'intro-web-dev',
   })
   @IsOptional()
   alias: string;
 
   @ApiProperty({ 
-    description: 'Course start date and time',
+    description: VALIDATION_MESSAGES.COURSE.START_DATE,
     example: '2024-01-01T00:00:00Z',
     required: true
   })
-  @IsNotEmpty({ message: "Start date is required field" })
-  @IsDateString({}, { message: "Start date must be a valid date" })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Start date') })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start date') })
   startDatetime: string;
 
   @ApiProperty({ 
-    description: 'Course end date and time',
+    description: VALIDATION_MESSAGES.COURSE.END_DATE,
     example: '2024-12-31T23:59:59Z',
     required: true
   })
-  @IsNotEmpty({ message: "End date is required field" })
-  @IsDateString({}, { message: "End date must be a valid date" })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('End date') })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End date') })
   @ValidateIf((o) => o.startDatetime)
-  @Validate(validateDatetimeConstraints, {
+  @Validate(HelperUtil.validateDatetimeConstraints, {
     message: 'Invalid datetime constraints. Start date must be in the future, end date must follow start date, and duration must be between 1 day and 1 year.'
   })
   endDatetime: string;
 
   @ApiProperty({ 
-    description: 'Short description of the course',
+    description: VALIDATION_MESSAGES.COURSE.SHORT_DESCRIPTION,
     example: 'A brief intro to web development',
     required: true
   })
-  @IsNotEmpty({ message: "Short description is required field" })
-  @IsString({ message: "Short description must be a string" })
-  @MinLength(3, { message: 'Short description must be at least 3 characters long' })
-  @MaxLength(255, { message: 'Short description cannot exceed 255 characters' })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Short description') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Short description') })
+  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Short description', 3) })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Short description', 255) })
   shortDescription: string;
 
   @ApiProperty({ 
-    description: 'Detailed description of the course',
+    description: VALIDATION_MESSAGES.COURSE.DESCRIPTION,
     example: 'Learn the fundamentals of web development',
     required: true
   })
-  @IsNotEmpty({ message: "Description is required field" })
-  @IsString({ message: "Description must be a string" })
-  @MinLength(1, { message: 'Description must not be empty' })
-  @MaxLength(10000, { message: 'Description cannot exceed 10000 characters' })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Description') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Description') })
   description: string;
 
   @ApiPropertyOptional({ 
-    description: 'Course thumbnail image URL',
+    description: VALIDATION_MESSAGES.COURSE.IMAGE,
     example: 'https://example.com/images/course-thumbnail.jpg'
   })
   @IsOptional()
-  @IsString({ message: "Image must be a path to an image" })
-  @Matches(/\.(jpg|jpeg|png)$/i, { message: 'Image must be in JPG or PNG format' })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Image') })
+  @Matches(/\.(jpg|jpeg|png)$/i, { message: VALIDATION_MESSAGES.COMMON.IMAGE_FORMAT })
   image?: string;
 
   @ApiPropertyOptional({ 
-    description: 'Whether this is a featured course',
+    description: VALIDATION_MESSAGES.COURSE.FEATURED,
     example: false,
     default: false
   })
   @IsOptional()
-  @IsBoolean({ message: "Featured must be a boolean" })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Featured') })
   @Type(() => Boolean)
   featured?: boolean = false;
 
   @ApiPropertyOptional({ 
-    description: 'Whether this is a free course',
+    description: VALIDATION_MESSAGES.COURSE.FREE,
     example: false,
     default: false
   })
   @IsOptional()
-  @IsBoolean({ message: "Free must be a boolean" })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Free') })
   @Type(() => Boolean)
   free?: boolean = false;
 
   @ApiPropertyOptional({ 
-    description: 'Course status',
+    description: VALIDATION_MESSAGES.COURSE.STATUS,
     enum: CourseStatus,
     example: CourseStatus.UNPUBLISHED,
     default: CourseStatus.UNPUBLISHED
   })
   @IsOptional()
-  @IsEnum(CourseStatus, { message: "Status must be a valid course status" })
+  @IsEnum(CourseStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
   status?: CourseStatus = CourseStatus.UNPUBLISHED;
 
   @ApiPropertyOptional({ 
-    description: 'Whether admin approval is required for enrollment',
+    description: VALIDATION_MESSAGES.COURSE.ADMIN_APPROVAL,
     example: false,
     default: false
   })
   @IsOptional()
-  @IsBoolean({ message: "Admin approval must be a boolean" })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Admin approval') })
   @Type(() => Boolean)
   adminApproval?: boolean = false;
 
   @ApiPropertyOptional({ 
-    description: 'Whether users are automatically enrolled',
+    description: VALIDATION_MESSAGES.COURSE.AUTO_ENROLL,
     example: false,
     default: false
   })
   @IsOptional()
-  @IsBoolean({ message: "Auto enroll must be a boolean" })
+  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Auto enroll') })
   @Type(() => Boolean)
   autoEnroll?: boolean = false;
 
   @ApiPropertyOptional({ 
-    description: 'Certificate term configuration',
+    description: VALIDATION_MESSAGES.COURSE.CERTIFICATE_TERM,
     example: { term: 'completion' }
   })
   @IsOptional()
-  @IsObject({ message: "Certificate term must be an JSON" })
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Certificate term') })
   certificateTerm?: Record<string, any>;
 
   @ApiPropertyOptional({ 
-    description: 'Certificate ID',
+    description: VALIDATION_MESSAGES.COURSE.CERTIFICATE_ID,
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsOptional()
-  @IsUUID('4', { message: "Certificate ID must be a valid UUID" })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Certificate ID') })
   certificateId?: string;
 
   @ApiPropertyOptional({ 
-    description: 'Additional parameters for the course (stored as JSONB)',
+    description: VALIDATION_MESSAGES.COURSE.PARAMS,
     example: {
       difficulty: 'intermediate',
       prerequisites: ['basic-programming'],
@@ -182,6 +150,6 @@ export class CreateCourseDto {
     }
   })
   @IsOptional()
-  @IsObject({ message: "Additional parameters must be an JSON" })
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Additional parameters') })
   params?: Record<string, any>;
 }

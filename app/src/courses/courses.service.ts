@@ -4,13 +4,13 @@ import {
   ConflictException,
   Logger,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull } from 'typeorm';
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
-import { CourseLesson } from '../lessons/entities/course-lesson.entity';
-import { CourseLessonStatus } from '../lessons/entities/course-lesson.status';
+import { CourseLesson, CourseLessonStatus } from '../lessons/entities/course-lesson.entity';
 import { CourseTrack, TrackingStatus } from '../tracking/entities/course-track.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -18,10 +18,15 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
-
+import { CacheService } from '../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
+  private readonly cache_ttl_default: number;
+  private readonly cache_ttl_user: number;
+  private readonly cache_prefix_course: string;
+  private readonly cache_enabled: boolean;
 
   constructor(
     @InjectRepository(Course)
@@ -34,7 +39,14 @@ export class CoursesService {
     private readonly courseTrackRepository: Repository<CourseTrack>,
     @InjectRepository(LessonTrack)
     private readonly lessonTrackRepository: Repository<LessonTrack>,
-  ) {}
+    private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
+  ) {
+    this.cache_enabled = this.configService.get('cache.enabled') === 'true';
+    this.cache_ttl_default = this.configService.get('cache.ttl.default') || 3600;
+    this.cache_ttl_user = this.configService.get('cache.ttl.user') || 600;
+    this.cache_prefix_course = this.configService.get('cache.prefix.course') || 'courses';
+   }
 
   /**
    * Create a new course
@@ -49,41 +61,35 @@ export class CoursesService {
 
     // Generate a simple alias from the title if none provided
     if (!createCourseDto.alias) {
-      createCourseDto.alias = HelperUtil.generateUniqueAlias(
+      createCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
         createCourseDto.title,
-        [],
-        0
-      );
-    }
-    
-    // Check if the alias already exists
-    const existingCourse = await this.courseRepository.findOne({
-      where: { 
-        alias: createCourseDto.alias, 
+        this.courseRepository,
         tenantId,
-        status: Not(CourseStatus.ARCHIVED)
-      } as FindOptionsWhere<Course>,
-    });
-
-    if (existingCourse) {
-      // Now we need to get all aliases to generate a unique one
-      const existingAliases = await this.courseRepository.find({
+        organisationId
+      );
+    } else {
+      // Check if the alias already exists
+      const existingCourse = await this.courseRepository.findOne({
         where: { 
+          alias: createCourseDto.alias, 
           tenantId,
+          ...(organisationId && { organisationId }),
           status: Not(CourseStatus.ARCHIVED)
         } as FindOptionsWhere<Course>,
-        select: ['alias'],
-      }).then(courses => courses.map(course => course.alias).filter(Boolean));
+      });
 
-      const originalAlias = createCourseDto.alias;
-      createCourseDto.alias = HelperUtil.generateUniqueAlias(
-        originalAlias,
-        existingAliases
-      );
-      this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${createCourseDto.alias}`);
+      if (existingCourse) {
+        const originalAlias = createCourseDto.alias;
+        createCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
+          originalAlias,
+          this.courseRepository,
+          tenantId,
+          organisationId
+        );
+        this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${createCourseDto.alias}`);
+      }
     }
-
-   
+    
     // Create courseData with only fields that exist in the entity
     const courseData = {
       title: createCourseDto.title,
@@ -109,6 +115,11 @@ export class CoursesService {
     
     const course = this.courseRepository.create(courseData);
     const savedCourse = await this.courseRepository.save(course);
+    
+    // Invalidate relevant caches
+    await this.cacheService.delByPattern(`courses:search:${tenantId}:*`);
+    await this.cacheService.delByPattern(`courses:hierarchy:*`);
+    
     return Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
   }
 
@@ -123,6 +134,16 @@ export class CoursesService {
     organisationId?: string,
   ): Promise<{ items: Course[]; total: number }> {
     const { page = 1, limit = 10 } = paginationDto;
+    const cacheKey = `courses:search:${tenantId}:${organisationId || 'global'}`;
+
+      if (this.cache_enabled) {
+        // Try to get from cache first
+        const cachedResult = await this.cacheService.get<{ items: Course[]; total: number }>(cacheKey);
+        if (cachedResult) {
+          return cachedResult;
+        }
+      }
+
     const skip = (page - 1) * limit;
 
     const whereClause: any = { 
@@ -188,12 +209,19 @@ export class CoursesService {
     }
 
     // If no search query, just use filters
-    return this.courseRepository.findAndCount({
+    const result = await this.courseRepository.findAndCount({
       where: whereClause,
       order: { createdAt: 'DESC' },
       take: limit,
       skip,
     }).then(([items, total]) => ({ items, total }));
+
+    // Cache the result
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, result,  this.cache_ttl_default);
+    }
+
+    return result;
   }
 
   /**
@@ -208,6 +236,18 @@ export class CoursesService {
     tenantId?: string, 
     organisationId?: string
   ): Promise<Course> {
+    const cacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedCourse = await this.cacheService.get<Course>(cacheKey);
+      if (cachedCourse) {
+        this.logger.log(`HIT CACHE`);
+        return cachedCourse;
+      }
+      this.logger.log(`MISS CACHE`);
+    }
+
     const whereClause: FindOptionsWhere<Course> = { courseId };
     
     // Apply tenant and organization filters if provided
@@ -227,6 +267,11 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
+    // Cache the course if caching is enabled
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, course, this.cache_ttl_default);
+    }
+
     return course;
   }
 
@@ -241,6 +286,16 @@ export class CoursesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<any> {
+    const cacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+    if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
+      if (cachedHierarchy) {
+        return cachedHierarchy;
+      }
+    }
+
     // Find the course with tenant/org filtering
     const course = await this.findOne(courseId, tenantId, organisationId);
     
@@ -274,6 +329,8 @@ export class CoursesService {
           where: { 
             parentId: module.moduleId,
             status: Not(ModuleStatus.ARCHIVED as any),
+            ...(tenantId && { tenantId }),
+            ...(organisationId && { organisationId }),
           },
           order: { ordering: 'ASC' },
         });
@@ -283,6 +340,8 @@ export class CoursesService {
           where: { 
             moduleId: module.moduleId, 
             status: Not(CourseLessonStatus.ARCHIVED as any),
+            ...(tenantId && { tenantId }),
+            ...(organisationId && { organisationId }),
           },
           relations: ['lesson'],
           order: { idealTime: 'ASC' },
@@ -306,6 +365,8 @@ export class CoursesService {
               where: { 
                 moduleId: submodule.moduleId, 
                 status: Not(CourseLessonStatus.ARCHIVED as any),
+                ...(tenantId && { tenantId }),
+                ...(organisationId && { organisationId }),
               },
               relations: ['lesson'],
               order: { idealTime: 'ASC' },
@@ -337,10 +398,17 @@ export class CoursesService {
       })
     );
 
-    return {
+    const result = {
       ...course,
       modules: enrichedModules,
     };
+
+    // Cache the result if caching is enabled
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
+    }
+
+    return result;
   }
 
   /**
@@ -356,6 +424,17 @@ export class CoursesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<any> {
+    
+      const cacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${userId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    
+      if (this.cache_enabled) {
+      // Try to get from cache first
+      const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
+      if (cachedHierarchy) {
+        return cachedHierarchy;
+      }
+    }
+
     // Get the basic course hierarchy first with proper filtering
     const courseHierarchy = await this.findCourseHierarchy(courseId, tenantId, organisationId);
     
@@ -533,7 +612,7 @@ export class CoursesService {
     });
 
     // Return the complete hierarchy with tracking information
-    return {
+    const result = {
       ...courseHierarchy,
       modules: modulesWithTracking,
       tracking: {
@@ -546,6 +625,13 @@ export class CoursesService {
         timeSpent: totalTimeSpent
       },
     };
+
+    // Cache the result with user-specific TTL
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, result, this.cache_ttl_user);
+    }
+
+    return result;
   }
 
   /**
@@ -588,10 +674,11 @@ export class CoursesService {
     
     // If title is changed but no alias provided, generate one from the title
     if (updateCourseDto.title && updateCourseDto.title !== course.title && !updateCourseDto.alias) {
-      updateCourseDto.alias = HelperUtil.generateUniqueAlias(
+      updateCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
         updateCourseDto.title,
-        [],
-        0
+        this.courseRepository,
+        tenantId,
+        organisationId
       );
     }
     
@@ -614,21 +701,12 @@ export class CoursesService {
       
       // If the alias already exists, generate a new unique one
       if (existingCourse) {
-        // Now we need to get all aliases to generate a unique one
-        const existingAliases = await this.courseRepository.find({
-          where: { 
-            tenantId,
-            ...(organisationId && { organisationId }),
-            courseId: Not(courseId),
-            status: Not(CourseStatus.ARCHIVED),
-          } as FindOptionsWhere<Course>,
-          select: ['alias'],
-        }).then(courses => courses.map(course => course.alias).filter(Boolean));
-        
         const originalAlias = updateCourseDto.alias;
-        updateCourseDto.alias = HelperUtil.generateUniqueAlias(
+        updateCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
           originalAlias,
-          existingAliases
+          this.courseRepository,
+          tenantId,
+          organisationId
         );
         this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${updateCourseDto.alias}`);
       }
@@ -642,6 +720,13 @@ export class CoursesService {
       ...updateCourseDto,
       updatedBy: userId,
     });
+    
+    if (this.cache_enabled) { 
+      // Invalidate relevant caches
+      await this.cacheService.del(`${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId || 'global'}`);
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:search:${tenantId}:*`);
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:hierarchy:${courseId}:*`);
+    }
     
     return this.courseRepository.save(updatedCourse);
   }
@@ -663,6 +748,13 @@ export class CoursesService {
     course.status = CourseStatus.ARCHIVED;
     
     await this.courseRepository.save(course);
+    
+    if (this.cache_enabled) {
+      // Invalidate relevant caches
+      await this.cacheService.del(`${this.cache_prefix_course}:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`);
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:search:${tenantId}:*`);
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:hierarchy:${courseId}:*`);
+    }
     
     return { 
       success: true, 

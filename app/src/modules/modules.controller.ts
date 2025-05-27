@@ -49,8 +49,6 @@ export class ModulesController {
     type: Module 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.modules))
   async createModule(
@@ -80,8 +78,6 @@ export class ModulesController {
     description: 'Module retrieved successfully', 
     type: Module 
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Module not found' })
   async getModuleById(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
@@ -106,8 +102,6 @@ export class ModulesController {
       items: { $ref: '#/components/schemas/Module' }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getModulesByCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto
@@ -131,8 +125,6 @@ export class ModulesController {
       items: { $ref: '#/components/schemas/Module' }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getSubmodulesByParent(
     @Param('parentId', ParseUUIDPipe) parentId: string,
     @Query() query: CommonQueryDto
@@ -154,8 +146,6 @@ export class ModulesController {
     type: Module 
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Module not found' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.modules))
@@ -194,8 +184,6 @@ export class ModulesController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Module not found' })
   async deleteModule(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,

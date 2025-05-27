@@ -27,10 +27,10 @@ export enum LessonStatus {
 }
 
 export enum AttemptsGradeMethod {
-  FIRST_ATTEMPT = 'FIRST_ATTEMPT',
-  LAST_ATTEMPT = 'LAST_ATTEMPT',
-  AVERAGE = 'AVERAGE',
-  HIGHEST = 'HIGHEST',
+  FIRST_ATTEMPT = 'first_attempt',
+  LAST_ATTEMPT = 'last_attempt',
+  AVERAGE = 'average',
+  HIGHEST = 'highest',
 }
 
 @Entity('lessons')

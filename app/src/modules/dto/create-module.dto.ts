@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsUUID, IsObject } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsUUID, IsObject, MaxLength, MinLength, Validate, ValidateIf, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ModuleStatus } from '../entities/module.entity';
-import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import { HelperUtil } from '../../common/utils/helper.util';
+import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 /**
  * DTO for creating a new module
@@ -10,38 +11,49 @@ import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.cons
  */
 export class CreateModuleDto {
   @ApiProperty({ 
-    description: 'Module title',
+    description: VALIDATION_MESSAGES.MODULE.TITLE,
     example: 'Introduction to HTML',
     required: true
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Title') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Title') })
+  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Title', 3) })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Title', 255) })
   title: string;
 
   @ApiProperty({ 
-    description: 'Course ID this module belongs to',
+    description: 'Module alias/slug',
+    example: 'intro-html',
+    required: false
+  })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Alias') })
+  alias?: string;
+
+  @ApiProperty({ 
+    description: VALIDATION_MESSAGES.MODULE.COURSE_ID,
     required: true
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Course ID') })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Course ID') })
   courseId: string;
 
   @ApiProperty({ description: 'Parent module ID for nested modules', required: false })
   @IsOptional()
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Parent ID') })
   parentId?: string;
 
-  @ApiProperty({ description: 'Module ordering within its level', required: false })
+  @ApiProperty({ description: VALIDATION_MESSAGES.MODULE.ORDER, required: false })
   @IsOptional()
-  @IsNumber({}, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_NUMBER })
+  @IsNumber({}, { message: VALIDATION_MESSAGES.COMMON.NUMBER('Ordering') })
   ordering?: number;
 
   @ApiPropertyOptional({ 
-    description: 'Module description',
+    description: VALIDATION_MESSAGES.MODULE.DESCRIPTION,
     example: 'Learn about different machine learning algorithms and their practical applications' 
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Description') })  
   description?: string;
 
   @ApiPropertyOptional({ 
@@ -51,31 +63,35 @@ export class CreateModuleDto {
     default: ModuleStatus.UNPUBLISHED
   })
   @IsOptional()
-  @IsEnum(ModuleStatus, { message: RESPONSE_MESSAGES.VALIDATION.INVALID_STATUS })
+  @IsEnum(ModuleStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
   status?: ModuleStatus = ModuleStatus.UNPUBLISHED;
 
   @ApiPropertyOptional({ 
-    description: 'URL to module image',
+    description: VALIDATION_MESSAGES.COURSE.IMAGE,
     example: 'https://example.com/images/module-image.jpg' 
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Image') })
   image?: string;
 
   @ApiPropertyOptional({ 
-    description: 'Start date and time of the module',
+    description: VALIDATION_MESSAGES.COURSE.START_DATE,
     example: '2024-01-01T00:00:00Z'
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start date') })
   startDatetime?: string;
 
   @ApiPropertyOptional({ 
-    description: 'End date and time of the module',
+    description: VALIDATION_MESSAGES.COURSE.END_DATE,
     example: '2024-12-31T23:59:59Z'
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End date') })
+  @ValidateIf((o) => o.startDatetime)
+  @Validate(HelperUtil.validateDatetimeConstraints, {
+    message: VALIDATION_MESSAGES.COMMON.DATETIME_CONSTRAINTS
+  })
   endDatetime?: string;
 
   @ApiPropertyOptional({ 
@@ -83,7 +99,7 @@ export class CreateModuleDto {
     example: 'Must have completed Introduction module'
   })
   @IsOptional()
-  @IsString({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_STRING })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Eligibility criteria') })
   eligibilityCriteria?: string;
 
   @ApiPropertyOptional({ 
@@ -91,7 +107,7 @@ export class CreateModuleDto {
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsOptional()
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Badge ID') })
   badgeId?: string;
 
   @ApiPropertyOptional({ 
@@ -99,13 +115,13 @@ export class CreateModuleDto {
     example: { term: 'completion' }
   })
   @IsOptional()
-  @IsObject({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_OBJECT })
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Badge term') })
   badgeTerm?: Record<string, any>;
 
   @ApiPropertyOptional({ 
     description: 'Additional parameters for the module (stored as JSONB)'
   })
   @IsOptional()
-  @IsObject({ message: RESPONSE_MESSAGES.VALIDATION.INVALID_OBJECT })
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Additional parameters') })
   params?: Record<string, any>;
 }

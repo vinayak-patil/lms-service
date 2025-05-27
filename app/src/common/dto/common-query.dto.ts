@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsUUID, IsNotEmpty } from 'class-validator';
-import { RESPONSE_MESSAGES } from '../constants/response-messages.constant';
 
 export class CommonQueryDto {
   @ApiProperty({
@@ -8,8 +7,8 @@ export class CommonQueryDto {
     format: 'uuid',
     required: true
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsNotEmpty({ message: "User ID is required field" })
+  @IsUUID('4', { message: "User ID must be a valid UUID" })
   userId: string;
 
   @ApiProperty({
@@ -17,8 +16,8 @@ export class CommonQueryDto {
     format: 'uuid',
     required: true
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsNotEmpty({ message: "Tenant ID is required field" })
+  @IsUUID('4', { message: "Tenant ID must be a valid UUID" })
   tenantId: string;
 
   @ApiProperty({
@@ -26,7 +25,7 @@ export class CommonQueryDto {
     format: 'uuid',
     required: true
   })
-  @IsNotEmpty({ message: RESPONSE_MESSAGES.VALIDATION.REQUIRED_FIELD })
-  @IsUUID('4', { message: RESPONSE_MESSAGES.VALIDATION.INVALID_UUID })
+  @IsNotEmpty({ message: "Organisation ID is required field" })
+  @IsUUID('4', { message: "Organisation ID must be a valid UUID" })
   organisationId: string;
 } 
