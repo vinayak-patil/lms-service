@@ -103,8 +103,7 @@ export class HelperUtil {
       where: { 
         alias: baseAlias,
         tenantId,
-        ...(organisationId && { organisationId }),
-        status: Not('ARCHIVED')
+        ...(organisationId && { organisationId })
       }
     });
 
@@ -112,17 +111,16 @@ export class HelperUtil {
       return baseAlias;
     }
 
-    // Try with incremental number
-    let attempt = 1;
-    let finalAlias = `${baseAlias}-${attempt}`;
+    // Try with random number
+    let randomNum = Math.floor(Math.random() * 1000); // Generate random number between 0-9999
+    let finalAlias = `${baseAlias}-${randomNum}`;
     
     while (true) {
       const existing = await repository.findOne({
         where: { 
           alias: finalAlias,
           tenantId,
-          ...(organisationId && { organisationId }),
-          status: Not('ARCHIVED')
+          ...(organisationId && { organisationId })
         }
       });
 
@@ -130,8 +128,8 @@ export class HelperUtil {
         return finalAlias;
       }
 
-      attempt++;
-      finalAlias = `${baseAlias}-${attempt}`;
+      randomNum = Math.floor(Math.random() * 1000); // Generate new random number
+      finalAlias = `${baseAlias}-${randomNum}`;
     }
   }
 
