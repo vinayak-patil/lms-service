@@ -62,6 +62,7 @@ export class MediaController {
       file,
       query.userId,
       query.tenantId,
+      query.organisationId,
     );
   }
 
@@ -80,7 +81,9 @@ export class MediaController {
     return this.mediaService.findAll(
       paginationDto, 
       { type: format },
+      query.userId,
       query.tenantId,
+      query.organisationId,
     );
   }
 
@@ -90,8 +93,13 @@ export class MediaController {
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
-  async getMediaById(@Param('mediaId', ParseUUIDPipe) mediaId: string) {
-    return this.mediaService.findOne(mediaId);
+  async getMediaById(@Param('mediaId', ParseUUIDPipe) mediaId: string, @Query() query: CommonQueryDto) {
+    return this.mediaService.findOne(
+      mediaId,
+      query.userId, 
+      query.tenantId, 
+      query.organisationId
+    );
   }
 
   @Post(':mediaId/associate/:lessonId')
@@ -104,8 +112,15 @@ export class MediaController {
   async associateMediaWithLesson(
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Query() query: CommonQueryDto,
   ) {
-    return this.mediaService.associateWithLesson(mediaId, lessonId);
+    return this.mediaService.associateWithLesson(
+      mediaId, 
+      lessonId, 
+      query.userId, 
+      query.tenantId, 
+      query.organisationId
+    );
   }
 
   @Delete(':mediaId')
@@ -114,8 +129,14 @@ export class MediaController {
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media deleted successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
-  async deleteMedia(@Param('mediaId', ParseUUIDPipe) mediaId: string) {
-    return this.mediaService.remove(mediaId);
+  @ApiResponse({ status: 400, description: 'Media is associated with a lesson or associated file and cannot be deleted' })
+  async deleteMedia(@Param('mediaId', ParseUUIDPipe) mediaId: string, @Query() query: CommonQueryDto) {
+    return this.mediaService.remove(
+      mediaId, 
+      query.userId, 
+      query.tenantId, 
+      query.organisationId
+    );
   }
 
   @Delete(':mediaId/disassociate/:lessonId')
@@ -128,7 +149,14 @@ export class MediaController {
   async removeMediaAssociation(
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Query() query: CommonQueryDto,
   ) {
-    return this.mediaService.removeAssociation(mediaId, lessonId);
+    return this.mediaService.removeAssociation(
+      mediaId, 
+      lessonId, 
+      query.userId, 
+      query.tenantId, 
+      query.organisationId
+    );
   }
 }

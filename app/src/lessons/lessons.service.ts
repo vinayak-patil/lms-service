@@ -532,7 +532,7 @@ export class LessonsService {
 
     // Build where clause with required filters
     const whereClause: any = { 
-      lessonId: lessonId, 
+      lessonId, 
       status: Not(LessonStatus.ARCHIVED) 
     };
     
@@ -547,6 +547,7 @@ export class LessonsService {
     
     const lesson = await this.lessonRepository.findOne({
       where: whereClause,
+      relations: ['media', 'associatedFiles.media'],
     });
 
     if (!lesson) {
@@ -936,8 +937,7 @@ export class LessonsService {
     try {
       // Build where clause with required filters
       const courseLessonWhereClause: any = { 
-        courseLessonId, 
-        status: Not(CourseLessonStatus.ARCHIVED as any) 
+        courseLessonId
       };
       
       // Add tenant and org filters if provided
@@ -958,12 +958,8 @@ export class LessonsService {
         throw new NotFoundException('Course-lesson association not found');
       }
 
-      // Archive the association by changing its status
-      courseLesson.status = CourseLessonStatus.ARCHIVED;
-      courseLesson.updatedAt = new Date();
-
-      // Save the updated association
-      await this.courseLessonRepository.save(courseLesson);
+      // Perform hard delete
+      await this.courseLessonRepository.remove(courseLesson);
 
       return { success: true, message: 'Lesson removed from course successfully' };
     } catch (error) {
@@ -1016,7 +1012,7 @@ export class LessonsService {
     // Find the lesson with proper filtering
     const lesson = await this.lessonRepository.findOne({
       where: lessonWhereClause,
-      relations: ['media'],
+      relations: ['media', 'associatedFiles', 'associatedFiles.media'],
     });
 
     if (!lesson) {

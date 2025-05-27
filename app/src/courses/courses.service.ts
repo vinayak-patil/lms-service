@@ -350,7 +350,7 @@ export class CoursesService {
         });
 
         const lessons = courseLessons.map(cl => ({
-          id: cl.courseLessonId,
+          courseLessonId: cl.courseLessonId,
           lessonId: cl.lessonId,
           title: cl.lesson.title,
           description: cl.lesson.description,

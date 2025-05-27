@@ -21,6 +21,7 @@ export class MediaService {
   private readonly logger = new Logger(MediaService.name);
   private readonly cache_ttl_default: number;
   private readonly cache_prefix_media: string;
+  private readonly cache_prefix_lessons: string;
   private readonly cache_enabled: boolean;
 
   constructor(
@@ -36,6 +37,7 @@ export class MediaService {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
     this.cache_prefix_media = this.configService.get('CACHE_MEDIA_PREFIX') || 'media';
+    this.cache_prefix_lessons = this.configService.get('CACHE_LESSONS_PREFIX') || 'lessons';
   }
 
   /**
@@ -46,6 +48,7 @@ export class MediaService {
     file: any,
     userId: string,
     tenantId: string,
+    organisationId: string,
   ): Promise<Media> {
     try {
       this.logger.log(`Uploading media: ${JSON.stringify(createMediaDto)}`);
@@ -55,8 +58,9 @@ export class MediaService {
         ...createMediaDto,
         path: createMediaDto.path,
         source: createMediaDto.path,
-        storage: 'local',
+        storage: createMediaDto.storage || 'local',
         tenantId,
+        organisationId,
         createdBy: userId,
         updatedBy: userId,
       });
@@ -66,7 +70,7 @@ export class MediaService {
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:${tenantId}:*`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:${tenantId}:${organisationId}`);
         await this.cacheService.delByPattern(`${this.cache_prefix_media}:${result.mediaId}:*`);
       }
 
@@ -83,13 +87,15 @@ export class MediaService {
   async findAll(
     paginationDto: PaginationDto,
     filters: any,
+    userId: string,
     tenantId: string,
+    organisationId: string,
   ): Promise<[Media[], number]> {
     try {
       const { page, limit, skip } = paginationDto;
       const { search, type } = filters;
 
-      const cacheKey = `${this.cache_prefix_media}:all:${tenantId}:${page}:${limit}:${search || 'none'}:${type || 'none'}`;
+      const cacheKey = `${this.cache_prefix_media}:all:${tenantId}:${organisationId}`;
 
       if (this.cache_enabled) {
         // Try to get from cache first
@@ -101,7 +107,8 @@ export class MediaService {
 
       const queryOptions: any = {
         where: { 
-          tenantId
+            tenantId,
+            organisationId
         } as FindOptionsWhere<Media>,
         order: { createdAt: 'DESC' },
         skip,
@@ -114,10 +121,12 @@ export class MediaService {
           { 
             title: ILike(`%${search}%`),
             tenantId,
+            organisationId
           } as FindOptionsWhere<Media>,
           { 
             description: ILike(`%${search}%`),
             tenantId, 
+            organisationId
           } as FindOptionsWhere<Media>,
         ];
       }
@@ -129,10 +138,14 @@ export class MediaService {
           queryOptions.where = queryOptions.where.map(cond => ({
             ...cond,
             format: type,
+            tenantId,
+            organisationId
           }));
         } else {
           // Otherwise, add it to the existing condition
           queryOptions.where.format = type;
+          queryOptions.where.tenantId = tenantId;
+          queryOptions.where.organisationId = organisationId;
         }
       }
 
@@ -155,6 +168,7 @@ export class MediaService {
    */
   async findOne(
     mediaId: string,
+    userId?: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<Media> {
@@ -169,7 +183,7 @@ export class MediaService {
     }
 
     const media = await this.mediaRepository.findOne({
-      where: { mediaId: mediaId } as FindOptionsWhere<Media>,
+      where: { mediaId: mediaId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Media>,
     });
 
     if (!media) {
@@ -187,11 +201,11 @@ export class MediaService {
   /**
    * Associate media with lesson
    */
-  async associateWithLesson(mediaId: string, lessonId: string): Promise<Lesson> {
+  async associateWithLesson(mediaId: string, lessonId: string, userId: string, tenantId: string, organisationId: string): Promise<Lesson> {
     try {
       // Find the media
       const media = await this.mediaRepository.findOne({
-        where: { mediaId: mediaId } as FindOptionsWhere<Media>,
+        where: { mediaId: mediaId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Media>,
       });
 
       if (!media) {
@@ -200,27 +214,53 @@ export class MediaService {
 
       // Find the lesson
       const lesson = await this.lessonRepository.findOne({
-        where: { lessonId: lessonId } as FindOptionsWhere<Lesson>,
+        where: { lessonId: lessonId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Lesson>,
       });
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
       }
 
-      // Update the lesson with the media
-      lesson.mediaId = mediaId;
-      lesson.updatedAt = new Date();
-      
-      const result = await this.lessonRepository.save(lesson);
+      // Check if association already exists
+      const existingAssociation = await this.associatedFileRepository.findOne({
+        where: { 
+          lessonId,
+          mediaId,
+          tenantId,
+          organisationId
+        }
+      });
+
+      if (existingAssociation) {
+        throw new BadRequestException('Media is already associated with this lesson');
+      }
+
+      const associatedFile = this.associatedFileRepository.create({
+        lessonId,
+        mediaId,
+        createdBy: userId,
+        updatedBy: userId,
+        tenantId,
+        organisationId
+      });
+  
+      // Save the association
+      await this.associatedFileRepository.save(associatedFile);
+  
+      // Update lesson's updatedAt timestamp
+      await this.lessonRepository.update(lessonId, {
+        updatedBy: userId,
+        updatedAt: new Date()
+      });
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
         await this.cacheService.delByPattern(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.delByPattern(`lessons:${lessonId}:*`);
-        await this.cacheService.delByPattern(`lessons:display:${lessonId}:*`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:${lessonId}:*`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:display:${lessonId}:*`);
       }
 
-      return result;
+      return lesson;
     } catch (error) {
       this.logger.error(`Error associating media with lesson: ${error.message}`, error.stack);
       if (error instanceof NotFoundException) {
@@ -233,11 +273,11 @@ export class MediaService {
   /**
    * Remove a media (delete it)
    */
-  async remove(mediaId: string): Promise<{ success: boolean; message: string }> {
+  async remove(mediaId: string, userId: string, tenantId: string, organisationId: string): Promise<{ success: boolean; message: string }> {
     try {
       // Find the media to remove
       const media = await this.mediaRepository.findOne({
-        where: { mediaId: mediaId } as FindOptionsWhere<Media>,
+        where: { mediaId: mediaId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Media>,
       });
 
       if (!media) {
@@ -246,16 +286,20 @@ export class MediaService {
 
       // Check if media is associated with any lessons
       const lessons = await this.lessonRepository.find({
-        where: { mediaId: mediaId } as FindOptionsWhere<Lesson>,
+        where: { mediaId: mediaId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Lesson>,
       });
 
       if (lessons.length > 0) {
-        // Remove the association from all lessons
-        for (const lesson of lessons) {
-          lesson.mediaId = '';
-          lesson.updatedAt = new Date();
-          await this.lessonRepository.save(lesson);
-        }
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MEDIA_ASSOCIATED_WITH_LESSON);
+      }
+
+      // Check if media is associated with any lessons
+      const AssociatedFilelessons = await this.associatedFileRepository.find({
+        where: { mediaId: mediaId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<AssociatedFile>,
+      });
+
+      if (AssociatedFilelessons.length > 0) {
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MEDIA_ASSOCIATED_WITH_ASSOCIATED_FILE);
       }
 
       // Remove associated files records
@@ -278,19 +322,15 @@ export class MediaService {
       await this.mediaRepository.delete({ mediaId: mediaId } as FindOptionsWhere<Media>);
 
       // Invalidate relevant caches
-      if (this.cache_enabled) {
+      if (this.cache_enabled) { 
+        // Invalidate media caches
         await this.cacheService.delByPattern(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:*`);
-      for (const lesson of lessons) {
-        await this.cacheService.delByPattern(`lessons:${lesson.lessonId}:*`);
-          await this.cacheService.delByPattern(`lessons:display:${lesson.lessonId}:*`);
-        }
-      }
-
-      // Invalidate relevant caches if caching is enabled
-      if (this.cache_enabled) {
-        await this.cacheService.del(`${this.cache_prefix_media}:${mediaId}`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:type:${media.format}:*`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:${tenantId}:${organisationId}`);
+        
+        // Invalidate any lesson caches that might reference this media
+        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:*:${mediaId}:*`);
+        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:display:*:${mediaId}:*`);
+        
       }
 
       return { success: true, message: RESPONSE_MESSAGES.MEDIA_DELETED || 'Media deleted successfully' };
@@ -306,32 +346,50 @@ export class MediaService {
   /**
    * Remove media association from lesson
    */
-  async removeAssociation(mediaId: string, lessonId: string): Promise<{ success: boolean; message: string }> {
+  async removeAssociation(mediaId: string, lessonId: string, userId: string, tenantId: string, organisationId: string): Promise<{ success: boolean; message: string }> {
     try {
       // Find the lesson
       const lesson = await this.lessonRepository.findOne({
-        where: { lessonId: lessonId } as FindOptionsWhere<Lesson>,
+        where: { lessonId: lessonId, tenantId: tenantId, organisationId: organisationId } as FindOptionsWhere<Lesson>,
       });
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
       }
 
-      // Check if the lesson is associated with the specified media
-      if (lesson.mediaId !== mediaId) {
-        throw new BadRequestException('The specified lesson is not associated with this media');
+      // Find and delete the associated file record
+      const associatedFile = await this.associatedFileRepository.findOne({
+        where: { 
+          lessonId,
+          mediaId,
+          tenantId,
+          organisationId
+        }
+      });
+
+      if (!associatedFile) {
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_ASSOCIATED_WITH_LESSON);
       }
 
-      // Remove the association
-      lesson.mediaId = '';
-      lesson.updatedAt = new Date();
-      await this.lessonRepository.save(lesson);
+      // Delete the associated file record
+      await this.associatedFileRepository.delete({
+        lessonId,
+        mediaId,
+        tenantId,
+        organisationId
+      });
+
+      // Update lesson's updatedAt timestamp
+      await this.lessonRepository.update(lessonId, {
+        updatedBy: userId,
+        updatedAt: new Date()
+      });
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.delByPattern(`lessons:${lessonId}:*`);
-        await this.cacheService.delByPattern(`lessons:display:${lessonId}:*`);
+        await this.cacheService.del(`${this.cache_prefix_media}:${mediaId}:*`);
+        await this.cacheService.del(`${this.cache_prefix_lessons}:${lessonId}:*`);
+        await this.cacheService.del(`${this.cache_prefix_lessons}:display:${lessonId}:*`);
       }
 
       return { 

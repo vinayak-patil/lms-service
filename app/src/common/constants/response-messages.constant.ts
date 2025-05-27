@@ -66,6 +66,9 @@ export const RESPONSE_MESSAGES = {
     MISSING_TENANT_ID: 'Missing tenant ID',
     INVALID_TENANT_ID: 'Invalid tenant ID',
     RESOURCE_ACCESS_DENIED: 'Access to this resource is denied',
+    MEDIA_ASSOCIATED_WITH_LESSON: 'Media is associated with a lesson and cannot be deleted',
+    MEDIA_ASSOCIATED_WITH_ASSOCIATED_FILE: 'Media is associated with an associated file and cannot be deleted',
+    MEDIA_NOT_ASSOCIATED_WITH_LESSON: 'The specified lesson is not associated with this media',
   },
 };
 

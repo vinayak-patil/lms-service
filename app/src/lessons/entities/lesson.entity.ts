@@ -12,6 +12,7 @@ import {
 import { CourseLesson } from './course-lesson.entity';
 import { Media } from '../../media/entities/media.entity';
 import { LessonTrack } from '../../tracking/entities/lesson-track.entity';
+import { AssociatedFile } from 'src/media/entities/associated-file.entity';
 
 export enum LessonFormat {
   VIDEO = 'video',
@@ -143,4 +144,7 @@ export class Lesson {
 
   @OneToMany(() => LessonTrack, (track) => track.lessonId)
   tracks: LessonTrack[];
+
+  @OneToMany(() => AssociatedFile, associatedFile => associatedFile.lesson)
+  associatedFiles: AssociatedFile[];
 }
