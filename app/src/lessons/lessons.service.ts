@@ -51,10 +51,10 @@ export class LessonsService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
-    this.cache_enabled = this.configService.get('cache.enabled') === 'true';
-    this.cache_ttl_default = this.configService.get('cache.ttl.default') || 3600;
-    this.cache_ttl_user = this.configService.get('cache.ttl.user') || 600;
-    this.cache_prefix_lesson = this.configService.get('cache.prefix.lesson') || 'lessons';
+    this.cache_enabled = this.configService.get('CACHE_ENABLED')  || true;
+    this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
+    this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
+    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lessons';
   }
 
   /**

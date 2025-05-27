@@ -20,6 +20,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
+
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
@@ -42,10 +43,10 @@ export class CoursesService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
-    this.cache_enabled = this.configService.get('cache.enabled') === 'true';
-    this.cache_ttl_default = this.configService.get('cache.ttl.default') || 3600;
-    this.cache_ttl_user = this.configService.get('cache.ttl.user') || 600;
-    this.cache_prefix_course = this.configService.get('cache.prefix.course') || 'courses';
+    this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
+    this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
+    this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
+    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'courses';
    }
 
   /**
@@ -116,9 +117,10 @@ export class CoursesService {
     const course = this.courseRepository.create(courseData);
     const savedCourse = await this.courseRepository.save(course);
     
-    // Invalidate relevant caches
-    await this.cacheService.delByPattern(`courses:search:${tenantId}:*`);
-    await this.cacheService.delByPattern(`courses:hierarchy:*`);
+    if (this.cache_enabled) {
+      // Invalidate relevant caches
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:search:${tenantId}:${organisationId || 'global'}`);
+    }
     
     return Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
   }
@@ -724,7 +726,7 @@ export class CoursesService {
     if (this.cache_enabled) { 
       // Invalidate relevant caches
       await this.cacheService.del(`${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId || 'global'}`);
-      await this.cacheService.delByPattern(`${this.cache_prefix_course}:search:${tenantId}:*`);
+      await this.cacheService.delByPattern(`${this.cache_prefix_course}:search:${tenantId}:${organisationId || 'global'}`);
       await this.cacheService.delByPattern(`${this.cache_prefix_course}:hierarchy:${courseId}:*`);
     }
     

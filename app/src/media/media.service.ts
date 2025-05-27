@@ -33,9 +33,9 @@ export class MediaService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
-    this.cache_enabled = this.configService.get('cache.enabled') === 'true';
-    this.cache_ttl_default = this.configService.get('cache.ttl.default') || 3600;
-    this.cache_prefix_media = this.configService.get('cache.prefix.media') || 'media';
+    this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
+    this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
+    this.cache_prefix_media = this.configService.get('CACHE_MEDIA_PREFIX') || 'media';
   }
 
   /**
