@@ -155,11 +155,15 @@ export class ModulesService {
 
     // Invalidate relevant caches
     if (this.cache_enabled) {
-      await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${createModuleDto.courseId}:*`);
-      if (createModuleDto.parentId) {
-        await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${createModuleDto.parentId}:*`);
-      }
-      await this.cacheService.delByPattern(`courses:hierarchy:${createModuleDto.courseId}:*`);
+      const courseModuleCacheKey = `${this.cache_prefix_module}:course:${createModuleDto.courseId}:${tenantId}:${organisationId}`;
+      const parentModuleCacheKey = createModuleDto.parentId ? 
+        `${this.cache_prefix_module}:parent:${createModuleDto.parentId}:${tenantId}:${organisationId}` : null;
+      
+      await Promise.all([
+        this.cacheService.del(courseModuleCacheKey),
+        parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
+        this.cacheService.del(`${this.cache_prefix_module}:hierarchy:${createModuleDto.courseId}:${tenantId}:${organisationId}`)
+      ]);
     }
     return Array.isArray(savedModule) ? savedModule[0] : savedModule;
   }
@@ -261,10 +265,9 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module> {
-    const cacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
     
     if (this.cache_enabled) {
-      // Try to get from cache first
       const cachedModule = await this.cacheService.get<Module>(cacheKey);
       if (cachedModule) {
         return cachedModule;
@@ -310,10 +313,9 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
-    const cacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
     
     if (this.cache_enabled) {
-      // Try to get from cache first
       const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
       if (cachedModules) {
         return cachedModules;
@@ -360,10 +362,9 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module[]> {
-    const cacheKey = `${this.cache_prefix_module}:parent:${parentId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_module}:parent:${parentId}:${tenantId}:${organisationId}`;
     
     if (this.cache_enabled) {
-      // Try to get from cache first
       const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
       if (cachedModules) {
         return cachedModules;
@@ -422,12 +423,18 @@ export class ModulesService {
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.del(`${this.cache_prefix_module}:${moduleId}`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${module.courseId}:*`);
-        if (module.parentId) {
-          await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${module.parentId}:*`);
-        }
-        await this.cacheService.delByPattern(`courses:hierarchy:${module.courseId}:*`);
+        const entityCacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
+        const courseModuleCacheKey = `${this.cache_prefix_module}:course:${module.courseId}:${tenantId}:${organisationId}`;
+        const parentModuleCacheKey = module.parentId ? 
+          `${this.cache_prefix_module}:parent:${module.parentId}:${tenantId}:${organisationId}` : null;
+        const hierarchyCacheKey = `${this.cache_prefix_module}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+
+        await Promise.all([
+          this.cacheService.del(entityCacheKey),
+          this.cacheService.del(courseModuleCacheKey),
+          parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
+          this.cacheService.del(hierarchyCacheKey)
+        ]);
       }
 
       return savedModule;
@@ -534,12 +541,18 @@ export class ModulesService {
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.del(`${this.cache_prefix_module}:${moduleId}`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_module}:course:${module.courseId}:*`);
-        if (module.parentId) {
-          await this.cacheService.delByPattern(`${this.cache_prefix_module}:parent:${module.parentId}:*`);
-        }
-        await this.cacheService.delByPattern(`courses:hierarchy:${module.courseId}:*`);
+        const entityCacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
+        const courseModuleCacheKey = `${this.cache_prefix_module}:course:${module.courseId}:${tenantId}:${organisationId}`;
+        const parentModuleCacheKey = module.parentId ? 
+          `${this.cache_prefix_module}:parent:${module.parentId}:${tenantId}:${organisationId}` : null;
+        const hierarchyCacheKey = `${this.cache_prefix_module}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+
+        await Promise.all([
+          this.cacheService.del(entityCacheKey),
+          this.cacheService.del(courseModuleCacheKey),
+          parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
+          this.cacheService.del(hierarchyCacheKey)
+        ]);
       }
 
       return { 

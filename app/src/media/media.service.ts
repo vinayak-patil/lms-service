@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Not, Equal, ILike } from 'typeorm';
+import { Repository, FindOptionsWhere, Not, Equal, ILike, FindManyOptions, FindOptionsOrder } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Media } from './entities/media.entity';
@@ -15,6 +15,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
+import { UpdateMediaDto } from './dto/update-media.dto';
 
 @Injectable()
 export class MediaService {
@@ -91,76 +92,72 @@ export class MediaService {
     tenantId: string,
     organisationId: string,
   ): Promise<[Media[], number]> {
-    try {
-      const { page, limit, skip } = paginationDto;
-      const { search, type } = filters;
+    const cacheKey = `${this.cache_prefix_media}:list:${tenantId}:${organisationId}`;
 
-      const cacheKey = `${this.cache_prefix_media}:all:${tenantId}:${organisationId}`;
-
-      if (this.cache_enabled) {
-        // Try to get from cache first
-        const cachedResult = await this.cacheService.get<[Media[], number]>(cacheKey);
-        if (cachedResult) {
-          return cachedResult;
-        }
+    if (this.cache_enabled) {
+      const cachedResult = await this.cacheService.get<[Media[], number]>(cacheKey);
+      if (cachedResult) {
+        return cachedResult;
       }
-
-      const queryOptions: any = {
-        where: { 
-            tenantId,
-            organisationId
-        } as FindOptionsWhere<Media>,
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      };
-
-      // Add search condition if provided
-      if (search) {
-        queryOptions.where = [
-          { 
-            title: ILike(`%${search}%`),
-            tenantId,
-            organisationId
-          } as FindOptionsWhere<Media>,
-          { 
-            description: ILike(`%${search}%`),
-            tenantId, 
-            organisationId
-          } as FindOptionsWhere<Media>,
-        ];
-      }
-
-      // Add type filter if provided
-      if (type) {
-        if (Array.isArray(queryOptions.where)) {
-          // If it's already an array of conditions, add type to each
-          queryOptions.where = queryOptions.where.map(cond => ({
-            ...cond,
-            format: type,
-            tenantId,
-            organisationId
-          }));
-        } else {
-          // Otherwise, add it to the existing condition
-          queryOptions.where.format = type;
-          queryOptions.where.tenantId = tenantId;
-          queryOptions.where.organisationId = organisationId;
-        }
-      }
-
-      const result = await this.mediaRepository.findAndCount(queryOptions);
-
-      // Cache the result if caching is enabled
-      if (this.cache_enabled) {
-        await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
-      }
-
-      return result;
-    } catch (error) {
-      this.logger.error(`Error finding media: ${error.message}`);
-      throw error;
     }
+
+    const { page, limit, skip } = paginationDto;
+    const { search, type } = filters;
+
+    const queryOptions: FindManyOptions<Media> = {
+      where: { 
+        tenantId,
+        organisationId
+      } as FindOptionsWhere<Media>,
+      order: { createdAt: 'DESC' } as FindOptionsOrder<Media>,
+      skip,
+      take: limit,
+    };
+
+    // Add search condition if provided
+    if (search) {
+      queryOptions.where = [
+        { 
+          title: ILike(`%${search}%`),
+          tenantId,
+          organisationId
+        } as FindOptionsWhere<Media>,
+        { 
+          description: ILike(`%${search}%`),
+          tenantId, 
+          organisationId
+        } as FindOptionsWhere<Media>,
+      ];
+    }
+
+    // Add type filter if provided
+    if (type) {
+      if (Array.isArray(queryOptions.where)) {
+        // If it's already an array of conditions, add type to each
+        queryOptions.where = queryOptions.where.map(cond => ({
+          ...cond,
+          format: type,
+          tenantId,
+          organisationId
+        }));
+      } else {
+        // Otherwise, add it to the existing condition
+        queryOptions.where = {
+          ...queryOptions.where,
+          format: type,
+          tenantId,
+          organisationId
+        };
+      }
+    }
+
+    const result = await this.mediaRepository.findAndCount(queryOptions);
+
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
+    }
+
+    return result;
   }
 
   /**
@@ -172,10 +169,9 @@ export class MediaService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Media> {
-    const cacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId || 'global'}:${organisationId || 'global'}`;
+    const cacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
     
     if (this.cache_enabled) {
-      // Try to get from cache first
       const cachedMedia = await this.cacheService.get<Media>(cacheKey);
       if (cachedMedia) {
         return cachedMedia;
@@ -190,7 +186,6 @@ export class MediaService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
     }
 
-    // Cache the media if caching is enabled
     if (this.cache_enabled) {
       await this.cacheService.set(cacheKey, media, this.cache_ttl_default);
     }
@@ -273,7 +268,11 @@ export class MediaService {
   /**
    * Remove a media (delete it)
    */
-  async remove(mediaId: string, userId: string, tenantId: string, organisationId: string): Promise<{ success: boolean; message: string }> {
+  async remove(
+    mediaId: string,
+    tenantId?: string,
+    organisationId?: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       // Find the media to remove
       const media = await this.mediaRepository.findOne({
@@ -321,25 +320,23 @@ export class MediaService {
       // Delete the media record
       await this.mediaRepository.delete({ mediaId: mediaId } as FindOptionsWhere<Media>);
 
-      // Invalidate relevant caches
-      if (this.cache_enabled) { 
-        // Invalidate media caches
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:${tenantId}:${organisationId}`);
-        
-        // Invalidate any lesson caches that might reference this media
-        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:*:${mediaId}:*`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:display:*:${mediaId}:*`);
-        
+      if (this.cache_enabled) {
+        const entityCacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
+        const listCacheKey = `${this.cache_prefix_media}:list:${tenantId}:${organisationId}`;
+
+        await Promise.all([
+          this.cacheService.del(entityCacheKey),
+          this.cacheService.del(listCacheKey)
+        ]);
       }
 
-      return { success: true, message: RESPONSE_MESSAGES.MEDIA_DELETED || 'Media deleted successfully' };
+      return { 
+        success: true, 
+        message: RESPONSE_MESSAGES.MEDIA_DELETED || 'Media deleted successfully',
+      };
     } catch (error) {
-      this.logger.error(`Error removing media: ${error.message}`);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      this.logger.error(`Error removing media: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
