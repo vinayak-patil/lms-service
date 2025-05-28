@@ -28,7 +28,7 @@ reviews:
     drafts: false
     base_branches:
       - 'main'
-      - 'east-africa-ym'
+      - 'release-1.0.0'
 
 chat:
   auto_reply: true
