@@ -8,14 +8,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike, FindManyOptions, FindOptionsOrder } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Media } from './entities/media.entity';
+import { Media, MediaFormat } from './entities/media.entity';
 import { Lesson } from '../lessons/entities/lesson.entity';
 import { AssociatedFile } from './entities/associated-file.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { UpdateMediaDto } from './dto/update-media.dto';
+import { CreateMediaDto } from './dto/create-media.dto';
 
 @Injectable()
 export class MediaService {
@@ -23,6 +23,8 @@ export class MediaService {
   private readonly cache_ttl_default: number;
   private readonly cache_prefix_media: string;
   private readonly cache_prefix_lessons: string;
+  private readonly cache_prefix_modules: string;
+  private readonly cache_prefix_courses: string;
   private readonly cache_enabled: boolean;
 
   constructor(
@@ -38,14 +40,16 @@ export class MediaService {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
     this.cache_prefix_media = this.configService.get('CACHE_MEDIA_PREFIX') || 'media';
-    this.cache_prefix_lessons = this.configService.get('CACHE_LESSONS_PREFIX') || 'lessons';
+    this.cache_prefix_lessons = this.configService.get('CACHE_LESSON_PREFIX') || 'lessons';
+    this.cache_prefix_modules = this.configService.get('CACHE_MODULE_PREFIX') || 'modules';
+    this.cache_prefix_courses = this.configService.get('CACHE_COURSE_PREFIX') || 'courses';
   }
 
   /**
    * Upload media
    */
   async uploadMedia(
-    createMediaDto: any,
+    createMediaDto: CreateMediaDto,
     file: any,
     userId: string,
     tenantId: string,
@@ -66,13 +70,17 @@ export class MediaService {
         updatedBy: userId,
       });
 
+      // Save the media
       const savedMedia = await this.mediaRepository.save(media);
       const result = Array.isArray(savedMedia) ? savedMedia[0] : savedMedia;
 
-      // Invalidate relevant caches
+      // Handle cache operations
       if (this.cache_enabled) {
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:all:${tenantId}:${organisationId}`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:${result.mediaId}:*`);
+        const entityCacheKey = `${this.cache_prefix_media}:${result.mediaId}:${tenantId}:${organisationId}`;
+        
+        // Invalidate existing caches
+          this.cacheService.del(entityCacheKey);
+
       }
 
       return result;
@@ -133,7 +141,6 @@ export class MediaService {
     // Add type filter if provided
     if (type) {
       if (Array.isArray(queryOptions.where)) {
-        // If it's already an array of conditions, add type to each
         queryOptions.where = queryOptions.where.map(cond => ({
           ...cond,
           format: type,
@@ -141,7 +148,6 @@ export class MediaService {
           organisationId
         }));
       } else {
-        // Otherwise, add it to the existing condition
         queryOptions.where = {
           ...queryOptions.where,
           format: type,
@@ -250,9 +256,21 @@ export class MediaService {
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.delByPattern(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:${lessonId}:*`);
-        await this.cacheService.delByPattern(`${this.cache_prefix_lessons}:display:${lessonId}:*`);
+        const mediaCacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
+        const lessonCacheKey = `${this.cache_prefix_lessons}:${lessonId}:${tenantId}:${organisationId}`;
+        const lessonDisplayCacheKey = `${this.cache_prefix_lessons}:display:${lessonId}:${tenantId}:${organisationId}`;
+        const lessonMediaCacheKey = `${this.cache_prefix_lessons}:${lessonId}:${tenantId}:${organisationId}`;
+        const moduleCacheKey = `${this.cache_prefix_modules}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+        const courseCacheKey = `${this.cache_prefix_courses}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+
+        await Promise.all([
+          this.cacheService.del(mediaCacheKey),
+          this.cacheService.del(lessonCacheKey),
+          this.cacheService.del(lessonDisplayCacheKey),
+          this.cacheService.del(lessonMediaCacheKey),
+          this.cacheService.del(moduleCacheKey),
+          this.cacheService.del(courseCacheKey)
+        ]);
       }
 
       return lesson;
@@ -270,6 +288,7 @@ export class MediaService {
    */
   async remove(
     mediaId: string,
+    userId?: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<{ success: boolean; message: string }> {
@@ -317,17 +336,17 @@ export class MediaService {
         }
       }
 
-      // Delete the media record
-      await this.mediaRepository.delete({ mediaId: mediaId } as FindOptionsWhere<Media>);
+      // Delete the media
+      await this.mediaRepository.remove(media);
 
+      // Handle cache operations
       if (this.cache_enabled) {
         const entityCacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
-        const listCacheKey = `${this.cache_prefix_media}:list:${tenantId}:${organisationId}`;
+       
+        // Invalidate existing caches
+          await this.cacheService.del(entityCacheKey);
 
-        await Promise.all([
-          this.cacheService.del(entityCacheKey),
-          this.cacheService.del(listCacheKey)
-        ]);
+
       }
 
       return { 
@@ -384,9 +403,21 @@ export class MediaService {
 
       // Invalidate relevant caches
       if (this.cache_enabled) {
-        await this.cacheService.del(`${this.cache_prefix_media}:${mediaId}:*`);
-        await this.cacheService.del(`${this.cache_prefix_lessons}:${lessonId}:*`);
-        await this.cacheService.del(`${this.cache_prefix_lessons}:display:${lessonId}:*`);
+        const mediaCacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
+        const lessonCacheKey = `${this.cache_prefix_lessons}:${lessonId}:${tenantId}:${organisationId}`;
+        const lessonDisplayCacheKey = `${this.cache_prefix_lessons}:display:${lessonId}:${tenantId}:${organisationId}`;
+        const lessonMediaCacheKey = `${this.cache_prefix_lessons}:${lessonId}:${tenantId}:${organisationId}`;
+        const moduleCacheKey = `${this.cache_prefix_modules}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+        const courseCacheKey = `${this.cache_prefix_courses}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+
+        await Promise.all([
+          this.cacheService.del(mediaCacheKey),
+          this.cacheService.del(lessonCacheKey),
+          this.cacheService.del(lessonDisplayCacheKey),
+          this.cacheService.del(lessonMediaCacheKey),
+          this.cacheService.del(moduleCacheKey),
+          this.cacheService.del(courseCacheKey)
+        ]);
       }
 
       return { 

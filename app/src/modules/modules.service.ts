@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike } from 'typeorm';
 import { Module, ModuleStatus } from './entities/module.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
-import { CourseLesson } from '../lessons/entities/course-lesson.entity';
+import { CourseLesson, CourseLessonStatus } from '../lessons/entities/course-lesson.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
@@ -23,6 +23,8 @@ export class ModulesService {
   private readonly logger = new Logger(ModulesService.name);
   private readonly cache_ttl_default: number;
   private readonly cache_prefix_module: string;
+  private readonly cache_prefix_course: string;
+  private readonly cache_prefix_lesson: string;
   private readonly cache_enabled: boolean;
 
   constructor(
@@ -38,6 +40,8 @@ export class ModulesService {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
     this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'modules';
+    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'courses';
+    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lessons';
   }
 
   /**
@@ -153,106 +157,28 @@ export class ModulesService {
     const module = this.moduleRepository.create(moduleData);
     const savedModule = await this.moduleRepository.save(module);
 
-    // Invalidate relevant caches
+    // Handle cache operations
     if (this.cache_enabled) {
       const courseModuleCacheKey = `${this.cache_prefix_module}:course:${createModuleDto.courseId}:${tenantId}:${organisationId}`;
-      const parentModuleCacheKey = createModuleDto.parentId ? 
-        `${this.cache_prefix_module}:parent:${createModuleDto.parentId}:${tenantId}:${organisationId}` : null;
-      
+      const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${createModuleDto.courseId}:${tenantId}:${organisationId}`;
+      const entityCacheKey = `${this.cache_prefix_module}:${savedModule.moduleId}:${tenantId}:${organisationId}`;
+
+      // Invalidate existing caches
       await Promise.all([
         this.cacheService.del(courseModuleCacheKey),
-        parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
-        this.cacheService.del(`${this.cache_prefix_module}:hierarchy:${createModuleDto.courseId}:${tenantId}:${organisationId}`)
+        this.cacheService.del(courseHierarchyCacheKey)
       ]);
-    }
-    return Array.isArray(savedModule) ? savedModule[0] : savedModule;
+
+      // Set new cache values
+      await Promise.all([
+        this.cacheService.set(entityCacheKey, savedModule, this.cache_ttl_default)
+      ]);
+
+      }
+
+    return savedModule;
   }
 
-  /**
-   * Find all modules with pagination and filters
-   */
-  async findAll(
-    paginationDto: PaginationDto,
-    filters: any,
-    tenantId: string,
-  ): Promise<[Module[], number]> {
-    try {
-      const { page, limit, skip } = paginationDto;
-      const { search, courseId, parentId } = filters;
-
-      const cacheKey = `${this.cache_prefix_module}:all:${tenantId}:${page}:${limit}:${search || 'none'}:${courseId || 'none'}:${parentId || 'none'}`;
-
-      if (this.cache_enabled) {
-        // Try to get from cache first
-        const cachedResult = await this.cacheService.get<[Module[], number]>(cacheKey);
-        if (cachedResult) {
-          return cachedResult;
-        }
-    }
-
-      const queryOptions: any = {
-        where: { 
-          tenantId,
-          status: Not(ModuleStatus.ARCHIVED),
-        } as FindOptionsWhere<Module>,
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      };
-
-      // Add search condition if provided
-      if (search) {
-        queryOptions.where = [
-          { 
-            title: ILike(`%${search}%`),
-            tenantId,
-            status: Not(ModuleStatus.ARCHIVED),
-          } as FindOptionsWhere<Module>,
-          { 
-            description: ILike(`%${search}%`),
-            tenantId,
-            status: Not(ModuleStatus.ARCHIVED),
-          } as FindOptionsWhere<Module>,
-        ];
-      }
-
-      // Add course filter if provided
-      if (courseId) {
-        if (Array.isArray(queryOptions.where)) {
-          queryOptions.where = queryOptions.where.map(cond => ({
-            ...cond,
-            courseId,
-          }));
-        } else {
-          queryOptions.where.courseId = courseId;
-        }
-      }
-
-      // Add parent filter if provided
-      if (parentId) {
-        if (Array.isArray(queryOptions.where)) {
-          queryOptions.where = queryOptions.where.map(cond => ({
-            ...cond,
-            parentId,
-          }));
-        } else {
-          queryOptions.where.parentId = parentId;
-        }
-      }
-
-      const result = await this.moduleRepository.findAndCount(queryOptions);
-
-      // Cache the result
-      if (this.cache_enabled) {
-        await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
-      }
-
-      return result;
-    } catch (error) {
-      this.logger.error(`Error finding modules: ${error.message}`);
-      throw error;
-    }
-  }
 
   /**
    * Find one module by ID
@@ -413,27 +339,27 @@ export class ModulesService {
       // Find the module to update
       const module = await this.findOne(moduleId, tenantId, organisationId);
 
-      // Update module
-      const updatedModule = this.moduleRepository.merge(module, {
-        ...updateModuleDto,
-        updatedBy: userId,
-      });
-
+      // Update the module
+      const updatedModule = this.moduleRepository.merge(module, updateModuleDto);
       const savedModule = await this.moduleRepository.save(updatedModule);
 
-      // Invalidate relevant caches
       if (this.cache_enabled) {
         const entityCacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
         const courseModuleCacheKey = `${this.cache_prefix_module}:course:${module.courseId}:${tenantId}:${organisationId}`;
-        const parentModuleCacheKey = module.parentId ? 
-          `${this.cache_prefix_module}:parent:${module.parentId}:${tenantId}:${organisationId}` : null;
-        const hierarchyCacheKey = `${this.cache_prefix_module}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+        const moduleLessonCacheKey = `${this.cache_prefix_lesson}:module:${moduleId}:${tenantId}:${organisationId}`;
 
+        // Invalidate existing caches
         await Promise.all([
           this.cacheService.del(entityCacheKey),
           this.cacheService.del(courseModuleCacheKey),
-          parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
-          this.cacheService.del(hierarchyCacheKey)
+          this.cacheService.del(courseHierarchyCacheKey),
+          this.cacheService.del(moduleLessonCacheKey)
+        ]);
+
+        // Set new cache values
+        await Promise.all([
+          this.cacheService.set(entityCacheKey, savedModule, this.cache_ttl_default)
         ]);
       }
 
@@ -482,76 +408,27 @@ export class ModulesService {
     organisationId?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Find the module to remove with tenant/org filtering
-      const whereClause: FindOptionsWhere<Module> = { 
-        moduleId, 
-        status: Not(ModuleStatus.ARCHIVED)
-      };
-      
-      // Add tenant and org filters if provided
-      if (tenantId) {
-        whereClause.tenantId = tenantId;
-      }
-      
-      if (organisationId) {
-        whereClause.organisationId = organisationId;
-      }
-      
-      const module = await this.moduleRepository.findOne({
-        where: whereClause,
-      });
-
-      if (!module) {
-        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
-      }
-
-      // Check for submodules with tenant/org filtering
-      const submoduleWhereClause: FindOptionsWhere<Module> = { 
-        parentId: moduleId, 
-        status: Not(ModuleStatus.ARCHIVED) 
-      };
-      
-      // Add tenant and org filters if provided
-      if (tenantId) {
-        submoduleWhereClause.tenantId = tenantId;
-      }
-      
-      if (organisationId) {
-        submoduleWhereClause.organisationId = organisationId;
-      }
-      
-      const submodules = await this.moduleRepository.find({
-        where: submoduleWhereClause,
-      });
-
-      // Archive all submodules
-      for (const submodule of submodules) {
-        submodule.status = ModuleStatus.ARCHIVED;
-        await this.moduleRepository.save(submodule);
-      }
-
-      // Find lessons associated with this module
-      const courseLessons = await this.courseLessonRepository.find({
-        where: { moduleId } as FindOptionsWhere<CourseLesson>,
-      });
-
-      // Archive the module
+      const module = await this.findOne(moduleId, tenantId, organisationId);
       module.status = ModuleStatus.ARCHIVED;
-      await this.moduleRepository.save(module);
+      const savedModule = await this.moduleRepository.save(module);
 
-      // Invalidate relevant caches
       if (this.cache_enabled) {
         const entityCacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
         const courseModuleCacheKey = `${this.cache_prefix_module}:course:${module.courseId}:${tenantId}:${organisationId}`;
-        const parentModuleCacheKey = module.parentId ? 
-          `${this.cache_prefix_module}:parent:${module.parentId}:${tenantId}:${organisationId}` : null;
-        const hierarchyCacheKey = `${this.cache_prefix_module}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${module.courseId}:${tenantId}:${organisationId}`;
+        const moduleLessonCacheKey = `${this.cache_prefix_lesson}:module:${moduleId}:${tenantId}:${organisationId}`;
 
+        // Invalidate existing caches
         await Promise.all([
           this.cacheService.del(entityCacheKey),
           this.cacheService.del(courseModuleCacheKey),
-          parentModuleCacheKey ? this.cacheService.del(parentModuleCacheKey) : Promise.resolve(),
-          this.cacheService.del(hierarchyCacheKey)
+          this.cacheService.del(courseHierarchyCacheKey),
+          this.cacheService.del(moduleLessonCacheKey)
+        ]);
+
+        // Set new cache values for archived module
+        await Promise.all([
+          this.cacheService.set(entityCacheKey, savedModule, this.cache_ttl_default)
         ]);
       }
 

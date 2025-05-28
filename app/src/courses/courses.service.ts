@@ -20,7 +20,6 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { CacheKeyBuilder, CacheNamespace } from '../cache/cache-key.builder';
 
 @Injectable()
 export class CoursesService {
@@ -28,6 +27,8 @@ export class CoursesService {
   private readonly cache_ttl_default: number;
   private readonly cache_ttl_user: number;
   private readonly cache_prefix_course: string;
+  private readonly cache_prefix_module: string;
+  private readonly cache_prefix_lesson: string;
   private readonly cache_enabled: boolean;
 
   constructor(
@@ -48,6 +49,8 @@ export class CoursesService {
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
     this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
     this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'courses';
+    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'modules';
+    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lessons';
   }
 
   /**
@@ -117,14 +120,23 @@ export class CoursesService {
     
     const course = this.courseRepository.create(courseData);
     const savedCourse = await this.courseRepository.save(course);
+    const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
     
     if (this.cache_enabled) {
-      // Invalidate search cache for this tenant/org
+      // Invalidate and set new cache values
+      const entityCacheKey = `${this.cache_prefix_course}:${result.courseId}:${tenantId}:${organisationId}`;
       const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-      await this.cacheService.del(searchCacheKey);
-    }
+      const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${result.courseId}:${tenantId}:${organisationId}`;
+
+      // Invalidate existing caches
+      await Promise.all([
+        this.cacheService.del(searchCacheKey),
+        this.cacheService.del(hierarchyCacheKey),
+        this.cacheService.set(entityCacheKey, result, this.cache_ttl_default),
+         ]);
+       }
     
-    return Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
+    return result;
   }
 
   /**
@@ -138,7 +150,7 @@ export class CoursesService {
     organisationId?: string,
   ): Promise<{ items: Course[]; total: number }> {
     const { page = 1, limit = 10 } = paginationDto;
-    const cacheKey = `courses:search:${tenantId}:${organisationId}`;
+    const cacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
 
       if (this.cache_enabled) {
         // Try to get from cache first
@@ -245,10 +257,8 @@ export class CoursesService {
     if (this.cache_enabled) {
       const cachedCourse = await this.cacheService.get<Course>(cacheKey);
       if (cachedCourse) {
-        this.logger.log(`HIT CACHE`);
         return cachedCourse;
       }
-      this.logger.log(`MISS CACHE`);
     }
 
     const whereClause: FindOptionsWhere<Course> = { courseId };
@@ -697,6 +707,7 @@ export class CoursesService {
         this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${updateCourseDto.alias}`);
       }
     }
+
     // Handle certificateId - handle boolean values
     if (typeof updateCourseDto.certificateId === 'boolean') {
       updateCourseDto.certificateId = updateCourseDto.certificateId ? HelperUtil.generateUuid() : null;
@@ -707,20 +718,27 @@ export class CoursesService {
       updatedBy: userId,
     });
     
+    const savedCourse = await this.courseRepository.save(updatedCourse);
+    
     if (this.cache_enabled) { 
-      // Invalidate all related caches
+      // Invalidate and set new cache values
       const entityCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
       const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
       const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
+      const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
+      const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
       
+      // Invalidate existing caches
       await Promise.all([
         this.cacheService.del(entityCacheKey),
         this.cacheService.del(searchCacheKey),
-        this.cacheService.del(hierarchyCacheKey)
+        this.cacheService.del(hierarchyCacheKey),
+        this.cacheService.del(moduleCacheKey),
+        this.cacheService.del(lessonCacheKey)
       ]);
     }
     
-    return this.courseRepository.save(updatedCourse);
+    return savedCourse;
   }
 
   /**
@@ -735,23 +753,25 @@ export class CoursesService {
     organisationId?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Find the course with tenant/org filtering
       const course = await this.findOne(courseId, tenantId, organisationId);
-      
       course.status = CourseStatus.ARCHIVED;
-      
-      await this.courseRepository.save(course);
-      
+      const savedCourse = await this.courseRepository.save(course);
+
+      // Invalidate and set new cache values
       if (this.cache_enabled) {
-        // Invalidate all related caches
-        const entityCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
+        const courseCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
+        const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
+        const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
         const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-        
+        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
+
+        // Invalidate existing caches
         await Promise.all([
-          this.cacheService.del(entityCacheKey),
-          this.cacheService.del(searchCacheKey),
-          this.cacheService.del(hierarchyCacheKey)
+          this.cacheService.del(courseCacheKey),
+          this.cacheService.del(moduleCacheKey),
+          this.cacheService.del(lessonCacheKey),
+          this.cacheService.del(hierarchyCacheKey),
+          this.cacheService.del(searchCacheKey)
         ]);
       }
 
