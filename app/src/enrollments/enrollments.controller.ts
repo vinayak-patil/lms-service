@@ -8,8 +8,6 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
-  HttpStatus,
-  HttpCode,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -52,13 +50,15 @@ export class EnrollmentsController {
   ) {
     return this.enrollmentsService.enroll(
       createEnrollmentDto,
+      query.userId,
+      query.tenantId,
       query.organisationId
     );
   }
 
   @Get()
   @ApiId(API_IDS.GET_USER_ENROLLMENTS)
-  @ApiOperation({ summary: 'Get user enrollments' })
+  @ApiOperation({ summary: 'Get user enrollments by courseId' })
   @ApiResponse({ 
     status: 200, 
     description: 'Enrollments retrieved successfully',
@@ -72,7 +72,7 @@ export class EnrollmentsController {
       }
     }
   })
-  @ApiQuery({ name: 'userId', required: false, type: String, format: 'uuid' })
+  @ApiQuery({ name: 'learnerId', required: false, type: String, format: 'uuid' })
   @ApiQuery({ name: 'courseId', required: false, type: String, format: 'uuid' })
   @ApiQuery({ 
     name: 'status', 
@@ -85,15 +85,16 @@ export class EnrollmentsController {
   async getUserEnrollments(
     @Query() paginationDto: PaginationDto,
     @Query() query: CommonQueryDto,
-    @Query('userId') userId?: string,
+    @Query('learnerId') learnerId?: string,
     @Query('courseId') courseId?: string,
     @Query('status') status?: EnrollmentStatus,
   ) {
     return this.enrollmentsService.findAll(
-      paginationDto,
-      userId,
+      paginationDto,      
+      learnerId,
       courseId,
       status,
+      query.userId,
       query.tenantId,
       query.organisationId
     );

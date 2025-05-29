@@ -19,34 +19,51 @@ export class HttpExceptionFilter implements ExceptionFilter {
   constructor(private reflector: Reflector) {}
   
   catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-    const status = exception.getStatus();
-    const errorResponse = exception.getResponse();
+    try {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const request = ctx.getRequest<Request>();
+      const status = exception.getStatus();
+      const errorResponse = exception.getResponse();
 
-    // Get the apiId from the handler metadata
-    const apiId = this.reflector.get<string>(API_ID, request.route?.stack[0]?.handle) || 'api.error';
+      // Get the apiId from the handler metadata
+      const apiId = this.reflector.get<string>(API_ID, request.route?.stack[0]?.handle) || 'api.error';
 
-    this.logger.error(
-      `HTTP Exception: ${status} - ${request.method} ${request.url}`,
-      errorResponse,
-    );
+      this.logger.error(
+        `HTTP Exception: ${status} - ${request.method} ${request.url}`,
+        errorResponse,
+      );
 
-    const responseBody: ApiResponse = {
-      id: apiId,
-      ver: '1.0',
-      ts: new Date().toISOString(),
-      params: {
-        resmsgid: HelperUtil.generateMessageId(),
-        status: 'failed',
-        err: this.getErrorCode(status),
-        errmsg: this.extractErrorMessage(errorResponse),
-      },
-      responseCode: status,
-    };
+      const responseBody: ApiResponse = {
+        id: apiId,
+        ver: '1.0',
+        ts: new Date().toISOString(),
+        params: {
+          resmsgid: HelperUtil.generateMessageId(),
+          status: 'failed',
+          err: this.getErrorCode(status),
+          errmsg: this.extractErrorMessage(errorResponse),
+        },
+        responseCode: status,
+      };
 
-    response.status(status).json(responseBody);
+      response.status(status).json(responseBody);
+    } catch (error) {
+      this.logger.error('Error in HttpExceptionFilter:', error);
+      const response = host.switchToHttp().getResponse<Response>();
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        id: 'api.error',
+        ver: '1.0',
+        ts: new Date().toISOString(),
+        params: {
+          resmsgid: HelperUtil.generateMessageId(),
+          status: 'failed',
+          err: 'ERR_INTERNAL_SERVER',
+          errmsg: 'An unexpected error occurred while processing the API request',
+        },
+        responseCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
   }
 
   private getErrorCode(status: number): string {

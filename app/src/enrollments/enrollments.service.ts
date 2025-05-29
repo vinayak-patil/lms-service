@@ -22,6 +22,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { HelperUtil } from '../common/utils/helper.util';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
+import { CourseLesson, CourseLessonStatus } from 'src/lessons/entities/course-lesson.entity';
 
 @Injectable()
 export class EnrollmentsService {
@@ -40,6 +41,8 @@ export class EnrollmentsService {
     private readonly courseTrackRepository: Repository<CourseTrack>,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    @InjectRepository(CourseLesson)
+    private readonly courseLessonRepository: Repository<CourseLesson>,
   ) {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
@@ -54,19 +57,21 @@ export class EnrollmentsService {
    */
   async enroll(
     createEnrollmentDto: CreateEnrollmentDto,
+    userId: string,
+    tenantId: string,
     organisationId?: string
   ): Promise<UserEnrollment> {
     this.logger.log(`Enrolling user: ${JSON.stringify(createEnrollmentDto)}`);
     
     try {
-      const { courseId, userId, tenantId } = createEnrollmentDto;
+      const { courseId } = createEnrollmentDto;
       
       // Build where clause for course validation with data isolation
       const courseWhereClause: FindOptionsWhere<Course> = { 
         courseId, 
         status: Not(CourseStatus.ARCHIVED),
         tenantId,
-        ...(organisationId && { organisationId })
+        organisationId,
       };
       
       // Validate course exists with proper data isolation
@@ -79,17 +84,16 @@ export class EnrollmentsService {
       }
 
       // Check if admin approval is required
-      if (course.adminApproval && !createEnrollmentDto.enrolledBy) {
-        throw new BadRequestException(RESPONSE_MESSAGES.ADMIN_APPROVAL_REQUIRED);
+      if (course.adminApproval) {
+        createEnrollmentDto.status = EnrollmentStatus.UNPUBLISHED;
       }
 
       // Build where clause for existing enrollment check with data isolation
       const enrollmentWhereClause: FindOptionsWhere<UserEnrollment> = {
         courseId,
-        userId,
-        status: EnrollmentStatus.PUBLISHED,
+        userId: createEnrollmentDto.learnerId,
         tenantId,
-        ...(organisationId && { organisationId })
+        organisationId,
       };
       
       // Check for existing active enrollment
@@ -101,8 +105,6 @@ export class EnrollmentsService {
         throw new ConflictException(RESPONSE_MESSAGES.ALREADY_ENROLLED);
       }
 
-      // Generate a unique UUID for the enrollment
-      const enrollmentId = uuidv4();
 
       // Calculate end time based on course settings
       let endTime: Date | null = null;
@@ -126,15 +128,15 @@ export class EnrollmentsService {
       // Create new enrollment entity
       const enrollment = this.userEnrollmentRepository.create({
         courseId,
-        userId,
+        userId: createEnrollmentDto.learnerId,
         tenantId,
         organisationId,
         enrolledOnTime: new Date(),
         endTime: endTime || undefined,
-        status: EnrollmentStatus.PUBLISHED,
+        status: createEnrollmentDto.status || EnrollmentStatus.PUBLISHED,
         unlimitedPlan: createEnrollmentDto.unlimitedPlan || false,
-        beforeExpiryMail: false,
-        afterExpiryMail: false,
+        beforeExpiryMail: createEnrollmentDto.beforeExpiryMail || false,
+        afterExpiryMail: createEnrollmentDto.afterExpiryMail || false,
         params: params,
         enrolledBy: createEnrollmentDto.enrolledBy || userId,
         enrolledAt: new Date(),
@@ -143,12 +145,23 @@ export class EnrollmentsService {
       // Save the enrollment
       const savedEnrollment = await this.userEnrollmentRepository.save(enrollment);
 
+      // Build where clause for course validation
+      const courseLessonWhereClause: any = { 
+        courseId, 
+        tenantId,
+        organisationId,
+        status: Not(CourseStatus.ARCHIVED as any) 
+      };
+      
+      const courseLessons = await this.courseLessonRepository.count({
+        where: courseLessonWhereClause
+      }); 
       // Create course tracking record
       const courseTrack = this.courseTrackRepository.create({
         courseId,
-        userId,
+        userId: createEnrollmentDto.learnerId,
         startDatetime: new Date(),
-        noOfLessons: 0,
+        noOfLessons: courseLessons,
         completedLessons: 0,
         status: TrackingStatus.STARTED,
         lastAccessedDate: new Date(),
@@ -170,8 +183,7 @@ export class EnrollmentsService {
       if (this.cache_enabled) {
         const cacheKeys = [
           `${this.cache_prefix_enrollment}:${savedEnrollment.enrollmentId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:user:${userId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:course:${courseId}:${tenantId}:${organisationId}`
+          `${this.cache_prefix_enrollment}:list:${courseId}:${createEnrollmentDto.learnerId}:${tenantId}:${organisationId}`,          
         ];
         await Promise.all(cacheKeys.map(key => this.cacheService.del(key)));
       }
@@ -194,10 +206,11 @@ export class EnrollmentsService {
    * Find all enrollments with pagination and filters
    */
   async findAll(
-    paginationDto: PaginationDto,
-    userId?: string,
+    paginationDto: PaginationDto,   
+    learnerId?: string,
     courseId?: string,
     status?: string,
+    userId?: string,
     tenantId?: string,
     organisationId?: string,
   ): Promise<{ count: number; enrollments: UserEnrollment[] }> {
@@ -205,7 +218,7 @@ export class EnrollmentsService {
       const { page = 1, limit = 10 } = paginationDto;
       const skip = (page - 1) * limit;
 
-      const cacheKey = `${this.cache_prefix_enrollment}:list:${tenantId}:${organisationId}:${page}:${limit}:${userId}:${courseId}:${status}`;
+      const cacheKey = `${this.cache_prefix_enrollment}:list:${courseId}:${learnerId}:${tenantId}:${organisationId}`;
 
       if (this.cache_enabled) {
         const cachedResult = await this.cacheService.get<{ count: number; enrollments: UserEnrollment[] }>(cacheKey);
@@ -214,15 +227,20 @@ export class EnrollmentsService {
         }
       }
 
-      // Build query with filters
-      const whereConditions: FindOptionsWhere<UserEnrollment> = {
-        ...(userId && { userId }),
-        ...(courseId && { courseId }),
-        ...(status && { status: status as EnrollmentStatus }),
-        ...(tenantId && { tenantId }),
-        ...(organisationId && { organisationId }),
-        status: status ? (status as EnrollmentStatus) : Not(EnrollmentStatus.CANCELLED),
+      const whereConditions: FindOptionsWhere<UserEnrollment> = { 
+        tenantId,
+        organisationId,
       };
+
+      if (learnerId) {
+        whereConditions.userId = learnerId;
+      }
+      if (courseId) {
+        whereConditions.courseId = courseId;
+      }
+      if (status) {
+        whereConditions.status = status as EnrollmentStatus;
+      }
 
       // Execute query with pagination
       const [enrollments, count] = await this.userEnrollmentRepository.findAndCount({
@@ -234,20 +252,6 @@ export class EnrollmentsService {
         },
         relations: ['course'],
       });
-
-      // Update status for expired enrollments
-      const now = new Date();
-      for (const enrollment of enrollments) {
-        if (
-          enrollment.status === EnrollmentStatus.PUBLISHED &&
-          enrollment.endTime &&
-          enrollment.endTime < now &&
-          !enrollment.unlimitedPlan
-        ) {
-          enrollment.status = EnrollmentStatus.ARCHIVED;
-          await this.userEnrollmentRepository.save(enrollment);
-        }
-      }
 
       const result = { count, enrollments };
 
@@ -282,8 +286,8 @@ export class EnrollmentsService {
 
       const whereConditions: FindOptionsWhere<UserEnrollment> = {
         enrollmentId,
-        ...(tenantId && { tenantId }),
-        ...(organisationId && { organisationId }),
+        tenantId,
+        organisationId,
       };
 
       const enrollment = await this.userEnrollmentRepository.findOne({
@@ -330,10 +334,9 @@ export class EnrollmentsService {
       // Invalidate cache
       if (this.cache_enabled) {
         const cacheKeys = [
-          `${this.cache_prefix_enrollment}:${enrollmentId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:user:${enrollment.userId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:course:${enrollment.courseId}:${tenantId}:${organisationId}`
-        ];
+         `${this.cache_prefix_enrollment}:${updatedEnrollment.enrollmentId}:${tenantId}:${organisationId}`,
+          `${this.cache_prefix_enrollment}:list:${updatedEnrollment.courseId}:${updatedEnrollment.userId}:${tenantId}:${organisationId}`,          
+       ];
         await Promise.all(cacheKeys.map(key => this.cacheService.del(key)));
       }
 
@@ -369,10 +372,9 @@ export class EnrollmentsService {
       // Invalidate cache
       if (this.cache_enabled) {
         const cacheKeys = [
-          `${this.cache_prefix_enrollment}:${enrollmentId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:user:${enrollment.userId}:${tenantId}:${organisationId}`,
-          `${this.cache_prefix_enrollment}:course:${enrollment.courseId}:${tenantId}:${organisationId}`
-        ];
+         `${this.cache_prefix_enrollment}:${enrollment.enrollmentId}:${tenantId}:${organisationId}`,
+          `${this.cache_prefix_enrollment}:list:${enrollment.courseId}:${enrollment.userId}:${tenantId}:${organisationId}`,          
+       ];
         await Promise.all(cacheKeys.map(key => this.cacheService.del(key)));
       }
 

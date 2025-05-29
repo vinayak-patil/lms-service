@@ -7,6 +7,7 @@ import { UserEnrollment } from './entities/user-enrollment.entity';
 import { Course } from '../courses/entities/course.entity';
 import { CourseTrack } from '../tracking/entities/course-track.entity';
 import { CacheModule } from '../cache/cache.module';
+import { CourseLesson } from 'src/lessons/entities/course-lesson.entity';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CacheModule } from '../cache/cache.module';
       UserEnrollment,
       Course,
       CourseTrack,
+      CourseLesson,
     ]),
     ConfigModule,
     CacheModule,
