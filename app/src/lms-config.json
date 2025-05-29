@@ -1,0 +1,160 @@
+{
+  "$id": "lms-config.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+    "properties": {
+      "General": {
+        "type": "object",
+        "title": "General",
+        "properties": {
+          "date_format": {
+            "type": "string",
+            "title": "Date format to show",
+            "description": "Date format to show",
+            "default": "Y-m-d H:i:s"
+          }
+        }
+      },
+      "Cloud-Agnostic Settings": {
+        "type": "object",
+        "title": "Cloud-Agnostic Settings",
+        "properties": {
+           "cloud_storage_provider": {
+            "type": "string",
+            "title": "Cloud Storage Provider",
+            "description": "Cloud Storage Provider",
+            "enum": [
+              "azure",
+              "aws",
+              "gcloud"
+            ],
+            "enumNames": [
+              "Local",
+              "Azure",
+              "Aws",
+              "Google Cloud"
+            ],
+            "default": "aws"
+          },
+          "storage_key": {
+            "type": "string",
+            "title": "Storage Key",
+            "description": "Storage Key"
+          },
+          "storage_secret": {
+            "type": "string",
+            "title": "Storage Secret",
+            "description": "Storage Secret"
+          },
+          "storage_container": {
+            "type": "string",
+            "title": "Storage Container",
+            "description": "Storage Container"
+          },
+          "storage_region": {
+            "type": "string",
+            "title": "Storage Region",
+            "description": "Storage Region"
+          }
+        }
+      },
+      "Media Settings": {
+        "type": "object",
+        "title": "Media Settings",
+        "properties": {
+          "image_mime_type": {
+            "type": "string",
+            "title": "Allowed Image Mime types",
+            "description": "Allowed Image Mime types",
+            "default": "image/jpeg, image/jpg, image/png"
+          },
+          "image_filesize": {
+            "type": "number",
+            "title": "Allowed image size in MB",
+            "description": "Allowed image size in MB",
+            "default": "50"
+          },
+          "video_mime_type": {
+            "type": "string",
+            "title": "Allowed Video Mime types",
+            "description": "Allowed Video Mime types",
+            "default": "video/mp4, video/webm"
+          },
+           "video_filesize": {
+            "type": "number",
+            "title": "Allowed video size in MB",
+            "description": "Allowed video size in MB",
+            "default": "500"
+          }
+        }
+      },
+      "course": {
+        "type": "object",
+        "title": "Course",
+        "properties": {
+          "shortdesc_char_limit": {
+            "type": "string",
+            "title": "Characters limit for short description",
+            "description": "Characters limit for short description",
+            "default": "200"
+          },
+          "enrolment_admin_approval": {
+            "type": "string",
+            "title": "Admin Approval For Enrolling",
+            "description": "Admin Approval For Enrolling",
+            "enum": [
+              "1",
+              "0"
+            ],
+            "enumNames": [
+              "Yes",
+              "No"
+            ]
+          }
+         }
+      },
+      "lesson": {
+        "type": "object",
+        "title": "Lesson",
+        "properties": {
+          "reference_material": {
+            "type": "string",
+            "title": "Allow adding reference material to the lessons",
+            "description": "Allow adding reference material to the lessons",
+            "enum": [
+              "1",
+              "0"
+            ],
+            "enumNames": [
+              "Yes",
+              "No"
+            ]
+          },
+          "answersheet_review_key": {
+            "type": "string",
+            "title": "Private key to review test answersheet",
+            "description": "Private key to review test answersheet"
+          }
+        }
+      },
+      "Social Sharing Settings": {
+        "type": "object",
+        "title": "Social Sharing Settings",
+        "properties": {
+          "social_sharing": {
+            "type": "string",
+            "title": "Enable Social Sharing",
+            "description": "Enable Social Sharing",
+            "enum": [
+              "1",
+              "0"
+            ],
+            "enumNames": [
+              "Yes",
+              "No"
+            ]
+          }
+        }
+      }
+    }
+  }
