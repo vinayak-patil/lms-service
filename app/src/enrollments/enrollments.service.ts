@@ -361,12 +361,12 @@ export class EnrollmentsService {
     try {
       const enrollment = await this.findOne(enrollmentId, tenantId, organisationId);
 
-      if (enrollment.status === EnrollmentStatus.CANCELLED) {
+      if (enrollment.status === EnrollmentStatus.UNPUBLISHED) {
         throw new BadRequestException(RESPONSE_MESSAGES.ERROR.ENROLLMENT_ALREADY_CANCELLED);
       }
 
       // Update enrollment status
-      enrollment.status = EnrollmentStatus.CANCELLED;
+      enrollment.status = EnrollmentStatus.UNPUBLISHED;
       await this.userEnrollmentRepository.save(enrollment);
 
       // Invalidate cache

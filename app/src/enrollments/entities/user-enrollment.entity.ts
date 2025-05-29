@@ -12,8 +12,7 @@ import { Course } from '../../courses/entities/course.entity';
 export enum EnrollmentStatus {
   PUBLISHED = 'published',
   UNPUBLISHED = 'unpublished',
-  ARCHIVED = 'archived',
-  CANCELLED = 'cancelled',
+  ARCHIVED = 'archived'
 }
 
 @Entity('user_enrollments')
