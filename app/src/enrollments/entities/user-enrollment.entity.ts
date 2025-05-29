@@ -13,6 +13,7 @@ export enum EnrollmentStatus {
   PUBLISHED = 'published',
   UNPUBLISHED = 'unpublished',
   ARCHIVED = 'archived',
+  CANCELLED = 'cancelled',
 }
 
 @Entity('user_enrollments')
