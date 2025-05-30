@@ -34,7 +34,7 @@ export const RESPONSE_MESSAGES = {
   MEDIA_ASSOCIATION_REMOVED: 'Media association removed successfully',
 
   // Enrollment Specific Messages
-  ENROLLMENT_CREATED: 'User enrolled successfully',
+  ENROLLMENT_CREATED: 'Enrollment created successfully',
   ENROLLMENT_UPDATED: 'Enrollment updated successfully',
   ENROLLMENT_CANCELLED: 'Enrollment cancelled successfully',
 

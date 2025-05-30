@@ -20,6 +20,7 @@ import {
   ApiParam, 
   ApiBody, 
   ApiConsumes,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
@@ -33,9 +34,12 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
+import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Courses')
 @Controller('courses')
+@ApiHeader({ name: 'x-tenant-id', required: true })
+@ApiHeader({ name: 'x-organisation-id', required: true })
 export class CoursesController {
   constructor(
     private readonly coursesService: CoursesService,
@@ -56,6 +60,7 @@ export class CoursesController {
   async createCourse(
     @Body() createCourseDto: CreateCourseDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -65,8 +70,8 @@ export class CoursesController {
     const course = await this.coursesService.create(
       createCourseDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return course;
   }
@@ -93,8 +98,8 @@ export class CoursesController {
   async searchCourses(
     @Query() searchDto: SearchCourseDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
-    
     const { page, limit, ...filters } = searchDto;
     const paginationDto = new PaginationDto();
     paginationDto.page = page;
@@ -104,8 +109,8 @@ export class CoursesController {
       filters,
       paginationDto,
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -122,11 +127,12 @@ export class CoursesController {
   async getCourseById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const course = await this.coursesService.findOne(
       courseId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
     return course;
   }
@@ -159,11 +165,12 @@ export class CoursesController {
   async getCourseHierarchyById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const courseHierarchy = await this.coursesService.findCourseHierarchy(
       courseId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
     return courseHierarchy;
   }
@@ -211,12 +218,13 @@ export class CoursesController {
   async getCourseHierarchyWithTracking(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const courseHierarchyWithTracking = await this.coursesService.findCourseHierarchyWithTracking(
       courseId, 
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
     return courseHierarchyWithTracking;
   }
@@ -238,6 +246,7 @@ export class CoursesController {
     @Param('id') id: string,
     @Body() updateCourseDto: UpdateCourseDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -248,8 +257,8 @@ export class CoursesController {
       id,
       updateCourseDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return course;
   }
@@ -273,11 +282,12 @@ export class CoursesController {
   async deleteCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const result = await this.coursesService.remove(
       courseId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
     return result;
   }

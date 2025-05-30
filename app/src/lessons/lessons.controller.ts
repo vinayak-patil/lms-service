@@ -24,6 +24,7 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -36,14 +37,16 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
+import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Lessons')
 @Controller('lessons')
-export class LessonsController   {
+@ApiHeader({ name: 'x-tenant-id', required: true })
+@ApiHeader({ name: 'x-organisation-id', required: true })
+export class LessonsController {
   constructor(
     private readonly lessonsService: LessonsService,
-  ) {
-  }
+  ) {}
 
   @Post()
   @ApiId(API_IDS.CREATE_LESSON)
@@ -60,6 +63,7 @@ export class LessonsController   {
   async createLesson(
     @Body() createLessonDto: CreateLessonDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -69,8 +73,8 @@ export class LessonsController   {
     const lesson = await this.lessonsService.create(
       createLessonDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return lesson;
   }
@@ -86,6 +90,7 @@ export class LessonsController   {
   async getAllLessons(
     @Query() paginationDto: PaginationDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('status') status?: string,
     @Query('format') format?: string,
   ) {
@@ -93,8 +98,8 @@ export class LessonsController   {
       paginationDto, 
       status, 
       format, 
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -131,12 +136,13 @@ export class LessonsController   {
   async getLessonById(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.findOne(
       lessonId,
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -148,11 +154,12 @@ export class LessonsController   {
   async getLessonsByModule(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.findByModule(
       moduleId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -197,11 +204,12 @@ export class LessonsController   {
   async deleteLesson(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.remove(
       lessonId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -213,11 +221,12 @@ export class LessonsController   {
   async removeLessonFromCourse(
     @Param('courseLessonId', ParseUUIDPipe) courseLessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.removeFromCourse(
       courseLessonId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -230,13 +239,14 @@ export class LessonsController   {
   async getLessonToDisplay(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('courseLessonId') courseLessonId?: string,
   ) {
     return this.lessonsService.findToDisplay(
       lessonId,
-      query.tenantId,
-      query.organisationId,
-      courseLessonId
+      courseLessonId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 }
