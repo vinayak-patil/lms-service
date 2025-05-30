@@ -17,6 +17,7 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
@@ -26,6 +27,7 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { UserEnrollment, EnrollmentStatus } from './entities/user-enrollment.entity';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
+import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Enrollments')
 @ApiBearerAuth()
@@ -47,12 +49,13 @@ export class EnrollmentsController {
   async enrollUser(
     @Body() createEnrollmentDto: CreateEnrollmentDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.enroll(
       createEnrollmentDto,
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -85,6 +88,7 @@ export class EnrollmentsController {
   async getUserEnrollments(
     @Query() paginationDto: PaginationDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('learnerId') learnerId?: string,
     @Query('courseId') courseId?: string,
     @Query('status') status?: EnrollmentStatus,
@@ -95,8 +99,8 @@ export class EnrollmentsController {
       courseId,
       status,
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -118,11 +122,12 @@ export class EnrollmentsController {
   async getEnrollmentById(
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.findOne(
       enrollmentId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -147,12 +152,13 @@ export class EnrollmentsController {
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
     @Body() updateEnrollmentDto: UpdateEnrollmentDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.update(
       enrollmentId,
       updateEnrollmentDto,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -179,11 +185,12 @@ export class EnrollmentsController {
   async cancelEnrollment(
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.cancel(
       enrollmentId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 }

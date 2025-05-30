@@ -38,8 +38,6 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Courses')
 @Controller('courses')
-@ApiHeader({ name: 'x-tenant-id', required: true })
-@ApiHeader({ name: 'x-organisation-id', required: true })
 export class CoursesController {
   constructor(
     private readonly coursesService: CoursesService,
