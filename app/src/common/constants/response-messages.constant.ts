@@ -14,6 +14,7 @@ export const RESPONSE_MESSAGES = {
   COURSE_UPDATED: 'Course updated successfully',
   COURSE_DELETED: 'Course deleted successfully',
   COURSE_ENROLLED: 'User enrolled for the course successfully',
+  COURSE_NOT_FOUND: 'Course not found',
 
   // Module Specific Messages
   MODULE_CREATED: 'Module created successfully',
@@ -37,6 +38,14 @@ export const RESPONSE_MESSAGES = {
   ENROLLMENT_CREATED: 'Enrollment created successfully',
   ENROLLMENT_UPDATED: 'Enrollment updated successfully',
   ENROLLMENT_CANCELLED: 'Enrollment cancelled successfully',
+  ENROLLMENT_NOT_FOUND: 'Enrollment not found',
+  ALREADY_ENROLLED: 'User is already enrolled in this course',
+  ADMIN_APPROVAL_REQUIRED: 'Admin approval required for this course',
+  INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
+  ENROLLMENT_ERROR: 'Error enrolling user for course',
+  FETCH_ERROR: 'Error retrieving enrollments',
+  UPDATE_ERROR: 'Error updating enrollment',
+  CANCELLATION_ERROR: 'Error cancelling enrollment',
 
   // Tracking Specific Messages
   TRACKING_STARTED: 'Tracking started successfully',

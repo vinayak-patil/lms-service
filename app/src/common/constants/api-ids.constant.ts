@@ -39,10 +39,11 @@ export const API_IDS = {
   
    // Enrollment APIs
   ENROLL_USER: 'api.lms.enrollment.create',
-  GET_USER_ENROLLMENTS: 'api.lms.enrollment.list.byuser',
+  GET_USER_ENROLLMENTS: 'api.lms.enrollment.list',
   GET_ENROLLMENT_BY_ID: 'api.lms.enrollment.read',
   UPDATE_ENROLLMENT: 'api.lms.enrollment.update',
   CANCEL_ENROLLMENT: 'api.lms.enrollment.cancel',
+
   
   // Tracking APIs
   START_COURSE_TRACKING: 'api.lms.tracking.course.start',
