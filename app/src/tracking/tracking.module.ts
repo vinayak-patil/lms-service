@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CourseTrack } from './entities/course-track.entity';
+import { LessonTrack } from './entities/lesson-track.entity';
+import { Course } from '../courses/entities/course.entity';
+import { Lesson } from '../lessons/entities/lesson.entity';
+import { Module as CourseModule } from '../modules/entities/module.entity';
+import { CourseLesson } from '../lessons/entities/course-lesson.entity';
+import { TrackingController } from './tracking.controller';
+import { TrackingService } from './tracking.service';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      CourseTrack, 
+      LessonTrack, 
+      Course, 
+      Lesson, 
+      CourseModule, 
+      CourseLesson
+    ]),
+  ],
+  controllers: [TrackingController],
+  providers: [TrackingService],
+  exports: [TrackingService],
+})
+export class TrackingModule {}

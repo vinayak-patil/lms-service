@@ -9,6 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { CourseTrack, TrackingStatus } from './course-track.entity';
+import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('lesson_track')
 @Index(['userId', 'lessonId', 'courseId', 'attempt'], { unique: true })
@@ -22,10 +23,10 @@ export class LessonTrack {
 
   @Column({ type: 'uuid', nullable: true })
   @Index()
-  courseId: string;
+  courseId: string | null;
 
   @Column({ type: 'uuid', nullable: true })
-  courseTrackId: string;
+  courseTrackId: string | null;
 
   @Column({ type: 'uuid' })
   @Index()
@@ -40,7 +41,7 @@ export class LessonTrack {
   @Column({ type: 'timestamptz', nullable: true })
   endDatetime: Date;
 
-    @Column({ type: 'int', nullable: true, default: 0 })
+  @Column({ type: 'int', nullable: true, default: 0 })
   score: number;
 
   @Column({

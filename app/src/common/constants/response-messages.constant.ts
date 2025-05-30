@@ -57,6 +57,7 @@ export const RESPONSE_MESSAGES = {
     COURSE_NOT_FOUND: 'Course not found',
     MODULE_NOT_FOUND: 'Module not found',
     LESSON_NOT_FOUND: 'Lesson not found',
+    COURSE_LESSON_NOT_FOUND: 'Lesson not found in course',
     MEDIA_NOT_FOUND: 'Media not found',
     ENROLLMENT_NOT_FOUND: 'Enrollment not found',
     TRACKING_NOT_FOUND: 'Tracking not found',

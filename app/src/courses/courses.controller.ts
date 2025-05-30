@@ -221,7 +221,7 @@ export class CoursesController {
     return courseHierarchyWithTracking;
   }
 
-  @Patch(':id')
+  @Patch(':courseId')
   @ApiId(API_IDS.UPDATE_COURSE)
   @ApiOperation({ summary: 'Update a course' })
   @ApiBody({ type: UpdateCourseDto })
@@ -235,7 +235,7 @@ export class CoursesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
   async updateCourse(
-    @Param('id') id: string,
+    @Param('courseId') courseId: string,
     @Body() updateCourseDto: UpdateCourseDto,
     @Query() query: CommonQueryDto,
     @UploadedFile() file?: Express.Multer.File,
@@ -245,7 +245,7 @@ export class CoursesController {
       updateCourseDto.image = imagePath;
     }
     const course = await this.coursesService.update(
-      id,
+      courseId,
       updateCourseDto,
       query.userId,
       query.tenantId,
