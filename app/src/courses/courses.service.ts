@@ -145,7 +145,6 @@ export class CoursesService {
   async search(
     filters: Omit<SearchCourseDto, keyof PaginationDto>,
     paginationDto: PaginationDto,
-    userId: string,
     tenantId: string,
     organisationId?: string,
   ): Promise<{ items: Course[]; total: number }> {
@@ -749,12 +748,15 @@ export class CoursesService {
    */
   async remove(
     courseId: string,
+    userId: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const course = await this.findOne(courseId, tenantId, organisationId);
       course.status = CourseStatus.ARCHIVED;
+      course.updatedBy = userId;
+      course.updatedAt = new Date();
       const savedCourse = await this.courseRepository.save(course);
 
       // Invalidate and set new cache values

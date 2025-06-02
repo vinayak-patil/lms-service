@@ -94,7 +94,6 @@ export class CoursesController {
   })
   async searchCourses(
     @Query() searchDto: SearchCourseDto,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const { page, limit, ...filters } = searchDto;
@@ -105,7 +104,6 @@ export class CoursesController {
     return this.coursesService.search(
       filters,
       paginationDto,
-      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
@@ -123,7 +121,6 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const course = await this.coursesService.findOne(
@@ -161,7 +158,6 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseHierarchyById(
     @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const courseHierarchy = await this.coursesService.findCourseHierarchy(
@@ -172,7 +168,7 @@ export class CoursesController {
     return courseHierarchy;
   }
 
-  @Get(':courseId/hierarchy/tracking')
+  @Get(':courseId/hierarchy/tracking/:userId')
   @ApiId(API_IDS.GET_COURSE_HIERARCHY_WITH_TRACKING)
   @ApiOperation({ summary: 'Get course hierarchy with user tracking information' })
   @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID' })
@@ -214,12 +210,12 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseHierarchyWithTracking(
     @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const courseHierarchyWithTracking = await this.coursesService.findCourseHierarchyWithTracking(
       courseId, 
-      query.userId,
+      userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
@@ -283,6 +279,7 @@ export class CoursesController {
   ) {
     const result = await this.coursesService.remove(
       courseId,
+      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );

@@ -47,7 +47,7 @@ export class EnrollmentsController {
   @ApiBody({ type: CreateEnrollmentDto })
   async enrollUser(
     @Body() createEnrollmentDto: CreateEnrollmentDto,
-    @Query() query: CommonQueryDto,
+    @Query() query: CommonQueryDto,    
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.enroll(
@@ -86,7 +86,6 @@ export class EnrollmentsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getUserEnrollments(
     @Query() paginationDto: PaginationDto,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('learnerId') learnerId?: string,
     @Query('courseId') courseId?: string,
@@ -97,7 +96,6 @@ export class EnrollmentsController {
       learnerId,
       courseId,
       status,
-      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
@@ -120,7 +118,6 @@ export class EnrollmentsController {
   })
   async getEnrollmentById(
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.findOne(
@@ -150,7 +147,6 @@ export class EnrollmentsController {
   async updateEnrollment(
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
     @Body() updateEnrollmentDto: UpdateEnrollmentDto,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.update(
@@ -183,7 +179,6 @@ export class EnrollmentsController {
   })
   async cancelEnrollment(
     @Param('enrollmentId', ParseUUIDPipe) enrollmentId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.enrollmentsService.cancel(
