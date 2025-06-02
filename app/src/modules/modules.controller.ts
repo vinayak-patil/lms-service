@@ -31,6 +31,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
+import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Modules')
 @Controller('modules')
@@ -54,6 +55,7 @@ export class ModulesController {
   async createModule(
     @Body() createModuleDto: CreateModuleDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -63,8 +65,8 @@ export class ModulesController {
     const module = await this.modulesService.create(
       createModuleDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return module;
   }
@@ -81,12 +83,13 @@ export class ModulesController {
   @ApiResponse({ status: 404, description: 'Module not found' })
   async getModuleById(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
-    @Query() query: CommonQueryDto
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findOne(
       moduleId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -104,12 +107,13 @@ export class ModulesController {
   })
   async getModulesByCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findByCourse(
       courseId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -127,12 +131,13 @@ export class ModulesController {
   })
   async getSubmodulesByParent(
     @Param('parentId', ParseUUIDPipe) parentId: string,
-    @Query() query: CommonQueryDto
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findByParent(
       parentId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
@@ -153,6 +158,7 @@ export class ModulesController {
     @Param('id') id: string,
     @Body() updateModuleDto: UpdateModuleDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -163,8 +169,8 @@ export class ModulesController {
       id,
       updateModuleDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return module;
   }
@@ -187,12 +193,13 @@ export class ModulesController {
   @ApiResponse({ status: 404, description: 'Module not found' })
   async deleteModule(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
-    @Query() query: CommonQueryDto
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.remove(
       moduleId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 }
