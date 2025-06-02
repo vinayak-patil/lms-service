@@ -17,8 +17,7 @@ import {
   ApiResponse, 
   ApiConsumes, 
   ApiParam, 
-  ApiQuery,
-  ApiHeader,
+  ApiQuery
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
@@ -34,8 +33,6 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Media')
 @Controller('media')
-@ApiHeader({ name: 'x-tenant-id', required: true })
-@ApiHeader({ name: 'x-organisation-id', required: true })
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 

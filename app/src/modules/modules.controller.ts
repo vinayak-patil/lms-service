@@ -20,7 +20,6 @@ import {
   ApiParam, 
   ApiConsumes,
   ApiBody,
-  ApiHeader,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ModulesService } from './modules.service';
@@ -36,8 +35,6 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Modules')
 @Controller('modules')
-@ApiHeader({ name: 'x-tenant-id', required: true })
-@ApiHeader({ name: 'x-organisation-id', required: true })
 export class ModulesController {
   constructor(
     private readonly modulesService: ModulesService,

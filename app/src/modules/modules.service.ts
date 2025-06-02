@@ -4,7 +4,6 @@ import {
   ConflictException,
   Logger,
   BadRequestException,
-  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike } from 'typeorm';

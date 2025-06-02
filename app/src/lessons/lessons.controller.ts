@@ -9,10 +9,6 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
-  Patch,
-  FileTypeValidator,
-  ParseFilePipe,
-  MaxFileSizeValidator,
   Put,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';

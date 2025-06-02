@@ -20,7 +20,6 @@ import {
   ApiParam, 
   ApiBody, 
   ApiConsumes,
-  ApiHeader,
 } from '@nestjs/swagger';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
