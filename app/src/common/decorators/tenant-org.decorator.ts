@@ -4,8 +4,8 @@ export const TenantOrg = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     return {
-      tenantId: request.headers['tenantId'],
-      organisationId: request.headers['organisationId'],
+      tenantId: request.headers['tenantid'],
+      organisationId: request.headers['organisationid'],
     };
   },
 ); 
