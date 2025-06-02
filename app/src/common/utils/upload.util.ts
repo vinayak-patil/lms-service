@@ -1,4 +1,3 @@
-import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import { validationConfig } from '../../config/file-validation.config';

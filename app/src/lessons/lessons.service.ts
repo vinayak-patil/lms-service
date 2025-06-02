@@ -700,7 +700,7 @@ export class LessonsService {
     image?: Express.Multer.File,
   ): Promise<Lesson> {
     try {
-      const lesson = await this.findOne(lessonId, userId, tenantId, organisationId);
+      const lesson = await this.findOne(lessonId, tenantId, organisationId);
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
@@ -891,7 +891,7 @@ export class LessonsService {
     organisationId?: string,
   ): Promise<Lesson> {
     try {
-      const lesson = await this.findOne(lessonId, userId, tenantId, organisationId);
+      const lesson = await this.findOne(lessonId, tenantId, organisationId);
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
