@@ -1,13 +1,13 @@
 export const API_IDS = {
   // Course APIs
   CREATE_COURSE: 'api.lms.course.create',
-  GET_ALL_COURSES: 'api.lms.course.list',
   SEARCH_COURSES: 'api.lms.course.search',
   GET_COURSE_BY_ID: 'api.lms.course.read',
   GET_COURSE_HIERARCHY: 'api.lms.course.hierarchy',
   GET_COURSE_HIERARCHY_WITH_TRACKING: 'api.lms.course.hierarchy.tracking',
   UPDATE_COURSE: 'api.lms.course.update',
   DELETE_COURSE: 'api.lms.course.delete',
+
 
   // Module APIs
   CREATE_MODULE: 'api.lms.module.create',
@@ -22,7 +22,6 @@ export const API_IDS = {
   GET_ALL_LESSONS: 'api.lms.lesson.list',
   ADD_LESSON_TO_COURSE: 'api.lms.lesson.course.add',
   GET_LESSON_BY_ID: 'api.lms.lesson.read',
-  GET_LESSONS_BY_COURSE: 'api.lms.lesson.list.bycourse',
   GET_LESSONS_BY_MODULE: 'api.lms.lesson.list.bymodule',
   UPDATE_LESSON: 'api.lms.lesson.update',
   DELETE_LESSON: 'api.lms.lesson.delete',

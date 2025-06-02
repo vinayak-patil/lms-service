@@ -17,7 +17,6 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
-  ApiHeader,
 } from '@nestjs/swagger';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';

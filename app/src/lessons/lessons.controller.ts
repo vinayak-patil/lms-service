@@ -116,19 +116,21 @@ export class LessonsController {
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
     @Body() addLessonToCourseDto: AddLessonToCourseDto,
-    @Query() query: CommonQueryDto
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.addToCourse(
       addLessonToCourseDto,
       courseId,
       moduleId,
       query.userId,
-      query.tenantId,
-      query.organisationId
+      tenantOrg.tenantId,
+      tenantOrg.organisationId
     );
   }
 
   @Get(':lessonId')
+  @ApiId(API_IDS.GET_LESSON_BY_ID)
   @ApiOperation({ summary: 'Get lesson by ID' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
@@ -147,6 +149,7 @@ export class LessonsController {
   }
 
   @Get('module/:moduleId')
+  @ApiId(API_IDS.GET_LESSONS_BY_MODULE)
   @ApiOperation({ summary: 'Get lessons by module ID' })
   @ApiResponse({ status: 200, description: 'Lessons retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Module not found' })
@@ -163,7 +166,7 @@ export class LessonsController {
     );
   }
 
-  @Put(':id')
+  @Put(':lessonId')
   @ApiId(API_IDS.UPDATE_LESSON)
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiBody({ type: UpdateLessonDto })
@@ -177,9 +180,10 @@ export class LessonsController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
   async updateLesson(
-    @Param('id') id: string,
+    @Param('lessonId') lessonId: string,
     @Body() updateLessonDto: UpdateLessonDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }, 
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
@@ -187,16 +191,17 @@ export class LessonsController {
       updateLessonDto.image = imagePath;
     }
     const lesson = await this.lessonsService.update(
-      id,
+      lessonId,
       updateLessonDto,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
     return lesson;
   }
 
   @Delete(':lessonId')
+  @ApiId(API_IDS.DELETE_LESSON)
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiResponse({ status: 200, description: 'Lesson deleted successfully' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
@@ -214,6 +219,7 @@ export class LessonsController {
   }
 
   @Delete('course/:courseLessonId')
+  @ApiId(API_IDS.REMOVE_LESSON_FROM_COURSE)
   @ApiOperation({ summary: 'Remove lesson from course/module' })
   @ApiResponse({ status: 200, description: 'Lesson removed from course successfully' })
   @ApiResponse({ status: 404, description: 'Course lesson association not found' })
@@ -231,6 +237,7 @@ export class LessonsController {
   }
 
   @Get(':lessonId/display')
+  @ApiId(API_IDS.GET_LESSON_TO_DISPLAY)
   @ApiOperation({ summary: 'Get lesson to display' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
