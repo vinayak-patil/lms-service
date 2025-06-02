@@ -553,7 +553,6 @@ export class LessonsService {
    */
   async findOne(
     lessonId: string,
-    userId?: string,
     tenantId?: string,
     organisationId?: string    
   ): Promise<Lesson> {

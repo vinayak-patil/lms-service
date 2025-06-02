@@ -96,7 +96,6 @@ export class MediaService {
   async findAll(
     paginationDto: PaginationDto,
     filters: any,
-    userId: string,
     tenantId: string,
     organisationId: string,
   ): Promise<[Media[], number]> {
@@ -171,7 +170,6 @@ export class MediaService {
    */
   async findOne(
     mediaId: string,
-    userId?: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<Media> {
