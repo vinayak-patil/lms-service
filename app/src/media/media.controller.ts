@@ -17,7 +17,7 @@ import {
   ApiResponse, 
   ApiConsumes, 
   ApiParam, 
-  ApiQuery, 
+  ApiQuery
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
@@ -29,12 +29,12 @@ import { MediaFormat } from './entities/media.entity';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
+import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
-  constructor(private readonly mediaService: MediaService) {
-  }
+  constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
   @ApiId(API_IDS.UPLOAD_MEDIA)
@@ -47,6 +47,7 @@ export class MediaController {
     @Body() createMediaDto: CreateMediaDto,
     @UploadedFile() file: Express.Multer.File,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     // Check if file is required based on format
     if (createMediaDto.format === MediaFormat.DOCUMENT && !file) {
@@ -61,8 +62,8 @@ export class MediaController {
       createMediaDto, 
       file,
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
   }
 
@@ -76,14 +77,15 @@ export class MediaController {
   async getMediaList(
     @Query() paginationDto: PaginationDto,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('format') format?: string,
   ) {
     return this.mediaService.findAll(
       paginationDto, 
       { type: format },
       query.userId,
-      query.tenantId,
-      query.organisationId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
     );
   }
 
@@ -93,12 +95,16 @@ export class MediaController {
   @ApiParam({ name: 'mediaId', description: 'Media ID', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Media retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
-  async getMediaById(@Param('mediaId', ParseUUIDPipe) mediaId: string, @Query() query: CommonQueryDto) {
+  async getMediaById(
+    @Param('mediaId', ParseUUIDPipe) mediaId: string, 
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
+  ) {
     return this.mediaService.findOne(
       mediaId,
       query.userId, 
-      query.tenantId, 
-      query.organisationId
+      tenantOrg.tenantId, 
+      tenantOrg.organisationId
     );
   }
 
@@ -113,13 +119,14 @@ export class MediaController {
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.mediaService.associateWithLesson(
       mediaId, 
       lessonId, 
       query.userId, 
-      query.tenantId, 
-      query.organisationId
+      tenantOrg.tenantId, 
+      tenantOrg.organisationId
     );
   }
 
@@ -130,12 +137,16 @@ export class MediaController {
   @ApiResponse({ status: 200, description: 'Media deleted successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
   @ApiResponse({ status: 400, description: 'Media is associated with a lesson or associated file and cannot be deleted' })
-  async deleteMedia(@Param('mediaId', ParseUUIDPipe) mediaId: string, @Query() query: CommonQueryDto) {
+  async deleteMedia(
+    @Param('mediaId', ParseUUIDPipe) mediaId: string, 
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
+  ) {
     return this.mediaService.remove(
       mediaId, 
       query.userId, 
-      query.tenantId, 
-      query.organisationId
+      tenantOrg.tenantId, 
+      tenantOrg.organisationId
     );
   }
 
@@ -150,13 +161,14 @@ export class MediaController {
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.mediaService.removeAssociation(
       mediaId, 
       lessonId, 
       query.userId, 
-      query.tenantId, 
-      query.organisationId
+      tenantOrg.tenantId, 
+      tenantOrg.organisationId
     );
   }
 }
