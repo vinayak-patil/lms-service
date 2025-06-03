@@ -138,7 +138,7 @@ export class EnrollmentsService {
         beforeExpiryMail: createEnrollmentDto.beforeExpiryMail || false,
         afterExpiryMail: createEnrollmentDto.afterExpiryMail || false,
         params: params,
-        enrolledBy: createEnrollmentDto.enrolledBy || userId,
+        enrolledBy: userId,
         enrolledAt: new Date(),
       });
 
@@ -210,7 +210,6 @@ export class EnrollmentsService {
     learnerId?: string,
     courseId?: string,
     status?: string,
-    userId?: string,
     tenantId?: string,
     organisationId?: string,
   ): Promise<{ count: number; enrollments: UserEnrollment[] }> {

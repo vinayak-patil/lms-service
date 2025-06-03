@@ -403,12 +403,15 @@ export class ModulesService {
    */
   async remove(
     moduleId: string,
+    userId: string,
     tenantId?: string,
     organisationId?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const module = await this.findOne(moduleId, tenantId, organisationId);
       module.status = ModuleStatus.ARCHIVED;
+      module.updatedBy = userId;
+      module.updatedAt = new Date();
       const savedModule = await this.moduleRepository.save(module);
 
       if (this.cache_enabled) {

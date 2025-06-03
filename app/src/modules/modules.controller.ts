@@ -83,7 +83,6 @@ export class ModulesController {
   @ApiResponse({ status: 404, description: 'Module not found' })
   async getModuleById(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findOne(
@@ -107,7 +106,6 @@ export class ModulesController {
   })
   async getModulesByCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findByCourse(
@@ -131,7 +129,6 @@ export class ModulesController {
   })
   async getSubmodulesByParent(
     @Param('parentId', ParseUUIDPipe) parentId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
   ) {
     return this.modulesService.findByParent(
@@ -198,6 +195,7 @@ export class ModulesController {
   ) {
     return this.modulesService.remove(
       moduleId,
+      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );

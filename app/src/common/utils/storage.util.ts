@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import { validationConfig } from '../../config/file-validation.config';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import * as fs from 'fs';
 
 /**
  * Custom error class for file validation errors
@@ -25,6 +26,10 @@ export const createStorage = (
   
   // Ensure upload directory exists
   const uploadDir = path.resolve(process.cwd(), config.path.replace(/^\//, ''));
+
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
   return {
     storage: diskStorage({

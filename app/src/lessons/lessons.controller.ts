@@ -85,7 +85,6 @@ export class LessonsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getAllLessons(
     @Query() paginationDto: PaginationDto,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('status') status?: string,
     @Query('format') format?: string,
@@ -133,12 +132,10 @@ export class LessonsController {
   @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
   async getLessonById(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.findOne(
       lessonId,
-      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
@@ -152,7 +149,6 @@ export class LessonsController {
   @ApiParam({ name: 'moduleId', type: String, format: 'uuid' })
   async getLessonsByModule(
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.lessonsService.findByModule(
@@ -241,7 +237,6 @@ export class LessonsController {
   @ApiQuery({ name: 'courseLessonId', required: false, type: String, format: 'uuid' })
   async getLessonToDisplay(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('courseLessonId') courseLessonId?: string,
   ) {

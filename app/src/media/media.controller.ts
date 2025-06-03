@@ -76,14 +76,12 @@ export class MediaController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getMediaList(
     @Query() paginationDto: PaginationDto,
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query('format') format?: string,
   ) {
     return this.mediaService.findAll(
       paginationDto, 
       { type: format },
-      query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
     );
@@ -97,12 +95,10 @@ export class MediaController {
   @ApiResponse({ status: 404, description: 'Media not found' })
   async getMediaById(
     @Param('mediaId', ParseUUIDPipe) mediaId: string, 
-    @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.mediaService.findOne(
       mediaId,
-      query.userId, 
       tenantOrg.tenantId, 
       tenantOrg.organisationId
     );
