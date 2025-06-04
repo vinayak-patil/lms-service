@@ -210,41 +210,45 @@ export class LessonsController {
     );
   }
 
-  @Delete('course/:courseLessonId')
-  @ApiId(API_IDS.REMOVE_LESSON_FROM_COURSE)
-  @ApiOperation({ summary: 'Remove lesson from course/module' })
+  @Delete('course/:lessonId')
+  @ApiOperation({ summary: 'Remove a lesson from a course' })
   @ApiResponse({ status: 200, description: 'Lesson removed from course successfully' })
-  @ApiResponse({ status: 404, description: 'Course lesson association not found' })
-  @ApiParam({ name: 'courseLessonId', type: String, format: 'uuid' })
-  async removeLessonFromCourse(
-    @Param('courseLessonId', ParseUUIDPipe) courseLessonId: string,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
-  ) {
+  @ApiResponse({ status: 404, description: 'Lesson not found' })
+  @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'courseId', type: String, format: 'uuid' })
+  @ApiParam({ name: 'moduleId', type: String, format: 'uuid' })
+  async removeFromCourse(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('moduleId', ParseUUIDPipe) moduleId: string,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string; userId: string },
+  ): Promise<Lesson> {
     return this.lessonsService.removeFromCourse(
-      courseLessonId,
+      lessonId,
+      courseId,
+      moduleId,
+      tenantOrg.userId,
       tenantOrg.tenantId,
-      tenantOrg.organisationId
+      tenantOrg.organisationId,
     );
   }
 
-  @Get(':lessonId/display')
-  @ApiId(API_IDS.GET_LESSON_TO_DISPLAY)
-  @ApiOperation({ summary: 'Get lesson to display' })
+  @Get('display/:lessonId')
+  @ApiOperation({ summary: 'Get a lesson to display' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
-  @ApiQuery({ name: 'courseLessonId', required: false, type: String, format: 'uuid' })
-  async getLessonToDisplay(
+  @ApiQuery({ name: 'courseId', required: false, type: String, format: 'uuid' })
+  async findToDisplay(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
-    @Query('courseLessonId') courseLessonId?: string,
-  ) {
+    @Query('courseId') courseId?: string,
+  ): Promise<any> {
     return this.lessonsService.findToDisplay(
       lessonId,
-      courseLessonId,
+      courseId,
       tenantOrg.tenantId,
-      tenantOrg.organisationId
+      tenantOrg.organisationId,
     );
   }
 }

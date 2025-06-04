@@ -5,7 +5,6 @@ import { LessonTrack } from './entities/lesson-track.entity';
 import { Course } from '../courses/entities/course.entity';
 import { Lesson } from '../lessons/entities/lesson.entity';
 import { Module as CourseModule } from '../modules/entities/module.entity';
-import { CourseLesson } from '../lessons/entities/course-lesson.entity';
 import { TrackingController } from './tracking.controller';
 import { TrackingService } from './tracking.service';
 
@@ -16,8 +15,7 @@ import { TrackingService } from './tracking.service';
       LessonTrack, 
       Course, 
       Lesson, 
-      CourseModule, 
-      CourseLesson
+      CourseModule
     ]),
   ],
   controllers: [TrackingController],

@@ -9,9 +9,8 @@ import { Repository, FindOptionsWhere, Not, FindManyOptions, IsNull } from 'type
 import { CourseTrack, TrackingStatus } from './entities/course-track.entity';
 import { LessonTrack } from './entities/lesson-track.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
-import { Lesson } from '../lessons/entities/lesson.entity';
-import { Module } from '../modules/entities/module.entity';
-import { CourseLesson } from '../lessons/entities/course-lesson.entity';
+import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
+import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { UpdateCourseTrackingDto } from './dto/update-course-tracking.dto';
@@ -19,10 +18,19 @@ import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';
 import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { LessonStatusDto } from './dto/lesson-status.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
+import { CacheService } from '../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TrackingService {
   private readonly logger = new Logger(TrackingService.name);
+  private readonly cache_enabled: boolean;
+  private readonly cache_ttl_default: number;
+  private readonly cache_ttl_user: number;
+  private readonly cache_prefix_tracking: string;
+  private readonly cache_prefix_course: string;
+  private readonly cache_prefix_lesson: string;
+  private readonly cache_prefix_module: string;
 
   constructor(
     @InjectRepository(CourseTrack)
@@ -35,9 +43,17 @@ export class TrackingService {
     private readonly lessonRepository: Repository<Lesson>,
     @InjectRepository(Module)
     private readonly moduleRepository: Repository<Module>,
-    @InjectRepository(CourseLesson)
-    private readonly courseLessonRepository: Repository<CourseLesson>,
-  ) {}
+    private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
+  ) {
+    this.cache_enabled = this.configService.get('CACHE_ENABLED') === 'true';
+    this.cache_ttl_default = parseInt(this.configService.get('CACHE_TTL_DEFAULT') || '3600', 10);
+    this.cache_ttl_user = parseInt(this.configService.get('CACHE_TTL_USER') || '1800', 10);
+    this.cache_prefix_tracking = this.configService.get('CACHE_TRACKING_PREFIX') || 'tracking';
+    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'course';
+    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lesson';
+    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'module';
+  }
 
   /**
    * Start course tracking
@@ -73,18 +89,15 @@ export class TrackingService {
     });
 
     if (!courseTrack) {
-
-      // Build where clause for course validation
-      const courseLessonWhereClause: any = { 
-        courseId,
-        tenantId,
-        organisationId,
-        status: Not(CourseStatus.ARCHIVED as any) 
-      };
-      
-      const courseLessons = await this.courseLessonRepository.count({
-        where: courseLessonWhereClause
-      }); 
+      // Count lessons in course
+      const lessonCount = await this.lessonRepository.count({
+        where: { 
+          courseId,
+          tenantId,
+          organisationId,
+          status: Not(LessonStatus.ARCHIVED)
+        }
+      });
 
       courseTrack = this.courseTrackRepository.create({
         userId,
@@ -93,7 +106,7 @@ export class TrackingService {
         organisationId,
         status: TrackingStatus.STARTED,
         startDatetime: new Date(),
-        noOfLessons: courseLessons,
+        noOfLessons: lessonCount,
         completedLessons: 0,
       });
     } else {
@@ -206,17 +219,18 @@ export class TrackingService {
     const { courseId } = startLessonTrackingDto;
 
     // Check if lesson exists
-    const courseLesson = courseId ? await this.courseLessonRepository.findOne({
+    const lesson = await this.lessonRepository.findOne({
       where: { 
         lessonId,
         courseId,
         tenantId,
-        organisationId
-      } as FindOptionsWhere<CourseLesson>,
-    }) : null;
+        organisationId,
+        status: Not(LessonStatus.ARCHIVED)
+      } as FindOptionsWhere<Lesson>,
+    });
 
-    if (courseId && !courseLesson) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_LESSON_NOT_FOUND);
+    if (!lesson) {
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
     }
 
     // Start or get course tracking if courseId is provided
@@ -233,77 +247,38 @@ export class TrackingService {
       }
     }
 
-    // Determine tracking type and attempt configuration
-    const trackingType = courseLesson?.params?.trackingType || 'standalone';
-    const maxAttempts = courseLesson?.noOfAttempts || 1;
-    const attemptsGrade = courseLesson?.attemptsGrade;
-
-    // Check existing tracks based on tracking type
-    const existingTracks = await this.lessonTrackRepository.find({
+    // Check if lesson tracking already exists
+    let lessonTrack = await this.lessonTrackRepository.findOne({
       where: { 
-        lessonId, 
+        lessonId,
         userId,
-        ...(trackingType === 'courseLesson' ? { courseId } : { courseId: null })
+        courseId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
-      order: { attempt: 'DESC' },
-      take: 1,
     });
 
-    let lessonTrack: LessonTrack;
-    if (existingTracks.length > 0) {
-      const latestTrack = existingTracks[0];
-      
-      // If latest track is not completed, use it
-      if (latestTrack.status !== TrackingStatus.COMPLETED) {
-        lessonTrack = latestTrack;
-        lessonTrack.startDatetime = new Date();
-        if (courseTrack) {
-          lessonTrack.courseTrackId = courseTrack.courseTrackId;
-        }
-      } else {
-        // Check if max attempts reached
-        if (latestTrack.attempt >= maxAttempts) {
-          throw new BadRequestException('Maximum number of attempts reached for this lesson');
-        }
-        
-        // Create new attempt
-        lessonTrack = this.lessonTrackRepository.create({
-          userId,
-          lessonId,
-          courseId: trackingType === 'courseLesson' ? courseId : null,
-          courseTrackId: courseTrack?.courseTrackId || null,
-          attempt: latestTrack.attempt + 1,
-          status: TrackingStatus.STARTED,
-          startDatetime: new Date(),
-          totalContent: 0,
-          currentPosition: 0,
-          timeSpent: 0
-        });
-      }
-    } else {
-      // Create first attempt
+    if (!lessonTrack) {
       lessonTrack = this.lessonTrackRepository.create({
-        userId,
         lessonId,
-        courseId: trackingType === 'courseLesson' ? courseId : null,
-        courseTrackId: courseTrack?.courseTrackId || null,
-        attempt: 1,
+        userId,
+        courseId,
+        courseTrackId: courseTrack?.courseTrackId || undefined,
         status: TrackingStatus.STARTED,
         startDatetime: new Date(),
+        attempt: 1,
         totalContent: 0,
         currentPosition: 0,
-        timeSpent: 0
+        timeSpent: 0,
       });
+    } else {
+      // If track exists but is not completed, update startDatetime
+      if (lessonTrack.status !== TrackingStatus.COMPLETED) {
+        lessonTrack.startDatetime = new Date();
+      }
     }
 
-    const savedTracking = await this.lessonTrackRepository.save(lessonTrack);
-    
-    // Update course tracking if this is a course lesson
-    if (courseId && trackingType === 'courseLesson') {
-      await this.updateCourseAndModuleTracking(savedTracking);
-    }
-
-    return savedTracking;
+    return await this.lessonTrackRepository.save(lessonTrack);
   }
 
   /**
@@ -506,9 +481,12 @@ export class TrackingService {
     lessonId: string, 
     userId: string, 
     courseId: string,
+    paginationDto: PaginationDto,
     tenantId?: string,
     organisationId?: string
   ): Promise<{ items: LessonTrack[]; total: number }> {    
+    const { page = 1, limit = 10 } = paginationDto;
+    
     // Build where clause with required filters
     const where: any = {
       lessonId,
@@ -604,15 +582,14 @@ export class TrackingService {
     await this.courseTrackRepository.save(courseTrack);
 
     // Find and update module tracking if applicable
-    const courseLesson = await this.courseLessonRepository.findOne({
+    const lesson = await this.lessonRepository.findOne({
       where: { 
-        courseId: lessonTrack.courseId, 
         lessonId: lessonTrack.lessonId,
-      } as FindOptionsWhere<CourseLesson>,
+      } as FindOptionsWhere<Lesson>,
     });
 
-    if (courseLesson && courseLesson.moduleId) {
-      await this.updateModuleTracking(courseLesson.moduleId, lessonTrack.userId);
+    if (lesson && lesson.moduleId) {
+      await this.updateModuleTracking(lesson.moduleId, lessonTrack.userId);
     }
   }
 
@@ -780,7 +757,7 @@ export class TrackingService {
       const lessonTrack = this.lessonTrackRepository.create({
         userId,
         lessonId,
-        courseId: null,
+        courseId: undefined,
         attempt: existingTracks.length > 0 ? existingTracks[0].attempt + 1 : 1,
         status: TrackingStatus.STARTED,
         startDatetime: new Date(),
@@ -793,13 +770,13 @@ export class TrackingService {
     }
 
     // Course lesson handling
-    const courseLesson = await this.courseLessonRepository.findOne({
+    const courseLesson = await this.lessonRepository.findOne({
       where: { 
         lessonId,
         courseId,
         tenantId,
         organisationId
-      } as FindOptionsWhere<CourseLesson>,
+      } as FindOptionsWhere<Lesson>,
     });
 
     if (!courseLesson) {
@@ -928,7 +905,7 @@ export class TrackingService {
         const lessonTrack = this.lessonTrackRepository.create({
           userId,
           lessonId,
-          courseId: null,
+          courseId: undefined,
           attempt: latestTrack.attempt,
           status: TrackingStatus.STARTED,
           startDatetime: new Date(),
@@ -943,13 +920,13 @@ export class TrackingService {
     }
 
     // Course lesson handling
-    const courseLesson = await this.courseLessonRepository.findOne({
+    const courseLesson = await this.lessonRepository.findOne({
       where: { 
         lessonId,
         courseId,
         tenantId,
         organisationId
-      } as FindOptionsWhere<CourseLesson>,
+      } as FindOptionsWhere<Lesson>,
     });
 
     if (!courseLesson) {
@@ -1035,37 +1012,26 @@ export class TrackingService {
     tenantId: string,
     organisationId: string
   ): Promise<LessonStatusDto> {
-    // Get lesson details
+    // Get lesson
     const lesson = await this.lessonRepository.findOne({
       where: { 
         lessonId,
         tenantId,
-        organisationId
+        organisationId,
+        status: Not(LessonStatus.ARCHIVED)
       } as FindOptionsWhere<Lesson>,
     });
 
     if (!lesson) {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
     }
-    //get the courseId form courseLesson
-    const courseLesson = await this.courseLessonRepository.findOne({
-      where: { 
-        lessonId,
-        tenantId,
-        organisationId
-      } as FindOptionsWhere<CourseLesson>,
-    });
-    //if courseLesson is not found, then get the courseId from course else use null
-    //also if courseLesson is not found, then use configs form courseLesson else use lesson configs
-    const courseId = courseLesson ? courseLesson.courseId : null;
-    const noOfAttempts = courseLesson ? courseLesson.noOfAttempts : lesson.noOfAttempts;
-    const resume = courseLesson ? courseLesson.resume : lesson.resume;
+
     // Find latest attempt
     const latestTrack = await this.lessonTrackRepository.findOne({
       where: { 
         lessonId, 
         userId,
-        courseId: courseId ? courseId : IsNull()
+        courseId: lesson.courseId || undefined
       } as FindOptionsWhere<LessonTrack>,
       order: { attempt: 'DESC' },
     });
@@ -1073,21 +1039,21 @@ export class TrackingService {
     const status: LessonStatusDto = {
       canResume: false,
       canReattempt: false,
-      lastAttemptStatus: 'not-started',
-      lastAttemptId:  null
+      lastAttemptStatus: latestTrack?.status === TrackingStatus.STARTED ? 'not-started' : latestTrack?.status === TrackingStatus.INCOMPLETE ? 'in-progress' : latestTrack?.status === TrackingStatus.COMPLETED ? 'completed' : 'not-started',
+      lastAttemptId: latestTrack?.lessonTrackId || null
     };
 
     if (latestTrack) {
       status.lastAttemptId = latestTrack.lessonTrackId;
-      status.lastAttemptStatus = latestTrack.status;
+      status.lastAttemptStatus = latestTrack.status === TrackingStatus.STARTED ? 'not-started' : latestTrack.status === TrackingStatus.INCOMPLETE ? 'in-progress' : latestTrack.status === TrackingStatus.COMPLETED ? 'completed' : 'not-started';
 
-      // Check if can resume 
-      if (resume && (latestTrack.status === TrackingStatus.STARTED || latestTrack.status === TrackingStatus.INCOMPLETE))) {
+      // Check if can resume
+      if (latestTrack.status === TrackingStatus.STARTED || latestTrack.status === TrackingStatus.INCOMPLETE) {
         status.canResume = true;
       }
 
-      // Check if can reattempt      
-      if (latestTrack.attempt < noOfAttempts) {
+      // Check if can reattempt
+      if (latestTrack.status === TrackingStatus.COMPLETED) {
         status.canReattempt = true;
       }
     } else {
@@ -1115,7 +1081,7 @@ export class TrackingService {
 
     // Start new attempt
     return this.startLessonAttempt(
-      { courseId: null },
+      { courseId: undefined },
       lessonId,
       userId,
       tenantId,
@@ -1202,17 +1168,22 @@ export class TrackingService {
     }
 
     // Create new attempt with same attempt number
-    const newAttempt = this.lessonTrackRepository.create({
-      ...attempt,
-      lessonTrackId: undefined, // Let DB generate new ID
+    const newAttemptData: Partial<LessonTrack> = {
+      lessonId: attempt.lessonId,
+      userId: attempt.userId,
+      courseId: attempt.courseId,
+      courseTrackId: attempt.courseTrackId,
+      attempt: attempt.attempt,
       status: TrackingStatus.STARTED,
       startDatetime: new Date(),
-      endDatetime: null,
+      endDatetime: undefined,
       score: 0,
       currentPosition: 0,
-      timeSpent: 0
-    });
+      timeSpent: 0,
+      params: attempt.params || {}
+    };
 
+    const newAttempt = this.lessonTrackRepository.create(newAttemptData);
     return this.lessonTrackRepository.save(newAttempt);
   }
 
@@ -1249,9 +1220,116 @@ export class TrackingService {
       attempt.status = TrackingStatus.COMPLETED;
       attempt.endDatetime = new Date();
     } else if (attempt.status === TrackingStatus.STARTED) {
-      attempt.status = TrackingStatus.IN_PROGRESS;
+      attempt.status = TrackingStatus.INCOMPLETE;
     }
 
     return this.lessonTrackRepository.save(attempt);
+  }
+
+  async getCourseProgress(
+    courseId: string,
+    userId: string,
+    tenantId?: string,
+    organisationId?: string
+  ): Promise<any> {
+    const cacheKey = `${this.cache_prefix_tracking}:course:${courseId}:${userId}:${tenantId}:${organisationId}`;
+    
+    if (this.cache_enabled) {
+      const cachedProgress = await this.cacheService.get<any>(cacheKey);
+      if (cachedProgress) {
+        return cachedProgress;
+      }
+    }
+
+    // Get course
+    const course = await this.courseRepository.findOne({
+      where: { 
+        courseId,
+        status: Not(CourseStatus.ARCHIVED as any),
+        ...(tenantId && { tenantId }),
+        ...(organisationId && { organisationId }),
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Get all lessons for this course
+    const lessons = await this.lessonRepository.find({
+      where: { 
+        courseId,
+        status: Not(LessonStatus.ARCHIVED),
+        ...(tenantId && { tenantId }),
+        ...(organisationId && { organisationId }),
+      },
+    });
+
+    // Get lesson tracks
+    const lessonTracks = await this.lessonTrackRepository.find({
+      where: { 
+        courseId,
+        userId,
+        ...(tenantId && { tenantId }),
+        ...(organisationId && { organisationId }),
+      },
+    });
+
+    // Calculate progress
+    const totalLessons = lessons.length;
+    const completedLessons = lessonTracks.filter(track => 
+      track.status === TrackingStatus.COMPLETED
+    ).length;
+
+    const progress = {
+      courseId,
+      userId,
+      totalLessons,
+      completedLessons,
+      progress: totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0,
+      lessons: lessons.map(lesson => {
+        const track = lessonTracks.find(t => t.lessonId === lesson.lessonId);
+        return {
+          lessonId: lesson.lessonId,
+          title: lesson.title,
+          status: track?.status === TrackingStatus.STARTED ? 'not-started' : track?.status === TrackingStatus.INCOMPLETE ? 'in-progress' : track?.status === TrackingStatus.COMPLETED ? 'completed' : 'not-started',
+          score: track?.score || 0,
+          attempts: track?.attempt || 0,
+          timeSpent: track?.timeSpent || 0,
+        };
+      }),
+    };
+
+    if (this.cache_enabled) {
+      await this.cacheService.set(cacheKey, progress, this.cache_ttl_user);
+    }
+
+    return progress;
+  }
+
+  async findAll(
+    paginationDto: PaginationDto,
+    userId: string,
+    tenantId?: string,
+    organisationId?: string
+  ): Promise<{ count: number; tracks: LessonTrack[] }> {
+    const skip = paginationDto.skip;
+    const take = paginationDto.limit ?? 10;
+
+    const [tracks, count] = await this.lessonTrackRepository.findAndCount({
+      where: { 
+        userId,
+        ...(tenantId && { tenantId }),
+        ...(organisationId && { organisationId }),
+      },
+      skip,
+      take,
+      order: {
+        updatedAt: 'DESC',
+      },
+      relations: ['lesson', 'lesson.media'],
+    });
+
+    return { count, tracks };
   }
 }

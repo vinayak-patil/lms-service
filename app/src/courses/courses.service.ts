@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull } from 'typeorm';
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
-import { CourseLesson, CourseLessonStatus } from '../lessons/entities/course-lesson.entity';
+import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { CourseTrack, TrackingStatus } from '../tracking/entities/course-track.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -36,8 +36,8 @@ export class CoursesService {
     private readonly courseRepository: Repository<Course>,
     @InjectRepository(Module)
     private readonly moduleRepository: Repository<Module>,
-    @InjectRepository(CourseLesson)
-    private readonly courseLessonRepository: Repository<CourseLesson>,
+    @InjectRepository(Lesson)
+    private readonly lessonRepository: Repository<Lesson>,
     @InjectRepository(CourseTrack)
     private readonly courseTrackRepository: Repository<CourseTrack>,
     @InjectRepository(LessonTrack)
@@ -45,12 +45,12 @@ export class CoursesService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
-    this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
-    this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
+    this.cache_enabled = this.configService.get('CACHE_ENABLED') === true;
+    this.cache_ttl_default = parseInt(this.configService.get('CACHE_TTL_DEFAULT') || '3600', 10);
     this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
-    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'courses';
-    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'modules';
-    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lessons';
+    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'course';
+    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'module';
+    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lesson';
   }
 
   /**
@@ -335,6 +335,18 @@ export class CoursesService {
     // For each module, fetch sub-modules and lessons
     const enrichedModules = await Promise.all(
       modules.map(async (module) => {
+        // Fetch all lessons for this module
+        const moduleLessons = await this.lessonRepository.find({
+          where: { 
+            moduleId: module.moduleId, 
+            status: Not(LessonStatus.ARCHIVED),
+            ...(tenantId && { tenantId }),
+            ...(organisationId && { organisationId }),
+          },
+          relations: ['media'],
+          order: { idealTime: 'ASC' },
+        });
+
         // Fetch all submodules for this module
         const submodules = await this.moduleRepository.find({
           where: { 
@@ -346,65 +358,30 @@ export class CoursesService {
           order: { ordering: 'ASC' },
         });
 
-        // Fetch all lessons for this module
-        const courseLessons = await this.courseLessonRepository.find({
-          where: { 
-            moduleId: module.moduleId, 
-            status: Not(CourseLessonStatus.ARCHIVED as any),
-            ...(tenantId && { tenantId }),
-            ...(organisationId && { organisationId }),
-          },
-          relations: ['lesson'],
-          order: { idealTime: 'ASC' },
-        });
-
-        const lessons = courseLessons.map(cl => ({
-          courseLessonId: cl.courseLessonId,
-          lessonId: cl.lessonId,
-          title: cl.lesson.title,
-          description: cl.lesson.description,
-          format: cl.lesson.format,
-          status: cl.status,
-          idealTime: cl.idealTime,
-          freeLesson: cl.freeLesson,
-        }));
-
         const enrichedSubmodules = await Promise.all(
           submodules.map(async (submodule) => {
-            // Fetch all lessons for this submodule
-            const submoduleLessons = await this.courseLessonRepository.find({
+            const submoduleLessons = await this.lessonRepository.find({
               where: { 
                 moduleId: submodule.moduleId, 
-                status: Not(CourseLessonStatus.ARCHIVED as any),
+                status: Not(LessonStatus.ARCHIVED),
                 ...(tenantId && { tenantId }),
                 ...(organisationId && { organisationId }),
               },
-              relations: ['lesson'],
+              relations: ['media'],
               order: { idealTime: 'ASC' },
             });
 
-            const lessons = submoduleLessons.map(cl => ({
-              id: cl.courseLessonId,
-              lessonId: cl.lessonId,
-              title: cl.lesson.title,
-              description: cl.lesson.description,
-              format: cl.lesson.format,
-              status: cl.status,
-              idealTime: cl.idealTime,
-              freeLesson: cl.freeLesson,
-            }));
-
             return {
               ...submodule,
-              lessons,
+              lessons: submoduleLessons,
             };
           })
         );
 
         return {
           ...module,
+          lessons: moduleLessons,
           submodules: enrichedSubmodules,
-          lessons,
         };
       })
     );

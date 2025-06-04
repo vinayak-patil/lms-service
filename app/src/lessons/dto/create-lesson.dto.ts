@@ -228,7 +228,7 @@ export class CreateLessonDto {
     format: 'uuid',
     required: false,
   })
-  @IsOptional()
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Course ID') })
   @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Course ID') })
   courseId?: string;
 
@@ -237,7 +237,7 @@ export class CreateLessonDto {
     format: 'uuid',
     required: false,
   })
-  @IsOptional()
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Module ID') })
   @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Module ID') })
   moduleId?: string;
 

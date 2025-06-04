@@ -22,7 +22,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { HelperUtil } from '../common/utils/helper.util';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { CourseLesson, CourseLessonStatus } from 'src/lessons/entities/course-lesson.entity';
+import { Lesson } from '../lessons/entities/lesson.entity';
 
 @Injectable()
 export class EnrollmentsService {
@@ -41,8 +41,8 @@ export class EnrollmentsService {
     private readonly courseTrackRepository: Repository<CourseTrack>,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
-    @InjectRepository(CourseLesson)
-    private readonly courseLessonRepository: Repository<CourseLesson>,
+    @InjectRepository(Lesson)
+    private readonly lessonRepository: Repository<Lesson>,
   ) {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
@@ -153,7 +153,7 @@ export class EnrollmentsService {
         status: Not(CourseStatus.ARCHIVED as any) 
       };
       
-      const courseLessons = await this.courseLessonRepository.count({
+      const courseLessons = await this.lessonRepository.count({
         where: courseLessonWhereClause
       }); 
       // Create course tracking record

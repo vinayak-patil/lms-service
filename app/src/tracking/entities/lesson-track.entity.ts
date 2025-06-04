@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { CourseTrack, TrackingStatus } from './course-track.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { CourseLesson } from '../../lessons/entities/course-lesson.entity';
+import { Lesson } from '../../lessons/entities/lesson.entity';
 
 @Entity('lesson_track')
 @Index(['userId', 'lessonId', 'courseId', 'attempt'], { unique: true })
@@ -25,9 +25,6 @@ export class LessonTrack {
   @Column({ type: 'uuid', nullable: true })
   @Index()
   courseId: string | null;
-
-  @Column({ type: 'uuid', nullable: true })
-  courseLessonId: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   @Index()
@@ -81,8 +78,8 @@ export class LessonTrack {
   @JoinColumn({ name: 'courseTrackId', referencedColumnName: 'courseTrackId' })
   courseTrack: CourseTrack;
 
-  // Relationship with CourseLesson
-  @ManyToOne(() => CourseLesson)
-  @JoinColumn({ name: 'courseLessonId', referencedColumnName: 'courseLessonId' })
-  courseLesson: CourseLesson;
+  // Relationship with Lesson
+  @ManyToOne(() => Lesson)
+  @JoinColumn({ name: 'lessonId', referencedColumnName: 'lessonId' })
+  lesson: Lesson;
 }

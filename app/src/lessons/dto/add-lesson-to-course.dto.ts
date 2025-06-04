@@ -12,8 +12,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AttemptsGradeMethod } from '../entities/lesson.entity';
-import { CourseLessonStatus } from '../entities/course-lesson.entity';
+import { AttemptsGradeMethod, LessonStatus } from '../entities/lesson.entity';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export class AddLessonToCourseDto {
@@ -31,6 +30,7 @@ export class AddLessonToCourseDto {
   @ApiProperty({
     description: 'Lesson ID',
     format: 'uuid',
+    required: true,
   })
   @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Lesson ID') })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Lesson ID') })
@@ -38,7 +38,6 @@ export class AddLessonToCourseDto {
 
   @ApiProperty({
     description: 'Whether the lesson is free',
-    example: false,
     required: false,
     default: false,
   })
@@ -48,8 +47,7 @@ export class AddLessonToCourseDto {
   freeLesson?: boolean = false;
 
   @ApiProperty({
-    description: 'Whether to consider this lesson for course passing',
-    example: true,
+    description: 'Whether the lesson should be considered for passing',
     required: false,
     default: true,
   })
@@ -59,15 +57,15 @@ export class AddLessonToCourseDto {
   considerForPassing?: boolean = true;
 
   @ApiProperty({
-    description: VALIDATION_MESSAGES.LESSON.STATUS,
-    example: CourseLessonStatus.PUBLISHED,
+    description: 'Lesson status',
     required: false,
-    enum: CourseLessonStatus,
-    default: CourseLessonStatus.PUBLISHED,
+    example: LessonStatus.PUBLISHED,
+    enum: LessonStatus,
+    default: LessonStatus.PUBLISHED,
   })
   @IsOptional()
-  @IsEnum(CourseLessonStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
-  status?: CourseLessonStatus = CourseLessonStatus.PUBLISHED;
+  @IsEnum(LessonStatus, { message: VALIDATION_MESSAGES.COMMON.ENUM('Status') })
+  status?: LessonStatus = LessonStatus.PUBLISHED;
 
   @ApiProperty({
     description: VALIDATION_MESSAGES.COURSE.START_DATE,
