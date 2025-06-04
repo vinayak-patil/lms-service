@@ -6,14 +6,6 @@ import { TrackingStatus } from '../entities/course-track.entity';
 
 export class UpdateCourseTrackingDto {
   @ApiProperty({
-    description: 'Course ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Course ID') })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Course ID') })
-  courseId: string;
-
-  @ApiProperty({
     description: 'Current status of the course tracking',
     example: TrackingStatus.COMPLETED,
     required: false

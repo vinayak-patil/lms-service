@@ -4,13 +4,6 @@ import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export class StartLessonTrackingDto {
-  @ApiProperty({
-    description: 'Lesson ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Lesson ID') })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Lesson ID') })
-  lessonId: string;
 
   @ApiProperty({
     description: 'Course ID (optional - if tracking within a course)',

@@ -52,6 +52,9 @@ export const API_IDS = {
   START_LESSON_TRACKING: 'api.lms.tracking.lesson.start',
   UPDATE_LESSON_TRACKING: 'api.lms.tracking.lesson.update',
   COMPLETE_LESSON_TRACKING: 'api.lms.tracking.lesson.complete',
-  GET_LESSON_TRACKING: 'api.lms.tracking.lesson.read',
-  GET_LESSON_TRACKING_HISTORY: 'api.lms.tracking.lesson.history',
+  GET_LESSON_TRACKING: 'GET_LESSON_TRACKING',
+  GET_LESSON_TRACKING_HISTORY: 'GET_LESSON_TRACKING_HISTORY',
+  TRACK_LESSON: 'TRACK_LESSON',
+  START_LESSON_ATTEMPT: 'api.lms.tracking.lesson.attempt.start',
+  MANAGE_LESSON_ATTEMPT: 'api.lms.tracking.lesson.attempt.manage',
 };

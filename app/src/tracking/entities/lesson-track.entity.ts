@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { CourseTrack, TrackingStatus } from './course-track.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { CourseLesson } from '../../lessons/entities/course-lesson.entity';
 
 @Entity('lesson_track')
 @Index(['userId', 'lessonId', 'courseId', 'attempt'], { unique: true })
@@ -26,6 +27,10 @@ export class LessonTrack {
   courseId: string | null;
 
   @Column({ type: 'uuid', nullable: true })
+  courseLessonId: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
   courseTrackId: string | null;
 
   @Column({ type: 'uuid' })
@@ -47,9 +52,10 @@ export class LessonTrack {
   @Column({
     type: 'varchar',
     length: 255,
-    default: 'started',
+    enum: TrackingStatus,
+    default: TrackingStatus.STARTED
   })
-  status: string;
+  status: TrackingStatus;
 
   @Column({ type: 'float', default: 0 })
   totalContent: number;
@@ -60,6 +66,9 @@ export class LessonTrack {
   @Column({ type: 'int', nullable: true })
   timeSpent: number;
 
+  @Column({ type: 'jsonb', nullable: true })
+  params: Record<string, any>;
+
   @Column({ type: 'uuid', nullable: true })
   updatedBy: string;
 
@@ -67,8 +76,13 @@ export class LessonTrack {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Relationship with CourseTrack (not in DB schema but useful for code organization)
+  // Relationship with CourseTrack
   @ManyToOne(() => CourseTrack)
-  @JoinColumn({ name: 'coursetrackid', referencedColumnName: 'courseTrackId' })
+  @JoinColumn({ name: 'courseTrackId', referencedColumnName: 'courseTrackId' })
   courseTrack: CourseTrack;
+
+  // Relationship with CourseLesson
+  @ManyToOne(() => CourseLesson)
+  @JoinColumn({ name: 'courseLessonId', referencedColumnName: 'courseLessonId' })
+  courseLesson: CourseLesson;
 }
