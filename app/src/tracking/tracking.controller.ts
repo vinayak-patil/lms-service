@@ -29,7 +29,6 @@ import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { TenantOrg } from 'src/common/decorators/tenant-org.decorator';
 import { LessonStatusDto } from './dto/lesson-status.dto';
 import { LessonTrack } from './entities/lesson-track.entity';
-import { UpdateProgressDto } from './dto/update-progress.dto';
 
 @ApiTags('Tracking')
 @ApiBearerAuth()
@@ -94,85 +93,6 @@ export class TrackingController {
     );
   }
 
-  @Post('lesson/update/:lessonId')
-  @ApiId(API_IDS.TRACK_LESSON)
-  @ApiOperation({ summary: 'Track lesson progress' })
-  @ApiBody({ type: UpdateLessonTrackingDto })
-  @ApiResponse({ status: 200, description: 'Lesson tracking updated successfully' })
-  async trackLesson(
-    @Body() trackingDto: UpdateLessonTrackingDto,
-    @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},  
-  ) {
-    return this.trackingService.trackLesson(
-      trackingDto,
-      lessonId,
-      query.userId,
-      tenant.tenantId,
-      tenant.organisationId
-    );
-  }
-
-  @Post('lesson/complete/:lessonId')
-  @ApiId(API_IDS.COMPLETE_LESSON_TRACKING)
-  @ApiOperation({ summary: 'Mark a lesson as completed' })
-  @ApiBody({ type: UpdateLessonTrackingDto })
-  @ApiResponse({ status: 200, description: 'Lesson marked as completed successfully' })
-  async completeLessonTracking(
-    @Body() updateLessonTrackingDto: UpdateLessonTrackingDto,
-    @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},  
-  ) {
-    return this.trackingService.completeLessonTracking(
-      updateLessonTrackingDto,
-      lessonId,
-      query.userId,
-      tenant.tenantId,
-      tenant.organisationId
-    );
-  }
-
-  @Get('lesson/:lessonId/:userId')
-  @ApiId(API_IDS.GET_LESSON_TRACKING)
-  @ApiOperation({ summary: 'Get lesson tracking status' })
-  @ApiParam({ name: 'lessonId', description: 'The lesson ID', type: 'string', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Lesson tracking data retrieved successfully' })
-  async getLessonTracking(
-    @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query('courseId') courseId: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},  
-  ) {
-    return this.trackingService.getLessonTracking(
-      lessonId, 
-      userId, 
-      courseId,
-      tenant.tenantId,
-      tenant.organisationId
-    );
-  }
-
-  @Get('lesson/:lessonId/users/:userId/status')
-  @ApiId(API_IDS.GET_LESSON_TRACKING_HISTORY)
-  @ApiOperation({ summary: 'Get lesson tracking history' })
-  @ApiParam({ name: 'lessonId', description: 'The lesson ID', type: 'string', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Lesson tracking history retrieved successfully' })
-  async getLessonTrackingHistory(
-    @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},  
-  ) {
-    return this.trackingService.getLessonTrackingHistory(
-      lessonId,
-      userId,
-      courseId,      
-      tenant.tenantId,
-      tenant.organisationId
-    );
-  }
 
   @Post('lesson/attempt/:lessonId')
   @ApiId(API_IDS.START_LESSON_ATTEMPT)
@@ -237,26 +157,6 @@ export class TrackingController {
     );
   }
 
-  @Post(':lessonId/users/:userId/attempts')
-  @ApiOperation({ summary: 'Start a new lesson attempt' })
-  @ApiResponse({
-    status: 201,
-    description: 'Returns the new attempt details',
-    type: LessonTrack
-  })
-  async startNewAttempt(
-    @Param('lessonId') lessonId: string,
-    @Param('userId') userId: string,
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-organisation-id') organisationId: string
-  ): Promise<LessonTrack> {
-    return this.trackingService.startNewAttempt(
-      lessonId,
-      userId,
-      tenantId,
-      organisationId
-    );
-  }
 
   @Get('attempts/:attemptId')
   @ApiOperation({ summary: 'Get attempt details' })
@@ -271,28 +171,7 @@ export class TrackingController {
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-organisation-id') organisationId: string
   ): Promise<LessonTrack> {
-    return this.trackingService.resumeAttempt(
-      attemptId,
-      userId,
-      tenantId,
-      organisationId
-    );
-  }
-
-  @Post('attempts/:attemptId/reset')
-  @ApiOperation({ summary: 'Reset an attempt' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns the reset attempt details',
-    type: LessonTrack
-  })
-  async resetAttempt(
-    @Param('attemptId') attemptId: string,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-organisation-id') organisationId: string
-  ): Promise<LessonTrack> {
-    return this.trackingService.resetAttempt(
+    return this.trackingService.getAttempt(
       attemptId,
       userId,
       tenantId,
@@ -309,12 +188,12 @@ export class TrackingController {
   })
   async updateProgress(
     @Param('attemptId') attemptId: string,
-    @Body() updateProgressDto: UpdateProgressDto,
+    @Body() UpdateLessonTrackingDto: UpdateLessonTrackingDto,
     @Headers('x-user-id') userId: string
   ): Promise<LessonTrack> {
     return this.trackingService.updateProgress(
       attemptId,
-      updateProgressDto,
+      UpdateLessonTrackingDto,
       userId
     );
   }

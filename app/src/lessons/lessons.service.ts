@@ -121,7 +121,7 @@ export class LessonsService {
       // Create media first based on the format
       let mediaId: string;
       
-      if (createLessonDto.mediaContent.format === MediaFormat.DOCUMENT) {
+      if (createLessonDto.format === LessonFormat.DOCUMENT) {
         // For document format, use the provided mediaId
         if (!createLessonDto.mediaContent.mediaId) {
           throw new BadRequestException('Media ID is required for document format');
@@ -130,7 +130,7 @@ export class LessonsService {
       } else {
         // Create new media for other formats
         const mediaData: Partial<Media> = {
-          format: createLessonDto.mediaContent.format,
+          format: createLessonDto.format,
           subFormat: createLessonDto.mediaContent.subFormat,
           source: createLessonDto.mediaContent.source,
           storage: createLessonDto.mediaContent.storage || 'local',

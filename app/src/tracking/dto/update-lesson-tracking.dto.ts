@@ -23,6 +23,15 @@ export class UpdateLessonTrackingDto {
   courseId?: string;
 
   @ApiProperty({ 
+    description: 'Total content length',
+    example: 100,
+    required: false
+  })
+  @IsOptional()
+  @IsNumber({}, { message: VALIDATION_MESSAGES.COMMON.NUMBER('Total content length') })
+  totalContent?: number;
+
+  @ApiProperty({ 
     description: 'Current position in the lesson',
     example: 50,
     required: false
