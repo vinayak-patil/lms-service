@@ -34,12 +34,10 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
-import { Logger } from '@nestjs/common';
 
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
-  private readonly logger = new Logger(CoursesController.name);
   constructor(
     private readonly coursesService: CoursesService,
   ) {}

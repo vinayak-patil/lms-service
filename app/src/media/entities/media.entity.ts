@@ -18,8 +18,9 @@ export enum MediaFormat {
 }
 
 export enum MediaStatus {
-  ACTIVE = 'ACTIVE',
-  ARCHIVED = 'ARCHIVED'
+  PUBLISHED = 'published',
+  UNPUBLISHED = 'unpublished',
+  ARCHIVED = 'archived'
 }
 
 @Entity('media')
@@ -62,7 +63,7 @@ export class Media {
   @Column({ 
     type: 'varchar',
     enum: MediaStatus,
-    default: MediaStatus.ACTIVE
+    default: MediaStatus.PUBLISHED
   })
   status: MediaStatus;
 

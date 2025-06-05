@@ -13,11 +13,11 @@ import { LessonFormat } from '../entities/lesson.entity';
 
 
 export enum MediaSubFormat {
-  YOUTUBE = 'youtube',
+  YOUTUBE = 'youtube.url',
   PDF = 'pdf',
   QUIZ = 'quiz',
   EVENT = 'event',
-  OTHER = 'other',
+  VIDEO = 'video.url',
 }
 
 export class MediaContentDto {

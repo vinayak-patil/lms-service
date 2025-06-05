@@ -176,7 +176,7 @@ export class EnrollmentsService {
       });
 
       if (!completeEnrollment) {
-        throw new InternalServerErrorException("Error enrolling userSSSSSS");
+        throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
       }
 
       // Invalidate cache
@@ -198,7 +198,7 @@ export class EnrollmentsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException("RESPONSE_MESSAGES.ENROLLMENT_ERROR");
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
     }
   }
 
