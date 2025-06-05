@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Lesson, LessonStatus, AttemptsGradeMethod } from './entities/lesson.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
-import { Media } from '../media/entities/media.entity';
+import { Media, MediaFormat, MediaStatus } from '../media/entities/media.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -20,9 +20,10 @@ import { AddLessonToCourseDto } from './dto/add-lesson-to-course.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { HelperUtil } from '../common/utils/helper.util';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
-import { MediaContentDto, MediaFormat, MediaSubFormat } from './dto/media-content.dto';
+import { MediaContentDto, MediaSubFormat } from './dto/media-content.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
+import { LessonFormat } from './entities/lesson.entity';
 
 @Injectable()
 export class LessonsService {
@@ -129,7 +130,7 @@ export class LessonsService {
       } else {
         // Create new media for other formats
         const mediaData: Partial<Media> = {
-          format: createLessonDto.mediaContent.format as any, // Type assertion needed due to enum mismatch
+          format: createLessonDto.mediaContent.format,
           subFormat: createLessonDto.mediaContent.subFormat,
           source: createLessonDto.mediaContent.source,
           storage: createLessonDto.mediaContent.storage || 'local',
@@ -154,7 +155,7 @@ export class LessonsService {
         startDatetime: createLessonDto.startDatetime ? new Date(createLessonDto.startDatetime) : undefined,
         endDatetime: createLessonDto.endDatetime ? new Date(createLessonDto.endDatetime) : undefined,
         storage: createLessonDto.storage || 'local',
-        noOfAttempts: createLessonDto.noOfAttempts || 1,
+        noOfAttempts: createLessonDto.noOfAttempts || 0,
         attemptsGrade: createLessonDto.attemptsGrade || AttemptsGradeMethod.HIGHEST,
         eligibilityCriteria: createLessonDto.eligibilityCriteria,
         idealTime: createLessonDto.idealTime,
@@ -306,7 +307,7 @@ export class LessonsService {
 
       // Build query with filters
       const whereConditions: any = {
-        status: Not('archived'), // Exclude archived lessons by default
+        status: Not(LessonStatus.ARCHIVED), // Exclude archived lessons by default
       };
 
       // Add optional filters
@@ -456,7 +457,7 @@ export class LessonsService {
         ...(tenantId && { tenantId }),
         ...(organisationId && { organisationId }),
       },
-      relations: ['media'],
+      relations: ['media','associatedFiles.media'],
     });
 
     if (this.cache_enabled) {
@@ -494,13 +495,77 @@ export class LessonsService {
         throw new BadRequestException('Lesson is checked out by another user');
       }
 
-           // Parse JSON params if they are provided as a string
+      // Parse JSON params if they are provided as a string
       if (updateLessonDto.params && typeof updateLessonDto.params === 'string') {
         try {
           updateLessonDto.params = JSON.parse(updateLessonDto.params);
         } catch (error) {
           this.logger.error(`Error parsing params JSON: ${error.message}`);
           throw new BadRequestException('Invalid params JSON format');
+        }
+      }
+
+      // Handle media updates if mediaContent is provided
+      if (updateLessonDto.mediaContent) {
+        // Get the current media
+        const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
+          where: { mediaId: lesson.mediaId }
+        }) : null;
+        
+          // For other formats
+          // Validate format matches lesson format
+          if (lesson.format !== updateLessonDto.mediaContent.format as LessonFormat) {
+            throw new BadRequestException('Cannot change lesson format during update');
+          }
+
+          // Validate mediaId is provided
+          if (!updateLessonDto.mediaContent.mediaId) {
+            throw new BadRequestException('Media ID is required in mediaContent for non-document formats');
+          }
+
+          if (!currentMedia) {
+            throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
+          }
+
+          // Update the media content
+          await this.mediaRepository.update(currentMedia.mediaId, {
+            format: updateLessonDto.mediaContent.format as LessonFormat,
+            subFormat: updateLessonDto.mediaContent.subFormat,
+            source: updateLessonDto.mediaContent.source,
+            storage: updateLessonDto.mediaContent.storage || 'local',
+            updatedBy: userId,
+            updatedAt: new Date()
+          });
+      } else if (updateLessonDto.mediaId) {
+        // Handle direct mediaId update
+        const newMedia = await this.mediaRepository.findOne({
+          where: { mediaId: updateLessonDto.mediaId }
+        });
+
+        if (!newMedia) {
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
+        }
+
+        // Get the current media
+        const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
+          where: { mediaId: lesson.mediaId }
+        }) : null;
+
+        // If the media is the same, do nothing
+        if (currentMedia && currentMedia.mediaId === newMedia.mediaId) {
+          // Remove mediaId from update data since it's the same
+          updateLessonDto.mediaId = undefined;
+        } else {
+          // If different media, archive old and use new
+          if (currentMedia) {
+            await this.mediaRepository.update(currentMedia.mediaId, {
+              status: MediaStatus.ARCHIVED,
+              updatedBy: userId,
+              updatedAt: new Date()
+            });
+          }
+          // Set the new mediaId in the lesson entity
+          lesson.mediaId = newMedia.mediaId;
         }
       }
 
@@ -547,10 +612,10 @@ export class LessonsService {
         }
       }
 
-
       // Map DTO properties to entity properties that exist in the DTO
       const updateData: any = {
-        updatedBy: updateLessonDto.updatedBy || 'system',
+        updatedBy: userId,
+        updatedAt: new Date(),
       };
       
       // Map fields that exist in both DTO and entity
@@ -566,7 +631,6 @@ export class LessonsService {
         updateData.status = updateLessonDto.status;
       }
           
-      
       if (updateLessonDto.alias !== undefined) {
         updateData.alias = updateLessonDto.alias;
       }
@@ -619,6 +683,10 @@ export class LessonsService {
       if (updateLessonDto.params !== undefined) {
         updateData.params = updateLessonDto.params;
       }
+
+      if (updateLessonDto.mediaId !== undefined) {
+        updateData.mediaId = updateLessonDto.mediaId;
+      }
       
       // Update the lesson
       const updatedLesson = this.lessonRepository.merge(lesson, updateData);
@@ -644,7 +712,6 @@ export class LessonsService {
         await Promise.all([
           this.cacheService.set(entityCacheKey, savedLesson, this.cache_ttl_default)
         ]);
-
       }
 
       return savedLesson;

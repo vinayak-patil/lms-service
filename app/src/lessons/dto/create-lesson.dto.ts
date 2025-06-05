@@ -71,15 +71,6 @@ export class CreateLessonDto {
   image?: string;
 
   @ApiProperty({
-    description: 'Tenant ID',
-    format: 'uuid',
-    required: false
-  })
-  @IsOptional()
-  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Tenant ID') })
-  tenantId?: string;
-
-  @ApiProperty({
     description: 'User ID who checked out the lesson',
     format: 'uuid',
     required: false

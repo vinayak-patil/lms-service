@@ -7,13 +7,19 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { Lesson } from '../../lessons/entities/lesson.entity';
+import { Lesson, LessonFormat } from '../../lessons/entities/lesson.entity';
 import { AssociatedFile } from './associated-file.entity';
+
 export enum MediaFormat {
   VIDEO = 'video',
   DOCUMENT = 'document',
   QUIZ = 'test',
   EVENT = 'event',
+}
+
+export enum MediaStatus {
+  ACTIVE = 'ACTIVE',
+  ARCHIVED = 'ARCHIVED'
 }
 
 @Entity('media')
@@ -33,7 +39,7 @@ export class Media {
     type: 'varchar',
     enum: MediaFormat 
   })
-  format: MediaFormat;
+  format: LessonFormat;
 
   @Column({ type: 'varchar', nullable: true })
   subFormat: string;
@@ -52,6 +58,13 @@ export class Media {
 
   @Column({ type: 'jsonb', nullable: true })
   params: Record<string, any>;
+
+  @Column({ 
+    type: 'varchar',
+    enum: MediaStatus,
+    default: MediaStatus.ACTIVE
+  })
+  status: MediaStatus;
 
   @Column({ type: 'timestamptz' })
   @CreateDateColumn()

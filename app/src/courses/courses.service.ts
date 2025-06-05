@@ -444,10 +444,11 @@ export class CoursesService {
           status: 'NOT_STARTED',
           progress: 0,
           completedLessons: 0,
-          totalLessons: this.countTotalLessons(courseHierarchy),
+          totalLessons: await this.countTotalLessons(courseId, tenantId, organisationId),
           lastAccessed: null,
           timeSpent: 0
         },
+        lastAccessedLesson: null
       };
     }
 
@@ -468,6 +469,7 @@ export class CoursesService {
     
     const lessonTracks = await this.lessonTrackRepository.find({
       where: lessonTrackWhereClause,
+      order: { updatedAt: 'DESC' }, // Order by last access time
     });
 
     // Create a map of lesson IDs to their tracking data for quick lookup
@@ -478,6 +480,24 @@ export class CoursesService {
 
     // Calculate total time spent across all lesson tracks
     const totalTimeSpent = lessonTracks.reduce((sum, track) => sum + (track.timeSpent || 0), 0);
+
+    // Get the last accessed lesson details
+    const lastAccessedLesson = lessonTracks.length > 0 ? {
+      lessonId: lessonTracks[0].lessonId,
+      attempt: {
+        attemptId: lessonTracks[0].lessonTrackId,
+        attemptNumber: lessonTracks[0].attempt,
+        status: lessonTracks[0].status,
+        startDatetime: lessonTracks[0].startDatetime,
+        endDatetime: lessonTracks[0].endDatetime,
+        score: lessonTracks[0].score,
+        progress: lessonTracks[0].status === TrackingStatus.COMPLETED ? 100 : 
+                 (lessonTracks[0].status === TrackingStatus.STARTED ? 0 : 
+                 Math.min(Math.round((lessonTracks[0].currentPosition || 0) * 100), 99)),
+        timeSpent: lessonTracks[0].timeSpent || 0,
+        lastAccessed: lessonTracks[0].updatedAt
+      }
+    } : null;
 
     // Process modules to add tracking data
     const modulesWithTracking = courseHierarchy.modules.map(module => {
@@ -493,13 +513,20 @@ export class CoursesService {
                      Math.min(Math.round((lessonTrack.currentPosition || 0) * 100), 99)),
             lastAccessed: lessonTrack.updatedAt,
             timeSpent: lessonTrack.timeSpent || 0,
-            score: lessonTrack.score
+            score: lessonTrack.score,
+            attempt: {
+              attemptId: lessonTrack.lessonTrackId,
+              attemptNumber: lessonTrack.attempt,
+              startDatetime: lessonTrack.startDatetime,
+              endDatetime: lessonTrack.endDatetime
+            }
           } : {
             status: 'NOT_STARTED',
             progress: 0,
             lastAccessed: null,
             timeSpent: 0,
-            score: null
+            score: null,
+            attempt: null
           }
         };
       });
@@ -532,13 +559,20 @@ export class CoursesService {
                         Math.min(Math.round((lessonTrack.currentPosition || 0) * 100), 99)),
               lastAccessed: lessonTrack.updatedAt,
               timeSpent: lessonTrack.timeSpent || 0,
-              score: lessonTrack.score
+              score: lessonTrack.score,
+              attempt: {
+                attemptId: lessonTrack.lessonTrackId,
+                attemptNumber: lessonTrack.attempt,
+                startDatetime: lessonTrack.startDatetime,
+                endDatetime: lessonTrack.endDatetime
+              }
             } : {
               status: 'NOT_STARTED',
               progress: 0,
               lastAccessed: null,
               timeSpent: 0,
-              score: null
+              score: null,
+              attempt: null
             }
           };
         });
@@ -596,12 +630,13 @@ export class CoursesService {
       tracking: {
         status: courseTracking.status,
         // Calculate progress based on completed vs total lessons
-        progress: courseTracking.completedLessons / (courseTracking.noOfLessons || 1) * 100,
+        progress: courseTracking.completedLessons / (courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId)) * 100,
         completedLessons: courseTracking.completedLessons,
-        totalLessons: courseTracking.noOfLessons || this.countTotalLessons(courseHierarchy),
+        totalLessons: courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId),
         lastAccessed: courseTracking.lastAccessedDate,
         timeSpent: totalTimeSpent
       },
+      lastAccessedLesson
     };
     return result;
   }
@@ -765,99 +800,33 @@ export class CoursesService {
   }
 
   /**
-   * Helper method to count total lessons in a course hierarchy
+   * Count total lessons in a course using direct lesson table relationship
+   * @param courseId The course ID to count lessons for
+   * @param tenantId Optional tenant ID for data isolation
+   * @param organisationId Optional organization ID for data isolation
    */
-  private countTotalLessons(courseHierarchy: any): number {
-    if (!courseHierarchy || !courseHierarchy.modules) {
-      return 0;
+  private async countTotalLessons(
+    courseId: string,
+    tenantId?: string,
+    organisationId?: string
+  ): Promise<number> {
+    const whereClause: any = {
+      courseId,
+      status: Not(LessonStatus.ARCHIVED)
+    };
+
+    // Add tenant and organization filters if they exist
+    if (tenantId) {
+      whereClause.tenantId = tenantId;
+    }
+    
+    if (organisationId) {
+      whereClause.organisationId = organisationId;
     }
 
-    let totalCount = 0;
-
-    // Count lessons in each module and its submodules
-    for (const module of courseHierarchy.modules) {
-      // Count lessons directly in the module
-      if (module.lessons && Array.isArray(module.lessons)) {
-        totalCount += module.lessons.length;
-      }
-
-      // Count lessons in submodules
-      if (module.submodules && Array.isArray(module.submodules)) {
-        for (const submodule of module.submodules) {
-          if (submodule.lessons && Array.isArray(submodule.lessons)) {
-            totalCount += submodule.lessons.length;
-          }
-        }
-      }
-    }
-
-    return totalCount;
+    return this.lessonRepository.count({
+      where: whereClause
+    });
   }
 
-  /**
-   * Helper method to extract all module IDs from course hierarchy
-   */
-  private extractModuleIds(modules: any[]): string[] {
-    if (!modules || !Array.isArray(modules)) {
-      return [];
-    }
-
-    const moduleIds: string[] = [];
-
-    // Extract module IDs and their submodule IDs
-    for (const module of modules) {
-      if (module.id) {
-        moduleIds.push(module.id);
-      }
-
-      // Process submodules
-      if (module.submodules && Array.isArray(module.submodules)) {
-        for (const submodule of module.submodules) {
-          if (submodule.id) {
-            moduleIds.push(submodule.id);
-          }
-        }
-      }
-    }
-
-    return moduleIds;
-  }
-
-  /**
-   * Helper method to extract all lesson IDs from course hierarchy
-   */
-  private extractLessonIds(modules: any[]): string[] {
-    if (!modules || !Array.isArray(modules)) {
-      return [];
-    }
-
-    const lessonIds: string[] = [];
-
-    // Extract lesson IDs from modules and their submodules
-    for (const module of modules) {
-      // Process lessons in module
-      if (module.lessons && Array.isArray(module.lessons)) {
-        for (const lesson of module.lessons) {
-          if (lesson.lessonId) {
-            lessonIds.push(lesson.lessonId);
-          }
-        }
-      }
-
-      // Process lessons in submodules
-      if (module.submodules && Array.isArray(module.submodules)) {
-        for (const submodule of module.submodules) {
-          if (submodule.lessons && Array.isArray(submodule.lessons)) {
-            for (const lesson of submodule.lessons) {
-              if (lesson.lessonId) {
-                lessonIds.push(lesson.lessonId);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return lessonIds;
-  }
 }

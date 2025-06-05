@@ -8,13 +8,9 @@ import {
   IsUUID,
 } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
+import { MediaFormat } from 'src/media/entities/media.entity';
+import { LessonFormat } from '../entities/lesson.entity';
 
-export enum MediaFormat {
-  VIDEO = 'video',
-  DOCUMENT = 'document',
-  QUIZ = 'test',
-  EVENT = 'event',
-}
 
 export enum MediaSubFormat {
   YOUTUBE = 'youtube',
@@ -33,7 +29,7 @@ export class MediaContentDto {
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Format') })
   @IsEnum(MediaFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Format') })
-  format: MediaFormat;
+  format: LessonFormat;
 
   @ApiProperty({
     description: 'Media sub-format',
