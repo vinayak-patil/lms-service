@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, IsNull, LessThan, MoreThan, FindOptionsWhere } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 import { UserEnrollment, EnrollmentStatus } from './entities/user-enrollment.entity';
 import { Course } from '../courses/entities/course.entity';
 import { CourseStatus } from '../courses/entities/course.entity';
@@ -19,7 +18,6 @@ import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
-import { HelperUtil } from '../common/utils/helper.util';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { Lesson } from '../lessons/entities/lesson.entity';
@@ -69,8 +67,8 @@ export class EnrollmentsService {
       // Build where clause for course validation with data isolation
       const courseWhereClause: FindOptionsWhere<Course> = { 
         courseId, 
-        status: Not(CourseStatus.ARCHIVED),
         tenantId,
+        status: Not(CourseStatus.ARCHIVED),
         organisationId,
       };
       
@@ -150,7 +148,7 @@ export class EnrollmentsService {
         courseId, 
         tenantId,
         organisationId,
-        status: Not(CourseStatus.ARCHIVED as any) 
+        status: CourseStatus.PUBLISHED
       };
       
       const courseLessons = await this.lessonRepository.count({
@@ -159,6 +157,8 @@ export class EnrollmentsService {
       // Create course tracking record
       const courseTrack = this.courseTrackRepository.create({
         courseId,
+        tenantId,
+        organisationId,
         userId: createEnrollmentDto.learnerId,
         startDatetime: new Date(),
         noOfLessons: courseLessons,
@@ -176,7 +176,7 @@ export class EnrollmentsService {
       });
 
       if (!completeEnrollment) {
-        throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
+        throw new InternalServerErrorException("Error enrolling userSSSSSS");
       }
 
       // Invalidate cache
@@ -198,7 +198,7 @@ export class EnrollmentsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
+      throw new InternalServerErrorException("RESPONSE_MESSAGES.ENROLLMENT_ERROR");
     }
   }
 
@@ -249,7 +249,7 @@ export class EnrollmentsService {
         order: {
           enrolledOnTime: 'DESC',
         },
-        relations: ['course'],
+        // relations: ['course'],
       });
 
       const result = { count, enrollments };

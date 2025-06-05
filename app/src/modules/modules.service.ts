@@ -6,16 +6,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Not, Equal, ILike } from 'typeorm';
+import { Repository, FindOptionsWhere, Not } from 'typeorm';
 import { Module, ModuleStatus } from './entities/module.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
-import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
+import { Lesson } from '../lessons/entities/lesson.entity';
 import { CourseTrack } from '../tracking/entities/course-track.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 

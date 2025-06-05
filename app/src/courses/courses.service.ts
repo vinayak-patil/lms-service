@@ -1,10 +1,7 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   Logger,
-  BadRequestException,
-  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull } from 'typeorm';
@@ -416,6 +413,7 @@ export class CoursesService {
     // Get the basic course hierarchy first with proper filtering
     const courseHierarchy = await this.findCourseHierarchy(courseId, tenantId, organisationId);
     
+    
     // Find course tracking data for this user with tenant/org filtering
     const trackingWhereClause: any = { 
       courseId, 
@@ -432,9 +430,10 @@ export class CoursesService {
     }
     
     let courseTracking = await this.courseTrackRepository.findOne({
-      where: trackingWhereClause,
-      relations: ['lessonTracks'],
+      where: trackingWhereClause
     });
+
+    
 
     // If there's no course tracking yet, return with default "not started" status
     if (!courseTracking) {
@@ -444,9 +443,12 @@ export class CoursesService {
           status: 'NOT_STARTED',
           progress: 0,
           completedLessons: 0,
-          totalLessons: await this.countTotalLessons(courseId, tenantId, organisationId),
+          totalLessons: courseHierarchy.modules.reduce((total, module) => total + module.lessons.length, 0),
           lastAccessed: null,
-          timeSpent: 0
+          timeSpent: 0,
+          startDatetime: null,
+          endDatetime: null,
+          noOfLessons: courseHierarchy.modules.reduce((total, module) => total + module.lessons.length, 0)
         },
         lastAccessedLesson: null
       };
@@ -456,33 +458,36 @@ export class CoursesService {
     const lessonTrackWhereClause: any = {
       userId,
       courseId,
+      tenantId,
+      organisationId
     };
-    
-    // Apply tenant and organization filters if they exist
-    if (tenantId) {
-      lessonTrackWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      lessonTrackWhereClause.organisationId = organisationId;
-    }
-    
+        
     const lessonTracks = await this.lessonTrackRepository.find({
       where: lessonTrackWhereClause,
-      order: { updatedAt: 'DESC' }, // Order by last access time
+      order: { updatedAt: 'DESC', attempt: 'DESC' }, // Order by last access time
     });
 
-    // Create a map of lesson IDs to their tracking data for quick lookup
+    console.log(lessonTracks);
+
+    // Create a map of lesson IDs to their last attempt tracking data
     const lessonTrackMap = new Map();
     lessonTracks.forEach(track => {
-      lessonTrackMap.set(track.lessonId, track);
+      // Only store the last attempt for each lesson
+      if (!lessonTrackMap.has(track.lessonId)) {
+        lessonTrackMap.set(track.lessonId, track);
+      }
     });
 
     // Calculate total time spent across all lesson tracks
     const totalTimeSpent = lessonTracks.reduce((sum, track) => sum + (track.timeSpent || 0), 0);
 
-    // Get the last accessed lesson details
-    const lastAccessedLesson = lessonTracks.length > 0 ? {
+    let lastAccessedLesson: any = null;
+    //if coursetracking is completed, then lastaccessedlesson should be null
+    if (courseTracking.status === TrackingStatus.COMPLETED) {
+      lastAccessedLesson = null;
+    }else{
+      // Get the last accessed lesson details
+      lastAccessedLesson = lessonTracks.length > 0 ? {
       lessonId: lessonTracks[0].lessonId,
       attempt: {
         attemptId: lessonTracks[0].lessonTrackId,
@@ -495,9 +500,12 @@ export class CoursesService {
                  (lessonTracks[0].status === TrackingStatus.STARTED ? 0 : 
                  Math.min(Math.round((lessonTracks[0].currentPosition || 0) * 100), 99)),
         timeSpent: lessonTracks[0].timeSpent || 0,
-        lastAccessed: lessonTracks[0].updatedAt
-      }
-    } : null;
+        lastAccessed: lessonTracks[0].updatedAt,
+        totalContent: lessonTracks[0].totalContent || 0,
+          currentPosition: lessonTracks[0].currentPosition || 0
+        }
+      } : null;
+    }
 
     // Process modules to add tracking data
     const modulesWithTracking = courseHierarchy.modules.map(module => {
@@ -518,7 +526,9 @@ export class CoursesService {
               attemptId: lessonTrack.lessonTrackId,
               attemptNumber: lessonTrack.attempt,
               startDatetime: lessonTrack.startDatetime,
-              endDatetime: lessonTrack.endDatetime
+              endDatetime: lessonTrack.endDatetime,
+              totalContent: lessonTrack.totalContent || 0,
+              currentPosition: lessonTrack.currentPosition || 0
             }
           } : {
             status: 'NOT_STARTED',
@@ -564,7 +574,9 @@ export class CoursesService {
                 attemptId: lessonTrack.lessonTrackId,
                 attemptNumber: lessonTrack.attempt,
                 startDatetime: lessonTrack.startDatetime,
-                endDatetime: lessonTrack.endDatetime
+                endDatetime: lessonTrack.endDatetime,
+                totalContent: lessonTrack.totalContent || 0,
+                currentPosition: lessonTrack.currentPosition || 0
               }
             } : {
               status: 'NOT_STARTED',
@@ -629,12 +641,13 @@ export class CoursesService {
       modules: modulesWithTracking,
       tracking: {
         status: courseTracking.status,
-        // Calculate progress based on completed vs total lessons
         progress: courseTracking.completedLessons / (courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId)) * 100,
         completedLessons: courseTracking.completedLessons,
         totalLessons: courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId),
         lastAccessed: courseTracking.lastAccessedDate,
-        timeSpent: totalTimeSpent
+        timeSpent: totalTimeSpent,
+        startDatetime: courseTracking.startDatetime,
+        endDatetime: courseTracking.endDatetime,
       },
       lastAccessedLesson
     };

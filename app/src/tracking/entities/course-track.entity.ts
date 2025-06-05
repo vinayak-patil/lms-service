@@ -70,7 +70,4 @@ export class CourseTrack {
   @ManyToOne(() => Course)
   @JoinColumn({ name: 'courseId' })
   course: Course;
-
-  @OneToMany(() => LessonTrack, lessonTrack => lessonTrack.courseTrack)
-  lessonTracks: LessonTrack[];
 }

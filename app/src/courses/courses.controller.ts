@@ -26,7 +26,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { API_IDS } from '../common/constants/api-ids.constant';
-import { Course,CourseStatus } from './entities/course.entity';
+import { Course } from './entities/course.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
@@ -34,10 +34,12 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { Logger } from '@nestjs/common';
 
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
+  private readonly logger = new Logger(CoursesController.name);
   constructor(
     private readonly coursesService: CoursesService,
   ) {}
@@ -218,7 +220,7 @@ export class CoursesController {
       userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
-    );
+      );
     return courseHierarchyWithTracking;
   }
 

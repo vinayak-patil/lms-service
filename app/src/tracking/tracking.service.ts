@@ -11,7 +11,6 @@ import { LessonTrack } from './entities/lesson-track.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { UpdateCourseTrackingDto } from './dto/update-course-tracking.dto';
 import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';
@@ -154,7 +153,7 @@ export class TrackingService {
     });
 
     if (!courseTrack) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.TRACKING_NOT_FOUND);
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_TRACKING_NOT_FOUND);
     }
 
     if (status === TrackingStatus.COMPLETED) {
@@ -202,7 +201,7 @@ export class TrackingService {
     });
 
     if (!courseTrack) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.TRACKING_NOT_FOUND);
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_TRACKING_NOT_FOUND);
     }
 
     return courseTrack;
@@ -237,20 +236,34 @@ export class TrackingService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_LESSON_NOT_FOUND);
     }
 
+    //check if course is completed ,then throw error
+    const courseTrack = await this.courseTrackRepository.findOne({
+      where: {
+        courseId,
+        userId,
+        tenantId,
+        organisationId
+      } as FindOptionsWhere<CourseTrack>,
+    }); 
+    if (courseTrack && courseTrack.status === TrackingStatus.COMPLETED) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_COMPLETED);
+    }
     // Find existing tracks for course lesson
     const existingTracks = await this.lessonTrackRepository.find({
       where: { 
         lessonId, 
         userId,
-        courseId
+        courseId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
       order: { attempt: 'DESC' },
-      take: 1,
     });
 
     // If there's an incomplete attempt, return it
-    if (existingTracks.length > 0 && existingTracks[0].status !== TrackingStatus.COMPLETED) {
-      return existingTracks[0];
+    const incompleteAttempt = existingTracks.find(track => track.status !== TrackingStatus.COMPLETED);
+    if (incompleteAttempt) {
+      return incompleteAttempt;
     }
 
     // Check max attempts
@@ -264,6 +277,8 @@ export class TrackingService {
       userId,
       lessonId,
       courseId,
+      tenantId,
+      organisationId,
       attempt: existingTracks.length > 0 ? existingTracks[0].attempt + 1 : 1,
       status: TrackingStatus.STARTED,
       startDatetime: new Date(),
@@ -272,7 +287,8 @@ export class TrackingService {
       currentPosition: 0,
       timeSpent: 0
     });
-
+    //update course tracking and module tracking as here new attempt is started
+    await this.updateCourseAndModuleTracking(lessonTrack, tenantId, organisationId);
     return this.lessonTrackRepository.save(lessonTrack);
   }
 
@@ -311,7 +327,9 @@ export class TrackingService {
       where: { 
         lessonId, 
         userId,
-        courseId
+        courseId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
       order: { attempt: 'DESC' },
       take: 1,
@@ -351,6 +369,8 @@ export class TrackingService {
         userId,
         lessonId,
         courseId,
+        tenantId,
+        organisationId,
         attempt: latestTrack.attempt,
         status: TrackingStatus.STARTED,
         startDatetime: new Date(),
@@ -399,6 +419,8 @@ export class TrackingService {
         lessonId, 
         userId,
         courseId: lesson.courseId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
       order: { attempt: 'DESC' },
     });
@@ -443,7 +465,9 @@ export class TrackingService {
     const attempt = await this.lessonTrackRepository.findOne({
       where: { 
         lessonTrackId: attemptId,
-        userId
+        userId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
     });
 
@@ -460,12 +484,16 @@ export class TrackingService {
   async updateProgress(
     attemptId: string,
     updateProgressDto: UpdateLessonTrackingDto,
-    userId: string
+    userId: string,
+    tenantId: string,
+    organisationId: string
   ): Promise<LessonTrack> {
     const attempt = await this.lessonTrackRepository.findOne({
       where: { 
         lessonTrackId: attemptId,
-        userId
+        userId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<LessonTrack>,
     });
 
@@ -486,12 +514,14 @@ export class TrackingService {
     } else if (attempt.status === TrackingStatus.STARTED) {
       attempt.status = TrackingStatus.INCOMPLETE;
     }
+    attempt.updatedAt = new Date();
+    attempt.updatedBy = userId;
 
     const savedAttempt = await this.lessonTrackRepository.save(attempt);
 
     // Update course and module tracking if lesson is completed
     if (savedAttempt.status === TrackingStatus.COMPLETED && savedAttempt.courseId) {
-      await this.updateCourseAndModuleTracking(savedAttempt);
+      await this.updateCourseAndModuleTracking(savedAttempt, tenantId, organisationId);
     }
 
     return savedAttempt;
@@ -500,7 +530,7 @@ export class TrackingService {
   /**
    * Helper method to update course and module tracking
    */
-  private async updateCourseAndModuleTracking(lessonTrack: LessonTrack): Promise<void> {
+  private async updateCourseAndModuleTracking(lessonTrack: LessonTrack, tenantId: string, organisationId: string): Promise<void> {
     if (!lessonTrack.courseId) {
       return;
     }
@@ -510,11 +540,13 @@ export class TrackingService {
       where: { 
         courseId: lessonTrack.courseId, 
         userId: lessonTrack.userId,
+        tenantId,
+        organisationId
       } as FindOptionsWhere<CourseTrack>,
     });
 
     if (!courseTrack) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.TRACKING_NOT_FOUND);   
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_TRACKING_NOT_FOUND);   
     }
 
     // Update course track
@@ -528,6 +560,8 @@ export class TrackingService {
           courseId: lessonTrack.courseId, 
           userId: lessonTrack.userId, 
           status: TrackingStatus.COMPLETED,
+          tenantId,
+          organisationId
         } as FindOptionsWhere<LessonTrack>,
       });
 

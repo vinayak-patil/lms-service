@@ -3,27 +3,22 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
-  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, FindOneOptions } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import { Lesson, LessonStatus, AttemptsGradeMethod } from './entities/lesson.entity';
-import { Course, CourseStatus } from '../courses/entities/course.entity';
+import { Lesson, LessonStatus, AttemptsGradeMethod, LessonFormat } from './entities/lesson.entity';
+import { Course } from '../courses/entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
-import { Media, MediaFormat, MediaStatus } from '../media/entities/media.entity';
+import { Media, MediaStatus } from '../media/entities/media.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
-import { AddLessonToCourseDto } from './dto/add-lesson-to-course.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { HelperUtil } from '../common/utils/helper.util';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
-import { MediaContentDto, MediaSubFormat } from './dto/media-content.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { LessonFormat } from './entities/lesson.entity';
 
 @Injectable()
 export class LessonsService {
@@ -130,6 +125,8 @@ export class LessonsService {
       } else {
         // Create new media for other formats
         const mediaData: Partial<Media> = {
+          tenantId: tenantId,
+          organisationId: organisationId,
           format: createLessonDto.format,
           subFormat: createLessonDto.mediaContent.subFormat,
           source: createLessonDto.mediaContent.source,
@@ -180,98 +177,6 @@ export class LessonsService {
       return Array.isArray(savedLesson) ? savedLesson[0] : savedLesson;
     } catch (error) {
       this.logger.error(`Error creating lesson: ${error.message}`, error.stack);
-      throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  /**
-   * Add a lesson to a course and/or module
-   */
-  async addToCourse(
-    addLessonToCourseDto: AddLessonToCourseDto,
-    courseId: string,
-    moduleId: string,
-    userId: string,
-    tenantId?: string,
-    organisationId?: string
-  ): Promise<Lesson> {
-    try {
-      // Validate course exists
-      const course = await this.courseRepository.findOne({
-        where: { 
-          courseId,
-          ...(tenantId && { tenantId }),
-          ...(organisationId && { organisationId }),
-          status: Not(CourseStatus.ARCHIVED as any),
-        },
-      });
-      
-      if (!course) {
-        throw new NotFoundException('Course not found');
-      }
-
-      // Validate module exists and belongs to course
-      if (moduleId) {
-        const module = await this.moduleRepository.findOne({
-          where: { 
-            moduleId,
-            courseId,
-            ...(tenantId && { tenantId }),
-            ...(organisationId && { organisationId }),
-            status: Not(ModuleStatus.ARCHIVED as any),
-          },
-        });
-        
-        if (!module) {
-          throw new NotFoundException('Module not found or does not belong to the specified course');
-        }
-      }
-
-      // Get the lesson
-      const lesson = await this.lessonRepository.findOne({
-        where: { 
-          lessonId: addLessonToCourseDto.lessonId,
-          ...(tenantId && { tenantId }),
-          ...(organisationId && { organisationId }),
-        },
-      });
-
-      if (!lesson) {
-        throw new NotFoundException('Lesson not found');
-      }
-
-      // Check if lesson is already associated with the course
-      if (lesson.courseId === courseId && lesson.moduleId === moduleId) {
-        throw new ConflictException(RESPONSE_MESSAGES.ERROR.LESSON_ALREADY_EXISTS);
-      }
-
-      // Update lesson with course-specific fields
-      const updatedLesson = await this.lessonRepository.save({
-        ...lesson,
-        courseId,
-        moduleId,
-        freeLesson: addLessonToCourseDto.freeLesson,
-        considerForPassing: addLessonToCourseDto.considerForPassing,
-        updatedBy: userId,
-      });
-
-      // Invalidate cache
-      if (this.cache_enabled) {
-        const courseLessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-        const moduleLessonCacheKey = moduleId ? 
-          `${this.cache_prefix_lesson}:module:${moduleId}:${tenantId}:${organisationId}` : null;
-        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-
-        await Promise.all([
-          this.cacheService.del(courseLessonCacheKey),
-          moduleLessonCacheKey ? this.cacheService.del(moduleLessonCacheKey) : Promise.resolve(),
-          this.cacheService.del(courseHierarchyCacheKey),
-        ]);
-      }
-
-      return updatedLesson;
-    } catch (error) {
-      this.logger.error(`Error adding lesson to course: ${error.message}`, error.stack);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -484,7 +389,9 @@ export class LessonsService {
     image?: Express.Multer.File,
   ): Promise<Lesson> {
     try {
-      const lesson = await this.findOne(lessonId, tenantId, organisationId);
+      const lesson = await this.lessonRepository.findOne({
+        where: { lessonId, tenantId, organisationId }
+      });
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
@@ -529,6 +436,8 @@ export class LessonsService {
 
           // Update the media content
           await this.mediaRepository.update(currentMedia.mediaId, {
+            tenantId: tenantId,
+            organisationId: organisationId,
             format: updateLessonDto.mediaContent.format as LessonFormat,
             subFormat: updateLessonDto.mediaContent.subFormat,
             source: updateLessonDto.mediaContent.source,
@@ -741,7 +650,9 @@ export class LessonsService {
     organisationId?: string,
   ): Promise<Lesson> {
     try {
-      const lesson = await this.findOne(lessonId, tenantId, organisationId);
+      const lesson = await this.lessonRepository.findOne({
+        where: { lessonId, tenantId, organisationId }
+      });
 
       if (!lesson) {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
@@ -782,112 +693,4 @@ export class LessonsService {
     }
   }
 
-  /**
-   * Find lesson to display (with course-specific parameters if available)
-   * @param lessonId The lesson ID to find
-   * @param courseId Optional course ID
-   * @param tenantId The tenant ID for data isolation
-   * @param organisationId The organization ID for data isolation
-   */
-  async findToDisplay(
-    lessonId: string, 
-    courseId?: string,
-    tenantId?: string,
-    organisationId?: string
-  ): Promise<any> {
-    const cacheKey = `${this.cache_prefix_lesson}:display:${lessonId}:${courseId}:${tenantId}:${organisationId}`;
-    
-    if (this.cache_enabled) {
-      const cachedResult = await this.cacheService.get<any>(cacheKey);
-      if (cachedResult) {
-        return cachedResult;
-      }
-    }
-
-    // Build where clause for lesson with required filters
-    const lessonWhereClause: any = { 
-      lessonId, 
-      status: Not(LessonStatus.ARCHIVED) 
-    };
-    
-    // Add tenant and org filters if provided
-    if (tenantId) {
-      lessonWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      lessonWhereClause.organisationId = organisationId;
-    }
-    
-    // Find the lesson with proper filtering
-    const lesson = await this.lessonRepository.findOne({
-      where: lessonWhereClause,
-      relations: ['media', 'associatedFiles', 'associatedFiles.media'],
-    });
-
-    if (!lesson) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
-    }
-
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, lesson, this.cache_ttl_user);
-    }
-
-    return lesson;
-  }
-
-  async removeFromCourse(
-    lessonId: string,
-    courseId: string,
-    moduleId: string,
-    userId: string,
-    tenantId?: string,
-    organisationId?: string
-  ): Promise<Lesson> {
-    try {
-      // Get the lesson
-      const lesson = await this.lessonRepository.findOne({
-        where: { 
-          lessonId,
-          courseId,
-          moduleId,
-          ...(tenantId && { tenantId }),
-          ...(organisationId && { organisationId }),
-        },
-      });
-
-      if (!lesson) {
-        throw new NotFoundException('Lesson not found in the specified course and module');
-      }
-
-      // Remove course association
-      const updatedLesson = await this.lessonRepository.save({
-        ...lesson,
-        courseId: undefined,
-        moduleId: undefined,
-        freeLesson: false,
-        considerForPassing: true,
-        updatedBy: userId,
-      });
-
-      // Invalidate cache
-      if (this.cache_enabled) {
-        const courseLessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-        const moduleLessonCacheKey = moduleId ? 
-          `${this.cache_prefix_lesson}:module:${moduleId}:${tenantId}:${organisationId}` : null;
-        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-
-        await Promise.all([
-          this.cacheService.del(courseLessonCacheKey),
-          moduleLessonCacheKey ? this.cacheService.del(moduleLessonCacheKey) : Promise.resolve(),
-          this.cacheService.del(courseHierarchyCacheKey),
-        ]);
-      }
-
-      return updatedLesson;
-    } catch (error) {
-      this.logger.error(`Error removing lesson from course: ${error.message}`, error.stack);
-      throw new InternalServerErrorException(error.message);
-    }
-  }
 }
