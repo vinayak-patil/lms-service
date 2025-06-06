@@ -53,7 +53,7 @@ export class FileValidationService {
     }
 
     // Validate image dimensions if required
-    if (rule.validateDimensions && file.mimetype.startsWith('image/')) {
+    if (rule.doValidateDimensions && rule.validateDimensions && file.mimetype.startsWith('image/')) {
       try {
         const metadata = await sharp(file.buffer).metadata();
         

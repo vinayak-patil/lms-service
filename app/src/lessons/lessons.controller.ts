@@ -10,6 +10,8 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   Put,
+  Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -31,7 +33,8 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { UploadService } from '../common/services/upload.service';
-import { v4 as uuidv4 } from 'uuid';
+import { TransactionService } from '../common/services/transaction.service';
+
 
 @ApiTags('Lessons')
 @Controller('lessons')
@@ -39,6 +42,7 @@ export class LessonsController {
   constructor(
     private readonly lessonsService: LessonsService,
     private readonly uploadService: UploadService,
+    private readonly transactionService: TransactionService,
   ) {}
 
   @Post()
@@ -59,41 +63,60 @@ export class LessonsController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let lesson: Lesson;
+    // Validate file if provided
     if (file) {
-      // First create the lesson to get the generated ID
-      lesson = await this.lessonsService.create(
-        createLessonDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-      
-      // Then upload the file using the generated lessonId
-      const imageUrl = await this.uploadService.uploadFile(file, {
-        type: 'lesson',
-        courseId: lesson.courseId,
-        moduleId: lesson.moduleId,
-        lessonId: lesson.lessonId,
-      });
-      
-      // Update the lesson with the image URL
-      lesson = await this.lessonsService.update(
-        lesson.lessonId,
-        { ...createLessonDto, image: imageUrl },
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-    } else {
-      lesson = await this.lessonsService.create(
-        createLessonDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
+      await this.uploadService.validateFile(file, { type: 'lesson' });
     }
-    return lesson;
+
+    let uploadedFileUrl: string | undefined;
+
+    try {
+      return await this.transactionService.executeInTransaction(async (entityManager) => {
+        // Create lesson first to get the lessonId
+        const lesson = await this.lessonsService.create(
+          createLessonDto,
+          query.userId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId,
+          entityManager,
+        );
+
+        // Upload file if provided
+        if (file) {
+          uploadedFileUrl = await this.uploadService.uploadFile(file, {
+            type: 'lesson',
+            courseId: lesson.courseId,
+            moduleId: lesson.moduleId,
+            lessonId: lesson.lessonId,
+          });
+
+          // Update lesson with the file URL
+          const updatedLesson = await this.lessonsService.update(
+            lesson.lessonId,
+            { image: uploadedFileUrl },
+            query.userId,
+            tenantOrg.tenantId,
+            tenantOrg.organisationId,
+            entityManager,
+          );
+
+          return updatedLesson;
+        }
+
+        return lesson;
+      });
+    } catch (error) {
+      // If transaction fails and we uploaded a file, clean it up
+      if (uploadedFileUrl) {
+        try {
+          await this.uploadService.deleteFile(uploadedFileUrl);
+        } catch (cleanupError) {
+          // Log cleanup error but throw the original error
+          console.error('Failed to clean up uploaded file:', cleanupError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Get()
@@ -153,7 +176,7 @@ export class LessonsController {
     );
   }
 
-  @Put(':lessonId')
+  @Patch(':lessonId')
   @ApiId(API_IDS.UPDATE_LESSON)
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiBody({ type: UpdateLessonDto })
@@ -170,44 +193,69 @@ export class LessonsController {
     @Param('lessonId') lessonId: string,
     @Body() updateLessonDto: UpdateLessonDto,
     @Query() query: CommonQueryDto,
-    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }, 
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let lesson: Lesson;
+    // Validate file if provided
     if (file) {
-      // Get the existing lesson to get the courseId and moduleId
-      const existingLesson = await this.lessonsService.findOne(
-        lessonId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-      
-      // Upload the file using the existing lessonId
-      const imageUrl = await this.uploadService.uploadFile(file, {
-        type: 'lesson',
-        courseId: existingLesson.courseId,
-        moduleId: existingLesson.moduleId,
-        lessonId,
-      });
-      
-      // Update the lesson with the new image URL
-      lesson = await this.lessonsService.update(
-        lessonId,
-        { ...updateLessonDto, image: imageUrl },
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-    } else {
-      lesson = await this.lessonsService.update(
-        lessonId,
-        updateLessonDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
+      await this.uploadService.validateFile(file, { type: 'lesson' });
     }
-    return lesson;
+
+    let uploadedFileUrl: string | undefined;
+    let oldFileUrl: string | undefined;
+
+    try {
+      return await this.transactionService.executeInTransaction(async (entityManager) => {
+        // Get existing lesson to check courseId and moduleId
+        const existingLesson = await this.lessonsService.findOne(
+          lessonId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId
+        );
+        if (!existingLesson) {
+          throw new BadRequestException('Lesson not found');
+        }
+
+        // Store old file URL for cleanup if needed
+        oldFileUrl = existingLesson.image;
+
+        // Upload file if provided
+        if (file) {
+          uploadedFileUrl = await this.uploadService.uploadFile(file, {
+            type: 'lesson',
+            courseId: existingLesson.courseId,
+            moduleId: existingLesson.moduleId,
+            lessonId: existingLesson.lessonId,
+          });
+        }
+
+        // Update lesson with uploaded file URL
+        const lesson = await this.lessonsService.update(
+          lessonId,
+          {
+            ...updateLessonDto,
+            image: uploadedFileUrl,
+          },
+          query.userId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId,
+          entityManager,
+        );
+
+        return lesson;
+      });
+    } catch (error) {
+      // If transaction fails and we uploaded a new file, clean it up
+      if (uploadedFileUrl) {
+        try {
+          await this.uploadService.deleteFile(uploadedFileUrl);
+        } catch (cleanupError) {
+          // Log cleanup error but throw the original error
+          console.error('Failed to clean up uploaded file:', cleanupError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Delete(':lessonId')

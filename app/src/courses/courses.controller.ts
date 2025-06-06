@@ -12,6 +12,7 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -33,9 +34,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { UploadService } from '../common/services/upload.service';
-import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
-import { v4 as uuidv4 } from 'uuid';
-import { uploadConfigs } from '../config/file-validation.config';
+import { TransactionService } from '../common/services/transaction.service';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -43,6 +42,7 @@ export class CoursesController {
   constructor(
     private readonly coursesService: CoursesService,
     private readonly uploadService: UploadService,
+    private readonly transactionService: TransactionService,
   ) {}
 
   @Post()
@@ -63,39 +63,56 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let course: Course;
+    // Validate file if provided
     if (file) {
-      // First create the course to get the generated ID
-      course = await this.coursesService.create(
-        createCourseDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-      
-      // Then upload the file using the generated courseId
-      const imageUrl = await this.uploadService.uploadFile(file, {
-        type: 'course',
-        courseId: course.courseId,
-      });
-      
-      // Update the course with the image URL
-      course = await this.coursesService.update(
-        course.courseId,
-        { ...createCourseDto, image: imageUrl },
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-    } else {
-      course = await this.coursesService.create(
-        createCourseDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
+      await this.uploadService.validateFile(file, { type: 'course' });
     }
-    return course;
+
+    let uploadedFileUrl: string | undefined;
+
+    try {
+      return await this.transactionService.executeInTransaction(async (entityManager) => {
+        // Create course first to get the courseId
+        const course = await this.coursesService.create(
+          createCourseDto,
+          query.userId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId,
+          entityManager,
+        );
+
+        // Upload file if provided
+        if (file) {
+          uploadedFileUrl = await this.uploadService.uploadFile(file, {
+            type: 'course',
+            courseId: course.courseId,
+          });
+
+          // Update course with the file URL
+          return await this.coursesService.update(
+            course.courseId,
+            { image: uploadedFileUrl },
+            query.userId,
+            tenantOrg.tenantId,
+            tenantOrg.organisationId,
+            entityManager,
+          );
+        }
+
+        return course;
+      });
+    } catch (error) {
+      // If transaction fails and we uploaded a file, clean it up
+      if (uploadedFileUrl) {
+        try {
+          await this.uploadService.deleteFile(uploadedFileUrl);
+        } catch (cleanupError) {
+          // Log cleanup error but throw the original error
+          console.error('Failed to clean up uploaded file:', cleanupError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Get('search')
@@ -267,21 +284,73 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    // Validate file if provided
     if (file) {
-      const imageUrl = await this.uploadService.uploadFile(file, {
-        type: 'course',
-        courseId,
-      });
-      updateCourseDto.image = imageUrl;
+      await this.uploadService.validateFile(file, { type: 'course' });
     }
-    const course = await this.coursesService.update(
-      courseId,
-      updateCourseDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
-    return course;
+
+    let uploadedFileUrl: string | undefined;
+    let oldFileUrl: string | undefined;
+
+    try {
+      return await this.transactionService.executeInTransaction(async (entityManager) => {
+        // Get existing course to check courseId
+        const existingCourse = await this.coursesService.findOne(
+          courseId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId
+        );
+        if (!existingCourse) {
+          throw new BadRequestException('Course not found');
+        }
+
+        // Store old file URL for cleanup if needed
+        oldFileUrl = existingCourse.image;
+
+        // Upload file if provided
+        if (file) {
+          uploadedFileUrl = await this.uploadService.uploadFile(file, {
+            type: 'course',
+            courseId: existingCourse.courseId,
+          });
+        }
+
+        // Update course with uploaded file URL
+        const course = await this.coursesService.update(
+          courseId,
+          {
+            ...updateCourseDto,
+            image: uploadedFileUrl,
+          },
+          query.userId,
+          tenantOrg.tenantId,
+          tenantOrg.organisationId,
+          entityManager,
+        );
+
+        // Cleanup old file if new file uploaded successfully
+        if (oldFileUrl && uploadedFileUrl) {
+          try {
+            await this.uploadService.deleteFile(oldFileUrl);
+          } catch (cleanupError) {
+            console.error('Failed to clean up old file:', cleanupError);
+          }
+        }
+
+        return course;
+      });
+    } catch (error) {
+      // If transaction fails and we uploaded a new file, clean it up
+      if (uploadedFileUrl) {
+        try {
+          await this.uploadService.deleteFile(uploadedFileUrl);
+        } catch (cleanupError) {
+          // Log cleanup error but throw the original error
+          console.error('Failed to clean up uploaded file:', cleanupError);
+        }
+      }
+      throw error;
+    }
   }
 
   @Delete(':courseId')

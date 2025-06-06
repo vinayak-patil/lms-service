@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StorageService, StorageType } from '../interfaces/storage.interface';
 import { LocalStorageService } from './local-storage.service';
@@ -38,17 +38,29 @@ export class UploadService implements OnModuleInit {
     }
   }
 
-  async uploadFile(
+  async validateFile(
     file: Express.Multer.File,
     metadata: {
+      type: 'course' | 'module' | 'lesson' | 'media';
       courseId?: string;
       moduleId?: string;
       lessonId?: string;
+    },
+  ): Promise<void> {
+    await this.fileValidationService.validateFile(file, metadata.type);
+  }
+
+  async uploadFile(
+    file: Express.Multer.File,
+    metadata: {
       type: 'course' | 'module' | 'lesson' | 'media';
-    }
+      courseId?: string;
+      moduleId?: string;
+      lessonId?: string;
+    },
   ): Promise<string> {
     // Validate file before upload
-    await this.fileValidationService.validateFile(file, metadata.type);
+    await this.validateFile(file, metadata);
 
     const filePath = await this.storageService.uploadFile(file, metadata);
     return this.storageService.getFileUrl(filePath);

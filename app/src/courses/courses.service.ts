@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull } from 'typeorm';
+import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, EntityManager } from 'typeorm';
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
@@ -58,20 +58,24 @@ export class CoursesService {
     userId: string,
     tenantId: string,
     organisationId?: string,
+    entityManager?: EntityManager,
   ): Promise<Course> {
     this.logger.log(`Creating course: ${JSON.stringify(createCourseDto)}`);
+
+    // Use provided entityManager or default repository
+    const repository = entityManager?.getRepository(Course) || this.courseRepository;
 
     // Generate a simple alias from the title if none provided
     if (!createCourseDto.alias) {
       createCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
         createCourseDto.title,
-        this.courseRepository,
+        repository,
         tenantId,
         organisationId
       );
     } else {
       // Check if the alias already exists
-      const existingCourse = await this.courseRepository.findOne({
+      const existingCourse = await repository.findOne({
         where: { 
           alias: createCourseDto.alias, 
           tenantId,
@@ -84,7 +88,7 @@ export class CoursesService {
         const originalAlias = createCourseDto.alias;
         createCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
           originalAlias,
-          this.courseRepository,
+          repository,
           tenantId,
           organisationId
         );
@@ -115,12 +119,12 @@ export class CoursesService {
       updatedBy: userId,
     };
     
-    const course = this.courseRepository.create(courseData);
-    const savedCourse = await this.courseRepository.save(course);
+    const course = repository.create(courseData);
+    const savedCourse = await repository.save(course);
     const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
     
-    if (this.cache_enabled) {
-      // Invalidate and set new cache values
+    if (this.cache_enabled && !entityManager) {
+      // Only update cache if not in transaction
       const entityCacheKey = `${this.cache_prefix_course}:${result.courseId}:${tenantId}:${organisationId}`;
       const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
       const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${result.courseId}:${tenantId}:${organisationId}`;
@@ -130,8 +134,8 @@ export class CoursesService {
         this.cacheService.del(searchCacheKey),
         this.cacheService.del(hierarchyCacheKey),
         this.cacheService.set(entityCacheKey, result, this.cache_ttl_default),
-         ]);
-       }
+      ]);
+    }
     
     return result;
   }
@@ -682,8 +686,11 @@ export class CoursesService {
     userId: string,
     tenantId: string,
     organisationId?: string,
-    image?: Express.Multer.File,
+    entityManager?: EntityManager,
   ): Promise<Course> {
+    // Use provided entityManager or default repository
+    const repository = entityManager?.getRepository(Course) || this.courseRepository;
+
     // Find the course with tenant/org filtering
     const course = await this.findOne(courseId, tenantId, organisationId);
     
@@ -696,7 +703,7 @@ export class CoursesService {
     if (updateCourseDto.title && updateCourseDto.title !== course.title && !updateCourseDto.alias) {
       updateCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
         updateCourseDto.title,
-        this.courseRepository,
+        repository,
         tenantId,
         organisationId
       );
@@ -715,7 +722,7 @@ export class CoursesService {
         whereClause.organisationId = organisationId;
       }
       
-      const existingCourse = await this.courseRepository.findOne({
+      const existingCourse = await repository.findOne({
         where: whereClause as FindOptionsWhere<Course>,
       });
       
@@ -724,7 +731,7 @@ export class CoursesService {
         const originalAlias = updateCourseDto.alias;
         updateCourseDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
           originalAlias,
-          this.courseRepository,
+          repository,
           tenantId,
           organisationId
         );
@@ -737,15 +744,15 @@ export class CoursesService {
       updateCourseDto.certificateId = updateCourseDto.certificateId ? HelperUtil.generateUuid() : null;
     }
     
-    const updatedCourse = this.courseRepository.merge(course, {
+    const updatedCourse = repository.merge(course, {
       ...updateCourseDto,
       updatedBy: userId,
     });
     
-    const savedCourse = await this.courseRepository.save(updatedCourse);
+    const savedCourse = await repository.save(updatedCourse);
     
-    if (this.cache_enabled) { 
-      // Invalidate and set new cache values
+    if (this.cache_enabled && !entityManager) {
+      // Only update cache if not in transaction
       const entityCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
       const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
       const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;

@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, FindOneOptions } from 'typeorm';
+import { Repository, Not, FindOneOptions, EntityManager } from 'typeorm';
 import { Lesson, LessonStatus, AttemptsGradeMethod, LessonFormat } from './entities/lesson.entity';
 import { Course } from '../courses/entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
@@ -33,7 +33,7 @@ export class LessonsService {
 
   constructor(
     @InjectRepository(Lesson)
-    private lessonRepository: Repository<Lesson>,
+    private readonly lessonRepository: Repository<Lesson>,
     @InjectRepository(Course)
     private courseRepository: Repository<Course>,
     @InjectRepository(Module)
@@ -69,116 +69,113 @@ export class LessonsService {
     userId: string, 
     tenantId: string,
     organisationId: string,
+    entityManager?: EntityManager,
   ): Promise<Lesson> {
-    try {
-
-      if (!createLessonDto.alias) {
-        createLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
-          createLessonDto.title,
-          this.lessonRepository,
-          tenantId,
-          organisationId
-        );
-      }else{
-        // Check if the alias already exists
-        const whereClause: any = { 
-          alias: createLessonDto.alias,
-          status: Not(LessonStatus.ARCHIVED),
-        };
-      
-      // Add tenant and org filters if they exist
-      if (tenantId) {
-        whereClause.tenantId = tenantId;
-      }
-      
-      if (organisationId) {
-        whereClause.organisationId = organisationId;
-      }
-      
-      const existingLesson = await this.lessonRepository.findOne({
-        where: whereClause,
-      });
-      
-
-      if (existingLesson) {
-        // Generate a unique alias since it already exists
-        const originalAlias = createLessonDto.alias || createLessonDto.title || 'untitled-lesson';
-        createLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
-          originalAlias,
-          this.lessonRepository,
-          tenantId,
-          organisationId
-        );
-          this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${createLessonDto.alias}`);
-        }
-      }
-
-      // Create media first based on the format
-      let mediaId: string;
-      
-      if (createLessonDto.format === LessonFormat.DOCUMENT) {
-        // For document format, use the provided mediaId
-        if (!createLessonDto.mediaContent.mediaId) {
-          throw new BadRequestException('Media ID is required for document format');
-        }
-        mediaId = createLessonDto.mediaContent.mediaId;
-      } else {
-        // Create new media for other formats
-        const mediaData: Partial<Media> = {
-          tenantId: tenantId,
-          organisationId: organisationId,
-          format: createLessonDto.format,
-          subFormat: createLessonDto.mediaContent.subFormat,
-          source: createLessonDto.mediaContent.source,
-          storage: createLessonDto.mediaContent.storage || 'local',
-          createdBy: userId,
-          updatedBy: userId,
-        };
-
-        const media = this.mediaRepository.create(mediaData);
-        const savedMedia = await this.mediaRepository.save(media);
-        mediaId = savedMedia.mediaId;
-      }
-
-      // Create lesson data
-      const lessonData = {
-        title: createLessonDto.title,
+    const repository = entityManager?.getRepository(Lesson) || this.lessonRepository;
+    
+    if (!createLessonDto.alias) {
+      createLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
+        createLessonDto.title,
+        repository,
+        tenantId,
+        organisationId
+      );
+    }else{
+      // Check if the alias already exists
+      const whereClause: any = { 
         alias: createLessonDto.alias,
-        format: createLessonDto.format,
-        mediaId,
-        image: createLessonDto.image,
-        description: createLessonDto.description,
-        status: createLessonDto.status || LessonStatus.PUBLISHED,
-        startDatetime: createLessonDto.startDatetime ? new Date(createLessonDto.startDatetime) : undefined,
-        endDatetime: createLessonDto.endDatetime ? new Date(createLessonDto.endDatetime) : undefined,
-        storage: createLessonDto.storage || 'local',
-        noOfAttempts: createLessonDto.noOfAttempts || 0,
-        attemptsGrade: createLessonDto.attemptsGrade || AttemptsGradeMethod.HIGHEST,
-        eligibilityCriteria: createLessonDto.eligibilityCriteria,
-        idealTime: createLessonDto.idealTime,
-        resume: createLessonDto.resume || false,
-        totalMarks: createLessonDto.totalMarks,
-        passingMarks: createLessonDto.passingMarks,
-        params: createLessonDto.params || {},
-        createdBy: userId,
-        updatedBy: userId,
+        status: Not(LessonStatus.ARCHIVED),
+      };
+    
+    // Add tenant and org filters if they exist
+    if (tenantId) {
+      whereClause.tenantId = tenantId;
+    }
+    
+    if (organisationId) {
+      whereClause.organisationId = organisationId;
+    }
+    
+    const existingLesson = await repository.findOne({
+      where: whereClause,
+    });
+    
+
+    if (existingLesson) {
+      // Generate a unique alias since it already exists
+      const originalAlias = createLessonDto.alias || createLessonDto.title || 'untitled-lesson';
+      createLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
+        originalAlias,
+        repository,
+        tenantId,
+        organisationId
+      );
+        this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${createLessonDto.alias}`);
+      }
+    }
+
+    // Create media first based on the format
+    let mediaId: string;
+    
+    if (createLessonDto.format === LessonFormat.DOCUMENT) {
+      // For document format, use the provided mediaId
+      if (!createLessonDto.mediaContent.mediaId) {
+        throw new BadRequestException('Media ID is required for document format');
+      }
+      mediaId = createLessonDto.mediaContent.mediaId;
+    } else {
+      // Create new media for other formats
+      const mediaData: Partial<Media> = {
         tenantId: tenantId,
         organisationId: organisationId,
-        // Course-specific fields
-        courseId: createLessonDto.courseId,
-        moduleId: createLessonDto.moduleId,
-        sampleLesson: createLessonDto.sampleLesson || false,
-        considerForPassing: createLessonDto.considerForPassing || true,
+        format: createLessonDto.format,
+        subFormat: createLessonDto.mediaContent.subFormat,
+        source: createLessonDto.mediaContent.source,
+        storage: createLessonDto.mediaContent.storage || 'local',
+        createdBy: userId,
+        updatedBy: userId,
       };
 
-      // Create and save the lesson
-      const lesson = this.lessonRepository.create(lessonData);
-      const savedLesson = await this.lessonRepository.save(lesson);
-      return Array.isArray(savedLesson) ? savedLesson[0] : savedLesson;
-    } catch (error) {
-      this.logger.error(`Error creating lesson: ${error.message}`, error.stack);
-      throw new InternalServerErrorException(error.message);
+      const media = this.mediaRepository.create(mediaData);
+      const savedMedia = await this.mediaRepository.save(media);
+      mediaId = savedMedia.mediaId;
     }
+
+    // Create lesson data
+    const lessonData = {
+      title: createLessonDto.title,
+      alias: createLessonDto.alias,
+      format: createLessonDto.format,
+      mediaId,
+      image: createLessonDto.image,
+      description: createLessonDto.description,
+      status: createLessonDto.status || LessonStatus.PUBLISHED,
+      startDatetime: createLessonDto.startDatetime ? new Date(createLessonDto.startDatetime) : undefined,
+      endDatetime: createLessonDto.endDatetime ? new Date(createLessonDto.endDatetime) : undefined,
+      storage: createLessonDto.storage || 'local',
+      noOfAttempts: createLessonDto.noOfAttempts || 0,
+      attemptsGrade: createLessonDto.attemptsGrade || AttemptsGradeMethod.HIGHEST,
+      eligibilityCriteria: createLessonDto.eligibilityCriteria,
+      idealTime: createLessonDto.idealTime,
+      resume: createLessonDto.resume || false,
+      totalMarks: createLessonDto.totalMarks,
+      passingMarks: createLessonDto.passingMarks,
+      params: createLessonDto.params || {},
+      createdBy: userId,
+      updatedBy: userId,
+      tenantId: tenantId,
+      organisationId: organisationId,
+      // Course-specific fields
+      courseId: createLessonDto.courseId,
+      moduleId: createLessonDto.moduleId,
+      sampleLesson: createLessonDto.sampleLesson || false,
+      considerForPassing: createLessonDto.considerForPassing || true,
+    };
+
+    // Create and save the lesson
+    const lesson = repository.create(lessonData);
+    const savedLesson = await repository.save(lesson);
+    return Array.isArray(savedLesson) ? savedLesson[0] : savedLesson;
   }
 
   /**
@@ -385,255 +382,241 @@ export class LessonsService {
     updateLessonDto: UpdateLessonDto,
     userId: string,
     tenantId: string,
-    organisationId?: string,
-    image?: Express.Multer.File,
+    organisationId: string,
+    entityManager?: EntityManager,
   ): Promise<Lesson> {
-    try {
-      const lesson = await this.lessonRepository.findOne({
-        where: { lessonId, tenantId, organisationId }
-      });
+    const repository = entityManager?.getRepository(Lesson) || this.lessonRepository;
+    
+    const lesson = await repository.findOne({
+      where: { lessonId, tenantId, organisationId },
+    });
 
-      if (!lesson) {
-        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
+    if (!lesson) {
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
+    }
+
+    // Check if lesson has a checked out status (if that property exists)
+    if (updateLessonDto.checkedOut !== undefined) {
+      throw new BadRequestException('Lesson is checked out by another user');
+    }
+
+    // Parse JSON params if they are provided as a string
+    if (updateLessonDto.params && typeof updateLessonDto.params === 'string') {
+      try {
+        updateLessonDto.params = JSON.parse(updateLessonDto.params);
+      } catch (error) {
+        this.logger.error(`Error parsing params JSON: ${error.message}`);
+        throw new BadRequestException('Invalid params JSON format');
       }
+    }
 
-      // Check if lesson has a checked out status (if that property exists)
-      if (updateLessonDto.checkedOut !== undefined) {
-        throw new BadRequestException('Lesson is checked out by another user');
-      }
-
-      // Parse JSON params if they are provided as a string
-      if (updateLessonDto.params && typeof updateLessonDto.params === 'string') {
-        try {
-          updateLessonDto.params = JSON.parse(updateLessonDto.params);
-        } catch (error) {
-          this.logger.error(`Error parsing params JSON: ${error.message}`);
-          throw new BadRequestException('Invalid params JSON format');
+    // Handle media updates if mediaContent is provided
+    if (updateLessonDto.mediaContent) {
+      // Get the current media
+      const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
+        where: { mediaId: lesson.mediaId }
+      }) : null;
+      
+        // For other formats
+        // Validate format matches lesson format
+        if (lesson.format !== updateLessonDto.mediaContent.format as LessonFormat) {
+          throw new BadRequestException('Cannot change lesson format during update');
         }
-      }
 
-      // Handle media updates if mediaContent is provided
-      if (updateLessonDto.mediaContent) {
-        // Get the current media
-        const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
-          where: { mediaId: lesson.mediaId }
-        }) : null;
-        
-          // For other formats
-          // Validate format matches lesson format
-          if (lesson.format !== updateLessonDto.mediaContent.format as LessonFormat) {
-            throw new BadRequestException('Cannot change lesson format during update');
-          }
-
-          // Validate mediaId is provided
-          if (!updateLessonDto.mediaContent.mediaId) {
-            throw new BadRequestException('Media ID is required in mediaContent for non-document formats');
-          }
-
-          if (!currentMedia) {
-            throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
-          }
-
-          // Update the media content
-          await this.mediaRepository.update(currentMedia.mediaId, {
-            tenantId: tenantId,
-            organisationId: organisationId,
-            format: updateLessonDto.mediaContent.format as LessonFormat,
-            subFormat: updateLessonDto.mediaContent.subFormat,
-            source: updateLessonDto.mediaContent.source,
-            storage: updateLessonDto.mediaContent.storage || 'local',
-            updatedBy: userId,
-            updatedAt: new Date()
-          });
-      } else if (updateLessonDto.mediaId) {
-        // Handle direct mediaId update
-        const newMedia = await this.mediaRepository.findOne({
-          where: { mediaId: updateLessonDto.mediaId }
-        });
-
-        if (!newMedia) {
+        if (!currentMedia) {
           throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
         }
 
-        // Get the current media
-        const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
-          where: { mediaId: lesson.mediaId }
-        }) : null;
+        // Update the media content
+        await this.mediaRepository.update(currentMedia.mediaId, {
+          tenantId: tenantId,
+          organisationId: organisationId,
+          format: updateLessonDto.mediaContent.format as LessonFormat,
+          subFormat: updateLessonDto.mediaContent.subFormat,
+          source: updateLessonDto.mediaContent.source,
+          storage: updateLessonDto.mediaContent.storage || 'local',
+          updatedBy: userId,
+          updatedAt: new Date()
+        });
+    } else if (updateLessonDto.mediaId) {
+      // Handle direct mediaId update
+      const newMedia = await this.mediaRepository.findOne({
+        where: { mediaId: updateLessonDto.mediaId }
+      });
 
-        // If the media is the same, do nothing
-        if (currentMedia && currentMedia.mediaId === newMedia.mediaId) {
-          // Remove mediaId from update data since it's the same
-          updateLessonDto.mediaId = undefined;
-        } else {
-          // If different media, archive old and use new
-          if (currentMedia) {
-            await this.mediaRepository.update(currentMedia.mediaId, {
-              status: MediaStatus.ARCHIVED,
-              updatedBy: userId,
-              updatedAt: new Date()
-            });
-          }
-          // Set the new mediaId in the lesson entity
-          lesson.mediaId = newMedia.mediaId;
-        }
+      if (!newMedia) {
+        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
       }
 
-      // If title is changed but no alias provided, generate one from the title
-      if (updateLessonDto.title && updateLessonDto.title !== lesson.title && !updateLessonDto.alias) {
+      // Get the current media
+      const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
+        where: { mediaId: lesson.mediaId }
+      }) : null;
+
+      // If the media is the same, do nothing
+      if (currentMedia && currentMedia.mediaId === newMedia.mediaId) {
+        // Remove mediaId from update data since it's the same
+        updateLessonDto.mediaId = undefined;
+      } else {
+        // If different media, archive old and use new
+        if (currentMedia) {
+          await this.mediaRepository.update(currentMedia.mediaId, {
+            status: MediaStatus.ARCHIVED,
+            updatedBy: userId,
+            updatedAt: new Date()
+          });
+        }
+        // Set the new mediaId in the lesson entity
+        lesson.mediaId = newMedia.mediaId;
+      }
+    }
+
+    // If title is changed but no alias provided, generate one from the title
+    if (updateLessonDto.title && updateLessonDto.title !== lesson.title && !updateLessonDto.alias) {
+      updateLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
+        updateLessonDto.title,
+        repository,
+        tenantId || '',
+        organisationId
+      );
+    }
+    
+    // Check for alias uniqueness if alias is being updated
+    if (updateLessonDto.alias && updateLessonDto.alias !== lesson.alias) {
+      const whereClause: any = {
+        alias: updateLessonDto.alias,
+        lessonId: Not(lessonId),
+        status: Not(LessonStatus.ARCHIVED),
+      };
+      
+      if (tenantId) {
+        whereClause.tenantId = tenantId;
+      }
+      
+      if (organisationId) {
+        whereClause.organisationId = organisationId;
+      }
+      
+      const existingLesson = await repository.findOne({
+        where: whereClause,
+      });
+      
+      // If the alias already exists, generate a new unique one
+      if (existingLesson) {
+        const originalAlias = updateLessonDto.alias || updateLessonDto.title || 'untitled-lesson';
         updateLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
-          updateLessonDto.title,
-          this.lessonRepository,
+          originalAlias,
+          repository,
           tenantId || '',
           organisationId
         );
+        this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${updateLessonDto.alias}`);
       }
-      
-      // Check for alias uniqueness if alias is being updated
-      if (updateLessonDto.alias && updateLessonDto.alias !== lesson.alias) {
-        const whereClause: any = {
-          alias: updateLessonDto.alias,
-          lessonId: Not(lessonId),
-          status: Not(LessonStatus.ARCHIVED),
-        };
-        
-        if (tenantId) {
-          whereClause.tenantId = tenantId;
-        }
-        
-        if (organisationId) {
-          whereClause.organisationId = organisationId;
-        }
-        
-        const existingLesson = await this.lessonRepository.findOne({
-          where: whereClause,
-        });
-        
-        // If the alias already exists, generate a new unique one
-        if (existingLesson) {
-          const originalAlias = updateLessonDto.alias || updateLessonDto.title || 'untitled-lesson';
-          updateLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
-            originalAlias,
-            this.lessonRepository,
-            tenantId || '',
-            organisationId
-          );
-          this.logger.log(`Alias '${originalAlias}' already exists. Generated new alias: ${updateLessonDto.alias}`);
-        }
-      }
-
-      // Map DTO properties to entity properties that exist in the DTO
-      const updateData: any = {
-        updatedBy: userId,
-        updatedAt: new Date(),
-      };
-      
-      // Map fields that exist in both DTO and entity
-      if (updateLessonDto.title !== undefined) {
-        updateData.title = updateLessonDto.title;
-      }
-      
-      if (updateLessonDto.description !== undefined) {
-        updateData.description = updateLessonDto.description;
-      }
-      
-      if (updateLessonDto.status !== undefined) {
-        updateData.status = updateLessonDto.status;
-      }
-          
-      if (updateLessonDto.alias !== undefined) {
-        updateData.alias = updateLessonDto.alias;
-      }
-      
-      if (updateLessonDto.startDatetime !== undefined) {
-        updateData.startDatetime = new Date(updateLessonDto.startDatetime);
-      }
-      
-      if (updateLessonDto.endDatetime !== undefined) {
-        updateData.endDatetime = new Date(updateLessonDto.endDatetime);
-      }
-      
-      if (updateLessonDto.storage !== undefined) {
-        updateData.storage = updateLessonDto.storage;
-      }
-      
-      if (updateLessonDto.noOfAttempts !== undefined) {
-        updateData.noOfAttempts = updateLessonDto.noOfAttempts;
-      }
-      
-      if (updateLessonDto.attemptsGrade !== undefined) {
-        updateData.attemptsGrade = updateLessonDto.attemptsGrade;
-      }
-      
-      if (updateLessonDto.eligibilityCriteria !== undefined) {
-        updateData.eligibilityCriteria = updateLessonDto.eligibilityCriteria;
-      }
-      
-      if (updateLessonDto.idealTime !== undefined) {
-        updateData.idealTime = updateLessonDto.idealTime;
-      }
-      
-      if (updateLessonDto.resume !== undefined) {
-        updateData.resume = updateLessonDto.resume;
-      }
-      
-      if (updateLessonDto.totalMarks !== undefined) {
-        updateData.totalMarks = updateLessonDto.totalMarks;
-      }
-      
-      if (updateLessonDto.passingMarks !== undefined) {
-        updateData.passingMarks = updateLessonDto.passingMarks;
-      }
-      
-      // Handle image field mapping
-      if (updateLessonDto.image) {
-        updateData.image = updateLessonDto.image;
-      }
-      
-      if (updateLessonDto.params !== undefined) {
-        updateData.params = updateLessonDto.params;
-      }
-
-      if (updateLessonDto.mediaId !== undefined) {
-        updateData.mediaId = updateLessonDto.mediaId;
-      }
-      
-      // Update the lesson
-      const updatedLesson = this.lessonRepository.merge(lesson, updateData);
-      const savedLesson = await this.lessonRepository.save(updatedLesson);
-
-      if (this.cache_enabled) {
-        const entityCacheKey = `${this.cache_prefix_lesson}:${lessonId}:${tenantId}:${organisationId}`;
-        const displayCacheKey = `${this.cache_prefix_lesson}:display:${lessonId}:${tenantId}:${organisationId}`;
-        const moduleCacheKey = `${this.cache_prefix_module}:lesson:${lessonId}:${tenantId}:${organisationId}`;
-        const courseCacheKey = `${this.cache_prefix_course}:lesson:${lessonId}:${tenantId}:${organisationId}`;
-        const mediaCacheKey = `${this.cache_prefix_media}:lesson:${lessonId}:${tenantId}:${organisationId}`;
-
-        // Invalidate existing caches
-        await Promise.all([
-          this.cacheService.del(entityCacheKey),
-          this.cacheService.del(displayCacheKey),
-          this.cacheService.del(moduleCacheKey),
-          this.cacheService.del(courseCacheKey),
-          this.cacheService.del(mediaCacheKey)
-        ]);
-
-        // Set new cache values
-        await Promise.all([
-          this.cacheService.set(entityCacheKey, savedLesson, this.cache_ttl_default)
-        ]);
-      }
-
-      return savedLesson;
-    } catch (error) {
-      this.logger.error(`Error updating lesson: ${error.message}`);
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Error updating lesson');
     }
+
+    // Map DTO properties to entity properties that exist in the DTO
+    const updateData: any = {
+      updatedBy: userId,
+      updatedAt: new Date(),
+    };
+    
+    // Map fields that exist in both DTO and entity
+    if (updateLessonDto.title !== undefined) {
+      updateData.title = updateLessonDto.title;
+    }
+    
+    if (updateLessonDto.description !== undefined) {
+      updateData.description = updateLessonDto.description;
+    }
+    
+    if (updateLessonDto.status !== undefined) {
+      updateData.status = updateLessonDto.status;
+    }
+        
+    if (updateLessonDto.alias !== undefined) {
+      updateData.alias = updateLessonDto.alias;
+    }
+    
+    if (updateLessonDto.startDatetime !== undefined) {
+      updateData.startDatetime = new Date(updateLessonDto.startDatetime);
+    }
+    
+    if (updateLessonDto.endDatetime !== undefined) {
+      updateData.endDatetime = new Date(updateLessonDto.endDatetime);
+    }
+    
+    if (updateLessonDto.storage !== undefined) {
+      updateData.storage = updateLessonDto.storage;
+    }
+    
+    if (updateLessonDto.noOfAttempts !== undefined) {
+      updateData.noOfAttempts = updateLessonDto.noOfAttempts;
+    }
+    
+    if (updateLessonDto.attemptsGrade !== undefined) {
+      updateData.attemptsGrade = updateLessonDto.attemptsGrade;
+    }
+    
+    if (updateLessonDto.eligibilityCriteria !== undefined) {
+      updateData.eligibilityCriteria = updateLessonDto.eligibilityCriteria;
+    }
+    
+    if (updateLessonDto.idealTime !== undefined) {
+      updateData.idealTime = updateLessonDto.idealTime;
+    }
+    
+    if (updateLessonDto.resume !== undefined) {
+      updateData.resume = updateLessonDto.resume;
+    }
+    
+    if (updateLessonDto.totalMarks !== undefined) {
+      updateData.totalMarks = updateLessonDto.totalMarks;
+    }
+    
+    if (updateLessonDto.passingMarks !== undefined) {
+      updateData.passingMarks = updateLessonDto.passingMarks;
+    }
+    
+    // Handle image field mapping
+    if (updateLessonDto.image) {
+      updateData.image = updateLessonDto.image;
+    }
+    
+    if (updateLessonDto.params !== undefined) {
+      updateData.params = updateLessonDto.params;
+    }
+
+    if (updateLessonDto.mediaId !== undefined) {
+      updateData.mediaId = updateLessonDto.mediaId;
+    }
+    
+    // Update the lesson
+    const updatedLesson = repository.merge(lesson, updateData);
+    const savedLesson = await repository.save(updatedLesson);
+
+    if (this.cache_enabled) {
+      const entityCacheKey = `${this.cache_prefix_lesson}:${lessonId}:${tenantId}:${organisationId}`;
+      const displayCacheKey = `${this.cache_prefix_lesson}:display:${lessonId}:${tenantId}:${organisationId}`;
+      const moduleCacheKey = `${this.cache_prefix_module}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+      const courseCacheKey = `${this.cache_prefix_course}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+      const mediaCacheKey = `${this.cache_prefix_media}:lesson:${lessonId}:${tenantId}:${organisationId}`;
+
+      // Invalidate existing caches
+      await Promise.all([
+        this.cacheService.del(entityCacheKey),
+        this.cacheService.del(displayCacheKey),
+        this.cacheService.del(moduleCacheKey),
+        this.cacheService.del(courseCacheKey),
+        this.cacheService.del(mediaCacheKey)
+      ]);
+
+      // Set new cache values
+      await Promise.all([
+        this.cacheService.set(entityCacheKey, savedLesson, this.cache_ttl_default)
+      ]);
+    }
+
+    return savedLesson;
   }
 
   /**

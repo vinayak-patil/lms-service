@@ -7,6 +7,7 @@ export interface FileValidationRule {
   minSize?: number;
   maxFiles?: number;
   allowedExtensions?: string[];
+  doValidateDimensions?: boolean;
   validateDimensions?: {
     minWidth?: number;
     maxWidth?: number;
@@ -31,6 +32,7 @@ const courseRule: FileValidationRule = {
   maxSize: 2 * 1024 * 1024, // 2MB
   minSize: 1024, // 1KB
   allowedExtensions: ['.jpg', '.jpeg', '.png'],
+  doValidateDimensions: false,
   validateDimensions: {
     minWidth: 800,
     maxWidth: 1920,
@@ -45,6 +47,7 @@ const moduleRule: FileValidationRule = {
   maxSize: 2 * 1024 * 1024, // 2MB
   minSize: 1024, // 1KB
   allowedExtensions: ['.jpg', '.jpeg', '.png', '.gif'],
+  doValidateDimensions: true,
   validateDimensions: {
     minWidth: 400,
     maxWidth: 1280,
@@ -59,6 +62,7 @@ const lessonRule: FileValidationRule = {
   maxSize: 2 * 1024 * 1024, // 2MB
   minSize: 1024, // 1KB
   allowedExtensions: ['.jpg', '.jpeg', '.png', '.gif'],
+  doValidateDimensions: false,
   validateDimensions: {
     minWidth: 400,
     maxWidth: 1280,
