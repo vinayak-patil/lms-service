@@ -34,43 +34,6 @@ export class TrackingController {
   constructor(private readonly trackingService: TrackingService) {
   }
 
-  @Post('course/start/:courseId')
-  @ApiId(API_IDS.START_COURSE_TRACKING)
-  @ApiOperation({ summary: 'Start tracking a course' })
-  @ApiBody({ type: UpdateCourseTrackingDto })
-  @ApiResponse({ status: 201, description: 'Course tracking started successfully' })
-  async startCourseTracking(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},
-  ) {
-    return this.trackingService.startCourseTracking(
-      courseId, 
-      query.userId, 
-      tenant.tenantId, 
-      tenant.organisationId
-    );
-  }
-
-  @Post('course/update/:courseId')
-  @ApiId(API_IDS.UPDATE_COURSE_TRACKING)
-  @ApiOperation({ summary: 'Update course tracking progress' })
-  @ApiBody({ type: UpdateCourseTrackingDto })
-  @ApiResponse({ status: 200, description: 'Course tracking updated successfully' })
-  async updateCourseTracking(
-    @Body() updateCourseTrackingDto: UpdateCourseTrackingDto,
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenant: {tenantId: string, organisationId: string},  
-  ) {    
-    return this.trackingService.updateCourseTracking(
-      updateCourseTrackingDto,
-      courseId,
-      query.userId,
-      tenant.tenantId,
-      tenant.organisationId,      
-    );
-  }
 
   @Get('course/:courseId/:userId')
   @ApiId(API_IDS.GET_COURSE_TRACKING)

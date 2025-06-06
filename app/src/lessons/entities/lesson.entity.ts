@@ -133,7 +133,7 @@ export class Lesson {
   moduleId: string;
 
   @Column({ type: 'boolean', default: false })
-  freeLesson: boolean;
+  sampleLesson: boolean;
 
   @Column({ type: 'boolean', default: true })
   considerForPassing: boolean;

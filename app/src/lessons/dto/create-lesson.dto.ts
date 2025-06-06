@@ -241,7 +241,7 @@ export class CreateLessonDto {
   @IsOptional()
   @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Free lesson') })
   @Type(() => Boolean)
-  freeLesson?: boolean = false;
+  sampleLesson?: boolean = false;
 
   @ApiProperty({
     description: 'Whether to consider this lesson for passing',

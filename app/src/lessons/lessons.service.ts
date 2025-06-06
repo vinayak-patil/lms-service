@@ -167,7 +167,7 @@ export class LessonsService {
         // Course-specific fields
         courseId: createLessonDto.courseId,
         moduleId: createLessonDto.moduleId,
-        freeLesson: createLessonDto.freeLesson || false,
+        sampleLesson: createLessonDto.sampleLesson || false,
         considerForPassing: createLessonDto.considerForPassing || true,
       };
 
