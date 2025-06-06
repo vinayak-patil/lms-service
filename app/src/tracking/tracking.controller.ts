@@ -20,7 +20,6 @@ import { TrackingService } from './tracking.service';
 import { API_IDS } from '../common/constants/api-ids.constant';
 import { ApiId } from 'src/common/decorators/api-id.decorator';
 import { CommonQueryDto } from 'src/common/dto/common-query.dto';
-import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';
 import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { TenantOrg } from 'src/common/decorators/tenant-org.decorator';
 import { LessonStatusDto } from './dto/lesson-status.dto';
@@ -56,16 +55,13 @@ export class TrackingController {
   @Post('lesson/attempt/:lessonId')
   @ApiId(API_IDS.START_LESSON_ATTEMPT)
   @ApiOperation({ summary: 'Start a new lesson attempt or get existing incomplete attempt' })
-  @ApiBody({ type: StartLessonTrackingDto })
   @ApiResponse({ status: 201, description: 'Lesson attempt started or retrieved' })
   async startLessonAttempt(
-    @Body() startLessonTrackingDto: StartLessonTrackingDto,
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenant: {tenantId: string, organisationId: string},  
   ) {
     return this.trackingService.startLessonAttempt(
-      startLessonTrackingDto,
       lessonId,
       query.userId,
       tenant.tenantId,
@@ -77,17 +73,14 @@ export class TrackingController {
   @ApiId(API_IDS.MANAGE_LESSON_ATTEMPT)
   @ApiOperation({ summary: 'Start over or resume a lesson attempt' })
   @ApiParam({ name: 'action', enum: ['start', 'resume'], description: 'Action to perform on the attempt' })
-  @ApiBody({ type: StartLessonTrackingDto })
   @ApiResponse({ status: 200, description: 'Lesson attempt managed successfully' })
   async manageLessonAttempt(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('action') action: 'start' | 'resume',
-    @Body() startLessonTrackingDto: StartLessonTrackingDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenant: {tenantId: string, organisationId: string},  
   ) {
     return this.trackingService.manageLessonAttempt(
-      startLessonTrackingDto,
       lessonId,
       action,
       query.userId,

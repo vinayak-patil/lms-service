@@ -13,15 +13,6 @@ export class UpdateLessonTrackingDto {
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Lesson ID') })
   lessonId: string;
 
-  @ApiProperty({
-    description: 'Course ID (optional - if tracking within a course)',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    required: false
-  })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Course ID') })
-  @IsOptional()
-  courseId?: string;
-
   @ApiProperty({ 
     description: 'Total content length',
     example: 100,
@@ -60,15 +51,6 @@ export class UpdateLessonTrackingDto {
   status?: TrackingStatus;
 
   @ApiProperty({ 
-    description: 'Total content length',
-    example: 100,
-    required: false
-  })
-  @IsOptional()
-  @IsNumber({}, { message: VALIDATION_MESSAGES.COMMON.NUMBER('Total content length') })
-  total_content_length?: number;
-
-  @ApiProperty({ 
     description: 'Time spent in seconds since last update',
     example: 300,
     required: false
@@ -78,16 +60,5 @@ export class UpdateLessonTrackingDto {
   @IsOptional()
   @Type(() => Number)
   timeSpent?: number;
-
-  @ApiProperty({ 
-    description: 'Whether to mark the lesson as completed',
-    example: false,
-    required: false,
-    default: false
-  })
-  @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Completed') })
-  @IsOptional()
-  @Type(() => Boolean)
-  completed?: boolean = false;
 
 }

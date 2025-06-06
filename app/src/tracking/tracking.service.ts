@@ -12,7 +12,6 @@ import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
-import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';
 import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { LessonStatusDto } from './dto/lesson-status.dto';
 import { CacheService } from '../cache/cache.service';
@@ -92,7 +91,6 @@ export class TrackingService {
    * Start a new lesson attempt or get existing incomplete attempt
    */
   async startLessonAttempt(
-    startLessonTrackingDto: StartLessonTrackingDto,
     lessonId: string,
     userId: string,
     tenantId: string,
@@ -111,7 +109,7 @@ export class TrackingService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
     }
 
-    const courseId = startLessonTrackingDto.courseId || lesson.courseId;
+    const courseId = lesson.courseId;
     
     if (!courseId) {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_LESSON_NOT_FOUND);
@@ -177,7 +175,6 @@ export class TrackingService {
    * Manage lesson attempt - start over or resume
    */
   async manageLessonAttempt(
-    startLessonTrackingDto: StartLessonTrackingDto,
     lessonId: string,
     action: 'start' | 'resume',
     userId: string,
@@ -197,7 +194,7 @@ export class TrackingService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.LESSON_NOT_FOUND);
     }
 
-    const courseId = startLessonTrackingDto.courseId || lesson.courseId;
+    const courseId = lesson.courseId;
     
     if (!courseId) {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_LESSON_NOT_FOUND);
