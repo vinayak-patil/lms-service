@@ -6,6 +6,14 @@ import { HelperUtil } from '../../common/utils/helper.util';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
 export class CreateCourseDto {
+  @ApiPropertyOptional({ 
+    description: 'Course ID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @IsOptional()
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Course ID') })
+  id?: string;
+
   @ApiProperty({ 
     description: VALIDATION_MESSAGES.COURSE.TITLE,
     example: 'Introduction to Web Development',

@@ -29,15 +29,16 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { UploadService } from '../common/services/upload.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @ApiTags('Lessons')
 @Controller('lessons')
 export class LessonsController {
   constructor(
     private readonly lessonsService: LessonsService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @Post()
@@ -51,23 +52,47 @@ export class LessonsController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
+  @UseInterceptors(FileInterceptor('image'))
   async createLesson(
     @Body() createLessonDto: CreateLessonDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let lesson: Lesson;
     if (file) {
-      const imagePath = getUploadPath('lesson', file.filename);
-      createLessonDto.image = imagePath;
+      // First create the lesson to get the generated ID
+      lesson = await this.lessonsService.create(
+        createLessonDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+      
+      // Then upload the file using the generated lessonId
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'lesson',
+        courseId: lesson.courseId,
+        moduleId: lesson.moduleId,
+        lessonId: lesson.lessonId,
+      });
+      
+      // Update the lesson with the image URL
+      lesson = await this.lessonsService.update(
+        lesson.lessonId,
+        { ...createLessonDto, image: imageUrl },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+    } else {
+      lesson = await this.lessonsService.create(
+        createLessonDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
     }
-    const lesson = await this.lessonsService.create(
-      createLessonDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
     return lesson;
   }
 
@@ -140,7 +165,7 @@ export class LessonsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
+  @UseInterceptors(FileInterceptor('image'))
   async updateLesson(
     @Param('lessonId') lessonId: string,
     @Body() updateLessonDto: UpdateLessonDto,
@@ -148,17 +173,40 @@ export class LessonsController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }, 
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let lesson: Lesson;
     if (file) {
-      const imagePath = getUploadPath('lesson', file.filename);
-      updateLessonDto.image = imagePath;
+      // Get the existing lesson to get the courseId and moduleId
+      const existingLesson = await this.lessonsService.findOne(
+        lessonId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+      
+      // Upload the file using the existing lessonId
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'lesson',
+        courseId: existingLesson.courseId,
+        moduleId: existingLesson.moduleId,
+        lessonId,
+      });
+      
+      // Update the lesson with the new image URL
+      lesson = await this.lessonsService.update(
+        lessonId,
+        { ...updateLessonDto, image: imageUrl },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+    } else {
+      lesson = await this.lessonsService.update(
+        lessonId,
+        updateLessonDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
     }
-    const lesson = await this.lessonsService.update(
-      lessonId,
-      updateLessonDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
     return lesson;
   }
 

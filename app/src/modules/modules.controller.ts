@@ -29,15 +29,16 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { UploadService } from '../common/services/upload.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @ApiTags('Modules')
 @Controller('modules')
 export class ModulesController {
   constructor(
     private readonly modulesService: ModulesService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @Post()
@@ -51,23 +52,46 @@ export class ModulesController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.modules))
+  @UseInterceptors(FileInterceptor('image'))
   async createModule(
     @Body() createModuleDto: CreateModuleDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let module: Module;
     if (file) {
-      const imagePath = getUploadPath('module', file.filename);
-      createModuleDto.image = imagePath;
+      // First create the module to get the generated ID
+      module = await this.modulesService.create(
+        createModuleDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+      
+      // Then upload the file using the generated moduleId
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'module',
+        courseId: module.courseId,
+        moduleId: module.moduleId,
+      });
+      
+      // Update the module with the image URL
+      module = await this.modulesService.update(
+        module.moduleId,
+        { ...createModuleDto, image: imageUrl },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+    } else {
+      module = await this.modulesService.create(
+        createModuleDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
     }
-    const module = await this.modulesService.create(
-      createModuleDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
     return module;
   }
 
@@ -150,7 +174,7 @@ export class ModulesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Module not found' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.modules))
+  @UseInterceptors(FileInterceptor('image'))
   async updateModule(
     @Param('id') id: string,
     @Body() updateModuleDto: UpdateModuleDto,
@@ -158,17 +182,39 @@ export class ModulesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let module: Module;
     if (file) {
-      const imagePath = getUploadPath('module', file.filename);
-      updateModuleDto.image = imagePath;
+      // Get the existing module to get the courseId
+      const existingModule = await this.modulesService.findOne(
+        id,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+      
+      // Upload the file using the existing moduleId
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'module',
+        courseId: existingModule.courseId,
+        moduleId: id,
+      });
+      
+      // Update the module with the new image URL
+      module = await this.modulesService.update(
+        id,
+        { ...updateModuleDto, image: imageUrl },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+    } else {
+      module = await this.modulesService.update(
+        id,
+        updateModuleDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
     }
-    const module = await this.modulesService.update(
-      id,
-      updateModuleDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
     return module;
   }
 

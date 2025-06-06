@@ -26,14 +26,17 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { LessonFormat } from '../lessons/entities/lesson.entity';
+import { UploadService } from '../common/services/upload.service';
+
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   @Post('upload')
   @ApiId(API_IDS.UPLOAD_MEDIA)
@@ -41,7 +44,7 @@ export class MediaController {
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @UseInterceptors(FileInterceptor('file', uploadConfigs.media))
+  @UseInterceptors(FileInterceptor('file'))
   async uploadMedia(
     @Body() createMediaDto: CreateMediaDto,
     @UploadedFile() file: Express.Multer.File,
@@ -52,13 +55,19 @@ export class MediaController {
     if (createMediaDto.format === LessonFormat.DOCUMENT && !file) {
       throw new BadRequestException('File is required for document format');
     }
+
     if (file) {
-      const filePath = getUploadPath('lessonMedia', file.filename);
-      createMediaDto.path = filePath;
+      // Upload the file first
+      const fileUrl = await this.uploadService.uploadFile(file, {
+        type: 'media',
+      });
+
+      // Then create the media record with the file URL
+      createMediaDto.path = fileUrl;
     }
 
     return this.mediaService.uploadMedia(
-      createMediaDto, 
+      createMediaDto,
       file,
       query.userId,
       tenantOrg.tenantId,

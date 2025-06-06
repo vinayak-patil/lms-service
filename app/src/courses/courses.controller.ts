@@ -31,15 +31,18 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { UploadService } from '../common/services/upload.service';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
+import { v4 as uuidv4 } from 'uuid';
+import { uploadConfigs } from '../config/file-validation.config';
 
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
   constructor(
     private readonly coursesService: CoursesService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @Post()
@@ -53,23 +56,45 @@ export class CoursesController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
+  @UseInterceptors(FileInterceptor('image'))
   async createCourse(
     @Body() createCourseDto: CreateCourseDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let course: Course;
     if (file) {
-      const imagePath = getUploadPath('course', file.filename);
-      createCourseDto.image = imagePath;
+      // First create the course to get the generated ID
+      course = await this.coursesService.create(
+        createCourseDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+      
+      // Then upload the file using the generated courseId
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'course',
+        courseId: course.courseId,
+      });
+      
+      // Update the course with the image URL
+      course = await this.coursesService.update(
+        course.courseId,
+        { ...createCourseDto, image: imageUrl },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
+    } else {
+      course = await this.coursesService.create(
+        createCourseDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
     }
-    const course = await this.coursesService.create(
-      createCourseDto,
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
     return course;
   }
 
@@ -225,16 +250,16 @@ export class CoursesController {
   @Patch(':courseId')
   @ApiId(API_IDS.UPDATE_COURSE)
   @ApiOperation({ summary: 'Update a course' })
+  @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID' })
   @ApiBody({ type: UpdateCourseDto })
   @ApiResponse({ 
     status: 200, 
     description: 'Course updated successfully', 
     type: Course 
   })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
+  @UseInterceptors(FileInterceptor('image'))
   async updateCourse(
     @Param('courseId') courseId: string,
     @Body() updateCourseDto: UpdateCourseDto,
@@ -243,8 +268,11 @@ export class CoursesController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (file) {
-      const imagePath = getUploadPath('course', file.filename);
-      updateCourseDto.image = imagePath;
+      const imageUrl = await this.uploadService.uploadFile(file, {
+        type: 'course',
+        courseId,
+      });
+      updateCourseDto.image = imageUrl;
     }
     const course = await this.coursesService.update(
       courseId,
