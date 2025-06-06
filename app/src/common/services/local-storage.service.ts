@@ -67,7 +67,17 @@ export class LocalStorageService implements StorageService {
 
   async deleteFile(filePath: string): Promise<void> {
     try {
-      await fs.unlink(filePath);
+      // Remove leading slash if present (URL path)
+      const normalizedPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+      
+      // Check if file exists before attempting to delete
+      try {
+        await fs.access(normalizedPath);
+      } catch (error) {
+        return; // File doesn't exist, nothing to delete
+      }
+
+      await fs.unlink(normalizedPath);
     } catch (error) {
       if (error.code !== 'ENOENT') {
         throw error;
