@@ -18,7 +18,6 @@ import {
 } from '@nestjs/swagger';
 import { TrackingService } from './tracking.service';
 import { API_IDS } from '../common/constants/api-ids.constant';
-import { UpdateCourseTrackingDto } from './dto/update-course-tracking.dto';
 import { ApiId } from 'src/common/decorators/api-id.decorator';
 import { CommonQueryDto } from 'src/common/dto/common-query.dto';
 import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';

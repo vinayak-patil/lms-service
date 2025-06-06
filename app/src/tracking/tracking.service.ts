@@ -12,7 +12,6 @@ import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
-import { UpdateCourseTrackingDto } from './dto/update-course-tracking.dto';
 import { StartLessonTrackingDto } from './dto/start-lesson-tracking.dto';
 import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { LessonStatusDto } from './dto/lesson-status.dto';
