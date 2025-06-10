@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { S3Client, PutObjectCommand, HeadBucketCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,6 +8,7 @@ import { FileValidationError } from '../../common/utils/storage.util';
 import { IStorageService, PresignedUrlResponse } from '../interfaces/storage.interface';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import path from 'path';
 
 @Injectable()
 export class S3StorageService implements IStorageService {
@@ -43,6 +44,20 @@ export class S3StorageService implements IStorageService {
     }
   }
 
+  async verifyCredentials(s3Client: S3Client, bucket: string): Promise<boolean> {
+    try {
+      // Simple S3 operation to verify credentials and permissions
+      await s3Client.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        MaxKeys: 1
+      }));
+      return true;
+    } catch (error) {
+      console.error("Credential verification failed:", error);
+      return false;
+    }
+  }
+
   // Commented out the old implementation
   
   async getPresignedUrl(
@@ -51,6 +66,10 @@ export class S3StorageService implements IStorageService {
     fileName?: string,
   ): Promise<PresignedUrlResponse> {
     try {
+      
+      if (!await this.verifyCredentials(this.s3Client, this.bucket)) {
+        throw new Error("Invalid AWS credentials or permissions");
+      }
       // Validate file type
       const config = this.validationConfig[type];
       if (!config) {
@@ -65,7 +84,7 @@ export class S3StorageService implements IStorageService {
       // Generate unique file key with UUID
       const fileExt = mimeType.split('/')[1];
       const uniqueFileName = fileName ? `${fileName}-${uuidv4()}` : `${Date.now()}-${uuidv4()}`;
-      const key = `${config.path.replace(/^\//, '')}${uniqueFileName}.${fileExt}`;
+      const key = path.join(config.path.replace(/^\//, ''), `${uniqueFileName}.${fileExt}`).replace(/\\/g, '/');
 
       // Generate Presigned POST Policy url - Used for uploading files to S3 using a form
       const { url, fields } = await createPresignedPost(this.s3Client, {

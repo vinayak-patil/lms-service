@@ -4,7 +4,7 @@ import { createValidationConfig } from '../../configuration/validation.config';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { TenantContext } from '../tenant.context';
+import { TenantContext } from '../middleware/tenant.context';
 /**
  * Helper functions for file uploads
  */

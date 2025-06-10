@@ -1,7 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TenantContext } from './tenant.context';
-import { TenantMiddleware } from './tenant.middleware';
+import { TenantContext } from './middleware/tenant.context';
+import { TenantMiddleware } from './middleware/tenant.middleware';
 
 @Module({
   imports: [ConfigModule],

@@ -109,6 +109,7 @@ export const RESPONSE_MESSAGES = {
     CANNOT_RESUME_COMPLETED: 'Cannot resume a completed attempt',
     CANNOT_START_COMPLETED: 'Cannot start over a completed attempt',
     ATTEMPT_NOT_FOUND: 'Attempt not found',
+    SERVER_ERROR: 'An unexpected error occurred while processing the API request',
   },
 };
 

@@ -1,38 +1,32 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigDto } from './dto/configuration.dto';
 import { HttpService } from '@nestjs/axios';
-import { empty, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
-import { TenantContext } from '../common/tenant.context';
+import { TenantContext } from '../common/middleware/tenant.context';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
+import { TenantConfigValue } from './interfaces/tenant-config.interface';
 
 @Injectable()
 export class ConfigurationService {
-  private readonly configDir: string;
-  private configFile: string;
-  private configsJson: any;
   private lmsConfigJson: any;
+  private tenantId: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly tenantContext: TenantContext,
   ) {
-    // Get config directory from environment or use default
-    const configDirPath = this.configService.get('CONFIG_DIR');
-    this.configDir = configDirPath || path.join(process.cwd(), 'src');
-    this.configFile = this.configService.get("CONFIG_FILE") || 'configs.json';
-    
-    this.loadConfigFiles();
-
-    // Ensure configs directory exists
-    if (!fs.existsSync(this.configDir)) {
-      fs.mkdirSync(this.configDir, { recursive: true });
+    this.tenantId = this.tenantContext.getTenantId();
+    // Initialize tenant configs in ConfigService if not exists
+    if (!this.configService.get(this.tenantId)) {
+      this.configService.set(this.tenantId, {});
     }
-    // Initialize config file if it doesn't exist
-    this.initializeConfigFile();
+    
+    // Load LMS config
+    this.loadLmsConfig();
   }
 
   async updateConfig(
@@ -40,36 +34,24 @@ export class ConfigurationService {
     tenantId: string,
   ): Promise<any> {
     try {
-      // Read the entire config file
-      const allConfigs = await this.readConfigFile();
+      // Get current tenant config
+      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
       
       // Create or update tenant configuration
-      const tenantConfig = {
-        tenantId: tenantId,
-        config: configData.config
+      const updatedConfig: TenantConfigValue = {
+        config: this.deepMerge(
+          tenantConfig.config || {},
+          configData.config
+        )
       };
-
-      // If tenant exists, merge the configs
-      if (allConfigs.tenants[tenantId]) {
-        allConfigs.tenants[tenantId] = {
-          ...allConfigs.tenants[tenantId],
-          config: this.deepMerge(
-            allConfigs.tenants[tenantId].config || {},
-            tenantConfig.config
-          )
-        };
-      } else {
-        // Add new tenant
-        allConfigs.tenants[tenantId] = tenantConfig;
-      }
       
-      // Write back to file
-      await this.writeConfigFile(allConfigs);
+      // Update ConfigService
+      this.configService.set(tenantId, updatedConfig);
       
       return {
         success: true,
         message: 'Configuration updated successfully',
-        data: allConfigs.tenants[tenantId]
+        data: updatedConfig
       };
     } catch (error) {
       throw new Error(`${RESPONSE_MESSAGES.ERROR.CONFIG_UPDATE_FAILED}: ${error.message}`);
@@ -80,19 +62,36 @@ export class ConfigurationService {
     try {
       // Fetch configuration from external service
       const externalConfig = await this.fetchExternalConfig(tenantId);
-      
-      if (!externalConfig) {
-        // if external config is not found, parse lms-config.json write into configs.json - only clild properties with values
-        const lmsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'app/src/lms-config.json'), 'utf8'));
+
+      //if externalConfig is empty
+      if (Object.keys(externalConfig).length === 0) {
+        // if external config is not found, parse lms-config.json - only child properties with values
         const config = {};
-        for (const section in lmsConfig.properties) {
-          for (const property in lmsConfig.properties[section].properties) {
-            if (lmsConfig.properties[section].properties[property].default) {
-              config[property] = lmsConfig.properties[section].properties[property].default;
+        for (const section in this.lmsConfigJson.properties) {
+          for (const property in this.lmsConfigJson.properties[section].properties) {
+            if (this.lmsConfigJson.properties[section].properties[property].default) {
+              config[property] = this.lmsConfigJson.properties[section].properties[property].default;
             }
           }
         }
-        fs.writeFileSync(path.join(this.configDir, this.configFile), JSON.stringify(config, null, 2));
+        
+        // Get current tenant config
+        let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
+        
+        // Ensure tenantConfig is an object
+        if (typeof tenantConfig !== 'object' || tenantConfig === null) {
+          this.configService.set(tenantId, { config: {} });
+          tenantConfig = { config: {} };
+        }
+        
+        // Update tenant config
+        tenantConfig = {
+          config: config,
+          lastSynced: new Date().toISOString()
+        };
+
+        // Update ConfigService
+        this.configService.set(tenantId, tenantConfig);
 
         return {
           success: true,
@@ -100,38 +99,32 @@ export class ConfigurationService {
           data: config
         };
       }
-      // Read current configuration
-      const allConfigs = await this.readConfigFile();
-      
-      // Create or update tenant configuration with external data
-      const tenantConfig = {
-        tenantId: tenantId,
-        config: externalConfig,
-        lastSynced: new Date().toISOString()
-      };
 
-      // If tenant exists, merge the configs
-      if (allConfigs.tenants[tenantId]) {
-        allConfigs.tenants[tenantId] = {
-          ...allConfigs.tenants[tenantId],
-          config: this.deepMerge(
-            allConfigs.tenants[tenantId].config || {},
-            tenantConfig.config
-          ),
-          lastSynced: tenantConfig.lastSynced
-        };
-      } else {
-        // Add new tenant
-        allConfigs.tenants[tenantId] = tenantConfig;
+      // Get current tenant config
+      let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
+      
+      // Ensure tenantConfig is an object
+      if (typeof tenantConfig !== 'object' || tenantConfig === null) {
+        this.configService.set(tenantId, { config: {} });
+        tenantConfig = { config: {} };
       }
       
-      // Write back to file
-      await this.writeConfigFile(allConfigs);
+      // Create or update tenant configuration with external data
+      tenantConfig = {
+        config: this.deepMerge(
+          tenantConfig.config || {},
+          externalConfig
+        ),
+        lastSynced: new Date().toISOString()
+      };
+      
+      // Update ConfigService
+      this.configService.set(tenantId, tenantConfig);
       
       return {
         success: true,
         message: 'External configuration synced successfully',
-        data: allConfigs.tenants[tenantId]
+        data: tenantConfig
       };
     } catch (error) {
       throw new Error(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_SYNC_FAILED}: ${error.message}`);
@@ -146,41 +139,22 @@ export class ConfigurationService {
       }
 
       const response = await firstValueFrom(
-        this.httpService.get(`${externalConfigUrl}/config/${tenantId}`)
+        this.httpService.get(`${externalConfigUrl}/${tenantId}`)
       );
 
-      return response.data;
+      return response.data.result;
     } catch (error) {
-      throw new Error(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_FETCH_FAILED}: ${error.message}`);
+      throw new Error(`${error.message}`);
     }
   }
 
-
-  private loadConfigFiles() {
+  private loadLmsConfig() {
     try {
-      const configsPath = path.join(this.configDir, this.configFile);
       const lmsConfigPath = path.join(process.cwd(), 'src/lms-config.json');
-      
-      this.configsJson = JSON.parse(fs.readFileSync(configsPath, 'utf8'));
       this.lmsConfigJson = JSON.parse(fs.readFileSync(lmsConfigPath, 'utf8'));
     } catch (error) {
-      console.error('Error loading configuration files:', error);
+      console.error('Error loading LMS configuration:', error);
     }
-  }
-
-  private initializeConfigFile() {
-    const configPath = path.join(this.configDir, this.configFile);
-    if (!fs.existsSync(configPath)) {
-      const initialConfig = {
-        tenants: {}
-      };
-      fs.writeFileSync(configPath, JSON.stringify(initialConfig, null, 2));
-    }
-  }
-
-  private async writeConfigFile(data: any): Promise<void> {
-    const configPath = path.join(this.configDir, this.configFile);
-    await fs.promises.writeFile(configPath, JSON.stringify(data, null, 2), 'utf8');
   }
 
   private deepMerge(target: any, source: any): any {
@@ -205,45 +179,32 @@ export class ConfigurationService {
     return item && typeof item === 'object' && !Array.isArray(item);
   }
 
-  async readConfigFile(): Promise<any> {
-    try {
-      const configPath = path.join(this.configDir, this.configFile);
-      const data = await fs.promises.readFile(configPath, 'utf8');
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Error reading config file:', error);
-      return { tenants: {} };
-    }
-  }
-
   // LMS Config Service Methods
   getValue(key: string, defaultValue: any = null): any {
     // First try tenant-specific config if tenantId is provided
     const tenantId = this.tenantContext.getTenantId();
    
     if (tenantId) {
-      const tenantConfig = this.configsJson?.tenants?.[tenantId]?.config;
-      if (tenantConfig && tenantConfig[key] !== undefined) {
-          return tenantConfig[key];
+      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId);
+      if (tenantConfig?.config && tenantConfig.config[key] !== undefined) {
+          return tenantConfig.config[key];
       }
     }
 
-    // Finally try environment variables
+    // Then try environment variables
     const envValue = this.configService.get(key);
     if (envValue !== undefined) {
       return envValue;
     }
     
-    
-    // Then try lms-config.json
+    // Finally try lms-config.json
     if (this.lmsConfigJson) {
       const lmsValue = this.getLmsConfigValue(key);
       if (lmsValue !== undefined) {
         return lmsValue;
-      }else{
-        return defaultValue;
       }
     }
+    
     return defaultValue;
   }
 
@@ -294,8 +255,4 @@ export class ConfigurationService {
     };
   }
 
-  // Method to reload configurations
-  async reloadConfigs() {
-    await this.loadConfigFiles();
-  }
 } 

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ConfigurationService } from './configuration.service';    
 import { ConfigDto } from './dto/configuration.dto';
 import { TenantOrg } from 'src/common/decorators/tenant-org.decorator';
+import { response } from 'express';
 
 @ApiTags('Configuration')
 @Controller('config')
