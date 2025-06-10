@@ -1,7 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
-import { validationConfig } from '../../config/file-validation.config';
-
+import { createValidationConfig } from '../../configuration/validation.config';
+import { ConfigurationService } from '../../configuration/configuration.service';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { TenantContext } from '../tenant.context';
 /**
  * Helper functions for file uploads
  */
@@ -26,6 +29,8 @@ export const generateUniqueFilename = (req, file, callback) => {
  * @returns The relative path to the uploaded file
  */
 export const getUploadPath = (entityType: string, filename: string): string => {
-  const config = validationConfig[entityType];
+  const configService = new ConfigurationService(new ConfigService(), new HttpService(), new TenantContext());
+  const configValidation = createValidationConfig(configService);
+  const config = configValidation[entityType];
   return path.join(config.path, filename).replace(/\\/g, '/');
 };

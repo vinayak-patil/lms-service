@@ -5,11 +5,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseTransformerInterceptor } from './common/interceptors/response-transformer.interceptor';
 import { ConfigService } from '@nestjs/config';
-
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   try {
-    
     // Now we can connect to our target database
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
@@ -20,6 +19,16 @@ async function bootstrap() {
     
     // Enable CORS
     app.enableCors();
+    
+    // Set up Swagger documentation
+    const config = new DocumentBuilder()
+      .setTitle('Shiksha LMS API')
+      .setDescription('The Shiksha LMS API documentation')
+      .setVersion('1.0')
+      .addTag('Configuration')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
     
     // Set global pipes
     app.useGlobalPipes(
@@ -43,6 +52,7 @@ async function bootstrap() {
     // Start the application
     await app.listen(port, '0.0.0.0');
     console.log(`Application is running on port:${port}`);
+    console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
   } catch (error) {
     console.error('Failed to start application:', error);
     process.exit(1);

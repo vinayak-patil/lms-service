@@ -32,7 +32,7 @@ import { SearchCourseDto } from './dto/search-course.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../config/file-validation.config';
+import { uploadConfigs } from '../configuration/validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Courses')

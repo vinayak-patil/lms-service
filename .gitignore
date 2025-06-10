@@ -46,3 +46,6 @@
 
 # Temp files
 /app/tmp
+
+# Configs
+/app/src/configs.json

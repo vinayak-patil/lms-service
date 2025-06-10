@@ -1,9 +1,13 @@
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
-import { validationConfig } from '../../config/file-validation.config';
+import { createValidationConfig, ValidationConfig } from '../../configuration/validation.config';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import * as fs from 'fs';
+import { ConfigurationService } from '../../configuration/configuration.service';
+import { ConfigService } from '@nestjs/config';
+import { TenantContext } from '../tenant.context';
+import { HttpService } from '@nestjs/axios';
 
 /**
  * Custom error class for file validation errors
@@ -22,10 +26,11 @@ export class FileValidationError extends HttpException {
 export const createStorage = (
   entityType: string,
 ) => {
+  const configService = new ConfigurationService(new ConfigService(), new HttpService(), new TenantContext());
+  const validationConfig = createValidationConfig(configService);
   const config = validationConfig[entityType];
   
-  // Ensure upload directory exists
-  const uploadDir = path.resolve(process.cwd(), config.path.replace(/^\//, ''));
+  const uploadDir = path.resolve(process.cwd(), `${config.path.replace(/^\//, '')}`);
 
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
