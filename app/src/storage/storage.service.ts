@@ -3,6 +3,7 @@ import { IStorageService, PresignedUrlResponse } from './interfaces/storage.inte
 import { S3StorageService } from './providers/s3-storage.service';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { ConfigurationService } from '../configuration/configuration.service';
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 
 @Injectable()
 export class StorageService implements IStorageService {
@@ -19,7 +20,7 @@ export class StorageService implements IStorageService {
         return new S3StorageService(this.configService);
       // Add other storage providers here
       default:
-        throw new Error(`Unsupported storage driver: ${driver}`);
+        throw new Error(`${RESPONSE_MESSAGES.ERROR.UNSUPPORTED_STORAGE_DRIVER}: ${driver}`);
     }
   }
 
@@ -27,10 +28,8 @@ export class StorageService implements IStorageService {
     type: string,
     mimeType: string,
     fileName?: string,
-    tenantId?: string,
   ): Promise<PresignedUrlResponse> {
-    // Recreate storage driver with tenant context
-    this.storageDriver = this.createStorageDriver(tenantId);
+    this.storageDriver = this.createStorageDriver();
     return this.storageDriver.getPresignedUrl(type, mimeType, fileName);
   }
 } 

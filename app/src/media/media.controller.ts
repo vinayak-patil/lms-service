@@ -30,6 +30,7 @@ import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../configuration/validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { LessonFormat } from '../lessons/entities/lesson.entity';
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
@@ -50,7 +51,7 @@ export class MediaController {
   ) {
     // Check if file is required based on format
     if (createMediaDto.format === LessonFormat.DOCUMENT && !file) {
-      throw new BadRequestException('File is required for document format');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.FILE_REQUIRED_DOC);
     }
     if (file) {
       const filePath = getUploadPath('lessonMedia', file.filename);

@@ -231,7 +231,7 @@ export class MediaService {
       });
 
       if (existingAssociation) {
-        throw new BadRequestException('Media is already associated with this lesson');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MEDIA_ALREADY_ASSOCIATED);
       }
 
       const associatedFile = this.associatedFileRepository.create({

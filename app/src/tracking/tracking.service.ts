@@ -148,7 +148,7 @@ export class TrackingService {
     // Check max attempts
     const maxAttempts = lesson.noOfAttempts || 1;
     if (existingTracks.length > 0 && existingTracks[0].attempt >= maxAttempts) {
-      throw new BadRequestException('Maximum number of attempts reached for this lesson');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MAX_ATTEMPTS_REACHED);
     }
 
     // Create new attempt
@@ -214,7 +214,7 @@ export class TrackingService {
     });
 
     if (existingTracks.length === 0) {
-      throw new NotFoundException('No existing attempt found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.NO_EXISTING_ATTEMPT);
     }
     
 
@@ -224,22 +224,22 @@ export class TrackingService {
             // Check if lesson allows resume
       const canResume = lesson.resume ?? true;
       if (!canResume) {
-        throw new BadRequestException('Resuming attempts is not allowed for this lesson');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.RESUME_NOT_ALLOWED);
       }
       if (latestTrack.status === TrackingStatus.COMPLETED) {
-        throw new BadRequestException('Cannot resume a completed attempt');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_RESUME_COMPLETED);
       }
       return latestTrack;
     } else { 
       
       if (latestTrack.status === TrackingStatus.COMPLETED) {
-        throw new BadRequestException('Cannot start over a completed attempt');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_START_COMPLETED);
       }
       // start over
       // Check max attempts
       const maxAttempts = lesson.noOfAttempts || 1;
       if (latestTrack.attempt > maxAttempts) {
-        throw new BadRequestException('Maximum number of attempts reached for this lesson');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MAX_ATTEMPTS_REACHED);
       }
 
       // Create new attempt
@@ -350,7 +350,7 @@ export class TrackingService {
     });
 
     if (!attempt) {
-      throw new NotFoundException('Attempt not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
     }
 
     return attempt;
@@ -376,7 +376,7 @@ export class TrackingService {
     });
 
     if (!attempt) {
-      throw new NotFoundException('Attempt not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
     }
 
     // Update progress
@@ -488,7 +488,7 @@ export class TrackingService {
     });
     
     if (!module) {
-      throw new NotFoundException('Module not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
     // Get or create module tracking

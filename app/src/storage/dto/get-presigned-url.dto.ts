@@ -5,6 +5,7 @@ export class GetPresignedUrlDto {
   @ApiProperty({
     description: 'Type of upload (course, module, lesson, lessonMedia, lessonAssociatedMedia)',
   })
+  @IsString()
   type: string;
 
   @ApiProperty({

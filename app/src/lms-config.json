@@ -101,6 +101,24 @@
             "title": "Allowed document size in MB",
             "description": "Allowed document size in MB",
             "default": "500"
+          },
+          "courses_upload_path": {
+            "type": "string",
+            "title": "Courses Upload Path",
+            "description": "Courses Upload Path",
+            "default": "courses"
+          },
+          "modules_upload_path": {
+            "type": "string",
+            "title": "Modules Upload Path",
+            "description": "Modules Upload Path",
+            "default": "modules"
+          },
+          "lessons_upload_path": {
+            "type": "string",
+            "title": "Lessons Upload Path",
+            "description": "Lessons Upload Path",
+            "default": "lessons"
           }
         }
       },

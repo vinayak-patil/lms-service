@@ -3,9 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigDto } from './dto/configuration.dto';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { empty, firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { TenantContext } from '../common/tenant.context';
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 
 @Injectable()
 export class ConfigurationService {
@@ -71,7 +72,7 @@ export class ConfigurationService {
         data: allConfigs.tenants[tenantId]
       };
     } catch (error) {
-      throw new Error(`Failed to update configuration: ${error.message}`);
+      throw new Error(`${RESPONSE_MESSAGES.ERROR.CONFIG_UPDATE_FAILED}: ${error.message}`);
     }
   }
 
@@ -95,7 +96,7 @@ export class ConfigurationService {
 
         return {
           success: true,
-          message: 'External configuration Not Found, synced with lms-config.json successfully',
+          message: RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_NOT_FOUND,
           data: config
         };
       }
@@ -133,7 +134,7 @@ export class ConfigurationService {
         data: allConfigs.tenants[tenantId]
       };
     } catch (error) {
-      throw new Error(`Failed to sync external configuration: ${error.message}`);
+      throw new Error(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_SYNC_FAILED}: ${error.message}`);
     }
   }
 
@@ -141,7 +142,7 @@ export class ConfigurationService {
     try {
       const externalConfigUrl = this.configService.get('EXTERNAL_CONFIG_URL');
       if (!externalConfigUrl) {
-        throw new Error('External configuration URL not configured');
+        throw new Error(RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_URL_MISSING);
       }
 
       const response = await firstValueFrom(
@@ -150,7 +151,7 @@ export class ConfigurationService {
 
       return response.data;
     } catch (error) {
-      throw new Error(`Failed to fetch external configuration: ${error.message}`);
+      throw new Error(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_FETCH_FAILED}: ${error.message}`);
     }
   }
 
@@ -219,18 +220,11 @@ export class ConfigurationService {
   getValue(key: string, defaultValue: any = null): any {
     // First try tenant-specific config if tenantId is provided
     const tenantId = this.tenantContext.getTenantId();
+   
     if (tenantId) {
       const tenantConfig = this.configsJson?.tenants?.[tenantId]?.config;
       if (tenantConfig && tenantConfig[key] !== undefined) {
-        return tenantConfig[key];
-      }
-    }
-
-    // Then try lms-config.json
-    if (this.lmsConfigJson) {
-      const lmsValue = this.getLmsConfigValue(key);
-      if (lmsValue !== undefined) {
-        return lmsValue;
+          return tenantConfig[key];
       }
     }
 
@@ -239,7 +233,17 @@ export class ConfigurationService {
     if (envValue !== undefined) {
       return envValue;
     }
-
+    
+    
+    // Then try lms-config.json
+    if (this.lmsConfigJson) {
+      const lmsValue = this.getLmsConfigValue(key);
+      if (lmsValue !== undefined) {
+        return lmsValue;
+      }else{
+        return defaultValue;
+      }
+    }
     return defaultValue;
   }
 
@@ -265,7 +269,7 @@ export class ConfigurationService {
       accessKeyId: this.getValue('storage_key', ''),
       secretAccessKey: this.getValue('storage_secret', ''),
       container: this.getValue('storage_container', ''),
-      expiresIn: 300,
+      expiresIn: Number(this.getValue('presigned_url_expires_in', 300)), // 300 seconds
     };
   }
 

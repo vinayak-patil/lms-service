@@ -254,7 +254,7 @@ export class LessonsService {
       return result;
     } catch (error) {
       this.logger.error(`Error finding lessons: ${error.message}`);
-      throw new InternalServerErrorException('Error retrieving lessons');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_RETRIEVING_LESSONS);
     }
   }
 
@@ -351,7 +351,7 @@ export class LessonsService {
     });
     
     if (!module) {
-      throw new NotFoundException('Module not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
     // Get all lessons for this module with filtering
@@ -399,7 +399,7 @@ export class LessonsService {
 
       // Check if lesson has a checked out status (if that property exists)
       if (updateLessonDto.checkedOut !== undefined) {
-        throw new BadRequestException('Lesson is checked out by another user');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.LESSON_CHECKED_OUT);
       }
 
       // Parse JSON params if they are provided as a string
@@ -408,7 +408,7 @@ export class LessonsService {
           updateLessonDto.params = JSON.parse(updateLessonDto.params);
         } catch (error) {
           this.logger.error(`Error parsing params JSON: ${error.message}`);
-          throw new BadRequestException('Invalid params JSON format');
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.INVALID_PARAMS_FORMAT);
         }
       }
 
@@ -422,12 +422,12 @@ export class LessonsService {
           // For other formats
           // Validate format matches lesson format
           if (lesson.format !== updateLessonDto.mediaContent.format as LessonFormat) {
-            throw new BadRequestException('Cannot change lesson format during update');
+            throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_CHANGE_FORMAT);
           }
 
           // Validate mediaId is provided
           if (!updateLessonDto.mediaContent.mediaId) {
-            throw new BadRequestException('Media ID is required in mediaContent for non-document formats');
+            throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MEDIA_ID_REQUIRED_NON_DOC);
           }
 
           if (!currentMedia) {
@@ -632,7 +632,7 @@ export class LessonsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException('Error updating lesson');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_UPDATING_LESSON);
     }
   }
 
@@ -689,7 +689,7 @@ export class LessonsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException('Error removing lesson');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_REMOVING_LESSON);
     }
   }
 

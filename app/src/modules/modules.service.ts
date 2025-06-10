@@ -73,7 +73,7 @@ export class ModulesService {
       });
 
       if (!parentModule) {
-        throw new BadRequestException('Parent module does not belong to the specified course');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.PARENT_MODULE_INVALID);
       }
     } 
     else if (createModuleDto.courseId) {
@@ -110,7 +110,7 @@ export class ModulesService {
     } 
     else {
       // Either courseId or parentId is required
-      throw new BadRequestException('Either courseId or parentId is required');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_OR_PARENT_REQUIRED);
     }
 
     // Check if a module with the same title already exists in the same context

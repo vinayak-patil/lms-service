@@ -29,7 +29,7 @@ export const createStorage = (
   const configService = new ConfigurationService(new ConfigService(), new HttpService(), new TenantContext());
   const validationConfig = createValidationConfig(configService);
   const config = validationConfig[entityType];
-  
+  console.log("config"+entityType,config);
   const uploadDir = path.resolve(process.cwd(), `${config.path.replace(/^\//, '')}`);
 
   if (!fs.existsSync(uploadDir)) {

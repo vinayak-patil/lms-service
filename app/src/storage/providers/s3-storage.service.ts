@@ -1,41 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { S3Client } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
-import { createStorageConfig, createValidationConfig, ValidationConfig } from '../../configuration/validation.config';
+import { createStorageConfig, createValidationConfig, ValidationConfig, StorageConfig } from '../../configuration/validation.config';
 import { FileValidationError } from '../../common/utils/storage.util';
 import { IStorageService, PresignedUrlResponse } from '../interfaces/storage.interface';
 import { ConfigurationService } from '../../configuration/configuration.service';
+import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
 
 @Injectable()
 export class S3StorageService implements IStorageService {
   private s3Client: S3Client;
   private bucket: string;
   private validationConfig: ValidationConfig;
-
-  private readonly mimeTypeMap = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.webp': 'image/webp',
-    '.pdf': 'application/pdf',
-    '.doc': 'application/msword',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.mp4': 'video/mp4',
-    '.mov': 'video/quicktime',
-    '.txt': 'text/plain',
-    '.csv': 'text/csv',
-  };
+  private storageConfig: StorageConfig;
 
   constructor(
     private configService: ConfigurationService
   ) {
-    const storageConfig = createStorageConfig(this.configService);
-    const { region, accessKeyId, secretAccessKey, container } = storageConfig;
+    this.storageConfig = createStorageConfig(this.configService);
+    const { region, accessKeyId, secretAccessKey, container } = this.storageConfig;
     this.validationConfig = createValidationConfig(this.configService);
 
     if (!region || !accessKeyId || !secretAccessKey) {
-      throw new Error('Missing required AWS configuration');
+      throw new Error(RESPONSE_MESSAGES.ERROR.MISSING_AWS_CONFIG);
     }
 
     const config = {
@@ -50,10 +39,12 @@ export class S3StorageService implements IStorageService {
     this.bucket = container;
     
     if (!this.bucket) {
-      throw new Error('Missing AWS_S3_BUCKET configuration');
+      throw new Error(RESPONSE_MESSAGES.ERROR.MISSING_S3_BUCKET);
     }
   }
 
+  // Commented out the old implementation
+  
   async getPresignedUrl(
     type: string,
     mimeType: string,
@@ -63,20 +54,20 @@ export class S3StorageService implements IStorageService {
       // Validate file type
       const config = this.validationConfig[type];
       if (!config) {
-        throw new FileValidationError(`Invalid upload type: ${type}`);
+        throw new FileValidationError(`${RESPONSE_MESSAGES.ERROR.INVALID_UPLOAD_TYPE}: ${type}`);
       }
 
       if (!config.allowedMimeTypes.includes(mimeType)) {
         throw new FileValidationError(
-          `Invalid file type. Allowed types are: ${config.allowedMimeTypes.join(', ')}`,
+          `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${config.allowedMimeTypes.join(', ')}`,
         );
       }
-
       // Generate unique file key with UUID
       const fileExt = mimeType.split('/')[1];
       const uniqueFileName = fileName ? `${fileName}-${uuidv4()}` : `${Date.now()}-${uuidv4()}`;
-      const key = `${config.path.replace(/^\//, '')}/${uniqueFileName}.${fileExt}`;
+      const key = `${config.path.replace(/^\//, '')}${uniqueFileName}.${fileExt}`;
 
+      // Generate Presigned POST Policy url - Used for uploading files to S3 using a form
       const { url, fields } = await createPresignedPost(this.s3Client, {
         Bucket: this.bucket,
         Key: key,
@@ -93,15 +84,27 @@ export class S3StorageService implements IStorageService {
         },
       });
 
+      // Generate signed url - Directly uploads an object to S3 using AWS credentials
+      // const command = new PutObjectCommand({
+      //   Bucket: this.bucket,
+      //   Key: key,
+      //   ContentType: mimeType,
+      // });
+
+      // const url = await getSignedUrl(this.s3Client, command, {
+      //   expiresIn: this.storageConfig.expiresIn,
+      // });
+
       return {
         url,
         key,
         fields,
-        expiresIn: config.expiresIn,
+        expiresIn: this.storageConfig.expiresIn,
       };
     } catch (error) {
       console.error('Presigned URL Error:', error);
       throw error;
     }
   }
+
 } 

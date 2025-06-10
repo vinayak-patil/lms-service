@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post,  Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { StorageService } from './storage.service';
 import { GetPresignedUrlDto } from './dto/get-presigned-url.dto';
@@ -8,7 +8,7 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  @Get('presign-url')
+  @Post('presign-url')
   @ApiOperation({ summary: 'Get a pre-signed URL for file upload' })
   @ApiQuery({ type: GetPresignedUrlDto })
   @ApiResponse({
@@ -34,15 +34,13 @@ export class StorageController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request parameters' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async getPresignedUrl(
-    @Query() query: GetPresignedUrlDto,
-    @TenantOrg() tenantOrg: { tenantId: string, organisationId: string },
+  async getPresignedUrl(  
+    @Body() query: GetPresignedUrlDto,
   ) {
     return this.storageService.getPresignedUrl(
       query.type,
       query.mimeType,
       query.fileName,
-      tenantOrg.tenantId,
     );
   }
 } 
