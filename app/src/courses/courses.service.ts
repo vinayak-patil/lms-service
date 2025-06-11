@@ -10,6 +10,7 @@ import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { CourseTrack, TrackingStatus } from '../tracking/entities/course-track.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
+import { ModuleTrack } from '../tracking/entities/module-track.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { HelperUtil } from '../common/utils/helper.util';
@@ -39,6 +40,8 @@ export class CoursesService {
     private readonly courseTrackRepository: Repository<CourseTrack>,
     @InjectRepository(LessonTrack)
     private readonly lessonTrackRepository: Repository<LessonTrack>,
+    @InjectRepository(ModuleTrack)
+    private readonly moduleTrackRepository: Repository<ModuleTrack>,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
@@ -413,7 +416,6 @@ export class CoursesService {
     // Get the basic course hierarchy first with proper filtering
     const courseHierarchy = await this.findCourseHierarchy(courseId, tenantId, organisationId);
     
-    
     // Find course tracking data for this user with tenant/org filtering
     const trackingWhereClause: any = { 
       courseId, 
@@ -432,8 +434,6 @@ export class CoursesService {
     let courseTracking = await this.courseTrackRepository.findOne({
       where: trackingWhereClause
     });
-
-    
 
     // If there's no course tracking yet, return with default "not started" status
     if (!courseTracking) {
@@ -467,7 +467,16 @@ export class CoursesService {
       order: { updatedAt: 'DESC', attempt: 'DESC' }, // Order by last access time
     });
 
-    console.log(lessonTracks);
+    // Get all module tracks for this user and course with tenant/org filtering
+    const moduleTrackWhereClause: any = {
+      userId,
+      tenantId,
+      organisationId
+    };
+
+    const moduleTracks = await this.moduleTrackRepository.find({
+      where: moduleTrackWhereClause,
+    });
 
     // Create a map of lesson IDs to their last attempt tracking data
     const lessonTrackMap = new Map();
@@ -476,6 +485,12 @@ export class CoursesService {
       if (!lessonTrackMap.has(track.lessonId)) {
         lessonTrackMap.set(track.lessonId, track);
       }
+    });
+
+    // Create a map of module IDs to their tracking data
+    const moduleTrackMap = new Map();
+    moduleTracks.forEach(track => {
+      moduleTrackMap.set(track.moduleId, track);
     });
 
     // Calculate total time spent across all lesson tracks
@@ -518,7 +533,7 @@ export class CoursesService {
             status: lessonTrack.status,
             progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 : 
                      (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
-                     Math.min(Math.round((lessonTrack.currentPosition || 0) * 100), 99)),
+                     Math.min(Math.round((lessonTrack.currentPosition/lessonTrack.totalContent || 0) * 100), 99)),
             lastAccessed: lessonTrack.updatedAt,
             timeSpent: lessonTrack.timeSpent || 0,
             score: lessonTrack.score,
@@ -541,9 +556,16 @@ export class CoursesService {
         };
       });
 
+      // Get module tracking data
+      const moduleTrack = moduleTrackMap.get(module.moduleId);
+
       // Calculate module progress from lesson progress
       const completedLessons = lessonsWithTracking.filter(
         l => l.tracking?.status === TrackingStatus.COMPLETED
+      ).length;
+
+      const incompleteLessons = lessonsWithTracking.filter(
+        l => l.tracking?.status === TrackingStatus.INCOMPLETE
       ).length;
       
       const totalLessons = lessonsWithTracking.length;
@@ -551,10 +573,6 @@ export class CoursesService {
       const moduleProgress = totalLessons > 0 
         ? Math.round((completedLessons / totalLessons) * 100) 
         : 0;
-      
-      const moduleStatus = moduleProgress === 100 
-        ? TrackingStatus.COMPLETED 
-        : (moduleProgress > 0 ? TrackingStatus.INCOMPLETE : TrackingStatus.STARTED);
 
       // Process submodules similarly
       const submodulesWithTracking = module.submodules.map(submodule => {
@@ -589,7 +607,10 @@ export class CoursesService {
           };
         });
 
-        // Calculate submodule progress
+        // Get submodule tracking data
+        const submoduleTrack = moduleTrackMap.get(submodule.moduleId);
+
+        // Calculate submodule progress from lesson progress
         const subCompletedLessons = submoduleLessonsWithTracking.filter(
           l => l.tracking?.status === TrackingStatus.COMPLETED
         ).length;
@@ -599,22 +620,22 @@ export class CoursesService {
         const submoduleProgress = subTotalLessons > 0 
           ? Math.round((subCompletedLessons / subTotalLessons) * 100) 
           : 0;
-        
-        const submoduleStatus = submoduleProgress === 100 
-          ? TrackingStatus.COMPLETED 
-          : (submoduleProgress > 0 ? TrackingStatus.INCOMPLETE : TrackingStatus.STARTED);
 
         return {
           ...submodule,
           lessons: submoduleLessonsWithTracking,
-          tracking: {
-            status: submoduleStatus,
+          tracking: submoduleTrack ? {
+            status: submoduleTrack.status,
             progress: submoduleProgress,
             completedLessons: subCompletedLessons,
             totalLessons: subTotalLessons,
-            lastAccessed: submoduleLessonsWithTracking.length > 0 
-              ? this.findMostRecentAccess(submoduleLessonsWithTracking) 
-              : null
+            lastAccessed: null // Module track doesn't have lastAccessed field
+          } : {
+            status: 'NOT_STARTED',
+            progress: 0,
+            completedLessons: 0,
+            totalLessons: subTotalLessons,
+            lastAccessed: null
           }
         };
       });
@@ -623,14 +644,18 @@ export class CoursesService {
         ...module,
         lessons: lessonsWithTracking,
         submodules: submodulesWithTracking,
-        tracking: {
-          status: moduleStatus,
+        tracking: moduleTrack ? {
+          status: moduleTrack.status,
           progress: moduleProgress,
           completedLessons: completedLessons,
           totalLessons: totalLessons,
-          lastAccessed: lessonsWithTracking.length > 0 
-            ? this.findMostRecentAccess(lessonsWithTracking) 
-            : null
+          lastAccessed: null // Module track doesn't have lastAccessed field
+        } : {
+          status: 'NOT_STARTED',
+          progress: 0,
+          completedLessons: 0,
+          totalLessons: totalLessons,
+          lastAccessed: null
         }
       };
     });
