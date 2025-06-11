@@ -81,6 +81,12 @@ export const RESPONSE_MESSAGES = {
     MEDIA_NOT_ASSOCIATED_WITH_LESSON: 'The specified lesson is not associated with this media',
     COURSE_TRACKING_NOT_FOUND: 'Course tracking not found',
     COURSE_COMPLETED: 'Course is completed',
+    ERROR_RETRIEVING_LESSONS: 'Error retrieving lessons',
+    LESSON_CHECKED_OUT: 'Lesson is checked out and cannot be updated',
+    CANNOT_CHANGE_FORMAT: 'Cannot change format of checked out lesson',
+    INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
+    ERROR_UPDATING_LESSON: 'Error updating lesson',
+    ERROR_REMOVING_LESSON: 'Error removing lesson',
   },
 };
 

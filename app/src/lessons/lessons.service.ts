@@ -43,7 +43,7 @@ export class LessonsService {
     @InjectRepository(LessonTrack)
     private lessonTrackRepository: Repository<LessonTrack>,
     private cacheService: CacheService,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') === 'true';
     this.cache_ttl_default = parseInt(this.configService.get('CACHE_TTL_DEFAULT') || '3600', 10);
@@ -113,24 +113,21 @@ export class LessonsService {
         }
       }
 
-      // Create media first based on the format
+     
       let mediaId: string;
-      
-      if (createLessonDto.format === LessonFormat.DOCUMENT) {
-        // For document format, use the provided mediaId
-        if (!createLessonDto.mediaContent.mediaId) {
-          throw new BadRequestException('Media ID is required for document format');
-        }
-        mediaId = createLessonDto.mediaContent.mediaId;
-      } else {
+      let storage: string = 'local';
+      if(createLessonDto.format === LessonFormat.DOCUMENT){
+        storage = this.configService.get('cloud_storage_provider') || 'local';
+      }
         // Create new media for other formats
         const mediaData: Partial<Media> = {
           tenantId: tenantId,
           organisationId: organisationId,
           format: createLessonDto.format,
-          subFormat: createLessonDto.mediaContent.subFormat,
-          source: createLessonDto.mediaContent.source,
-          storage: createLessonDto.mediaContent.storage || 'local',
+          subFormat: createLessonDto.mediaContentsubFormat,
+          source: createLessonDto.mediaContentSource || undefined,
+          path: createLessonDto.mediaContentPath || undefined,
+          storage: storage,
           createdBy: userId,
           updatedBy: userId,
         };
@@ -138,8 +135,6 @@ export class LessonsService {
         const media = this.mediaRepository.create(mediaData);
         const savedMedia = await this.mediaRepository.save(media);
         mediaId = savedMedia.mediaId;
-      }
-
       // Create lesson data
       const lessonData = {
         title: createLessonDto.title,
@@ -151,7 +146,7 @@ export class LessonsService {
         status: createLessonDto.status || LessonStatus.PUBLISHED,
         startDatetime: createLessonDto.startDatetime ? new Date(createLessonDto.startDatetime) : undefined,
         endDatetime: createLessonDto.endDatetime ? new Date(createLessonDto.endDatetime) : undefined,
-        storage: createLessonDto.storage || 'local',
+        storage: storage,
         noOfAttempts: createLessonDto.noOfAttempts || 0,
         attemptsGrade: createLessonDto.attemptsGrade || AttemptsGradeMethod.HIGHEST,
         eligibilityCriteria: createLessonDto.eligibilityCriteria,
@@ -213,6 +208,8 @@ export class LessonsService {
       // Build query with filters
       const whereConditions: any = {
         status: Not(LessonStatus.ARCHIVED), // Exclude archived lessons by default
+        tenantId: tenantId,
+        organisationId: organisationId
       };
 
       // Add optional filters
@@ -222,15 +219,6 @@ export class LessonsService {
 
       if (format) {
         whereConditions.format = format;
-      }
-      
-      // Add tenant and org filters if provided for data isolation
-      if (tenantId) {
-        whereConditions.tenantId = tenantId;
-      }
-      
-      if (organisationId) {
-        whereConditions.organisationId = organisationId;
       }
 
       // Execute query with pagination
@@ -254,7 +242,7 @@ export class LessonsService {
       return result;
     } catch (error) {
       this.logger.error(`Error finding lessons: ${error.message}`);
-      throw new InternalServerErrorException('Error retrieving lessons');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_RETRIEVING_LESSONS);
     }
   }
 
@@ -282,18 +270,11 @@ export class LessonsService {
     // Build where clause with required filters
     const whereClause: any = { 
       lessonId, 
+      tenantId: tenantId,
+      organisationId: organisationId,
       status: Not(LessonStatus.ARCHIVED) 
     };
-    
-    // Add tenant and org filters if provided
-    if (tenantId) {
-      whereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      whereClause.organisationId = organisationId;
-    }
-    
+        
     const lesson = await this.lessonRepository.findOne({
       where: whereClause,
       relations: ['media', 'associatedFiles.media'],
@@ -333,17 +314,10 @@ export class LessonsService {
     // Build where clause for module validation
     const moduleWhereClause: any = { 
       moduleId, 
-      status: Not(ModuleStatus.ARCHIVED as any) 
+      status: Not(ModuleStatus.ARCHIVED as any),
+      tenantId: tenantId,
+      organisationId: organisationId
     };
-    
-    // Add tenant and org filters if provided
-    if (tenantId) {
-      moduleWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      moduleWhereClause.organisationId = organisationId;
-    }
     
     // Validate module exists with tenant/org filtering
     const module = await this.moduleRepository.findOne({
@@ -351,7 +325,7 @@ export class LessonsService {
     });
     
     if (!module) {
-      throw new NotFoundException('Module not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
     // Get all lessons for this module with filtering
@@ -359,8 +333,8 @@ export class LessonsService {
       where: { 
         moduleId, 
         status: Not(LessonStatus.ARCHIVED),
-        ...(tenantId && { tenantId }),
-        ...(organisationId && { organisationId }),
+        tenantId: tenantId,
+        organisationId: organisationId
       },
       relations: ['media','associatedFiles.media'],
     });
@@ -386,7 +360,6 @@ export class LessonsService {
     userId: string,
     tenantId: string,
     organisationId?: string,
-    image?: Express.Multer.File,
   ): Promise<Lesson> {
     try {
       const lesson = await this.lessonRepository.findOne({
@@ -399,7 +372,7 @@ export class LessonsService {
 
       // Check if lesson has a checked out status (if that property exists)
       if (updateLessonDto.checkedOut !== undefined) {
-        throw new BadRequestException('Lesson is checked out by another user');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.LESSON_CHECKED_OUT);
       }
 
       // Parse JSON params if they are provided as a string
@@ -408,76 +381,43 @@ export class LessonsService {
           updateLessonDto.params = JSON.parse(updateLessonDto.params);
         } catch (error) {
           this.logger.error(`Error parsing params JSON: ${error.message}`);
-          throw new BadRequestException('Invalid params JSON format');
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.INVALID_PARAMS_FORMAT);
         }
       }
 
-      // Handle media updates if mediaContent is provided
-      if (updateLessonDto.mediaContent) {
-        // Get the current media
+             // Get the current media
         const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
           where: { mediaId: lesson.mediaId }
         }) : null;
         
           // For other formats
           // Validate format matches lesson format
-          if (lesson.format !== updateLessonDto.mediaContent.format as LessonFormat) {
-            throw new BadRequestException('Cannot change lesson format during update');
-          }
-
-          // Validate mediaId is provided
-          if (!updateLessonDto.mediaContent.mediaId) {
-            throw new BadRequestException('Media ID is required in mediaContent for non-document formats');
+          if (lesson.format !== lesson.format as LessonFormat) {
+            throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_CHANGE_FORMAT);
           }
 
           if (!currentMedia) {
             throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
           }
 
+          let storage: string = 'local';
+          if(updateLessonDto.format === LessonFormat.DOCUMENT){
+            storage = this.configService.get('cloud_storage_provider') || 'local';
+          }
+
           // Update the media content
           await this.mediaRepository.update(currentMedia.mediaId, {
             tenantId: tenantId,
             organisationId: organisationId,
-            format: updateLessonDto.mediaContent.format as LessonFormat,
-            subFormat: updateLessonDto.mediaContent.subFormat,
-            source: updateLessonDto.mediaContent.source,
-            storage: updateLessonDto.mediaContent.storage || 'local',
+            format: lesson.format as LessonFormat,
+            subFormat: updateLessonDto.mediaContentsubFormat,
+            source: updateLessonDto.mediaContentSource,
+            path: updateLessonDto.mediaContentPath,
+            storage: storage,
             updatedBy: userId,
             updatedAt: new Date()
           });
-      } else if (updateLessonDto.mediaId) {
-        // Handle direct mediaId update
-        const newMedia = await this.mediaRepository.findOne({
-          where: { mediaId: updateLessonDto.mediaId }
-        });
-
-        if (!newMedia) {
-          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MEDIA_NOT_FOUND);
-        }
-
-        // Get the current media
-        const currentMedia = lesson.mediaId ? await this.mediaRepository.findOne({
-          where: { mediaId: lesson.mediaId }
-        }) : null;
-
-        // If the media is the same, do nothing
-        if (currentMedia && currentMedia.mediaId === newMedia.mediaId) {
-          // Remove mediaId from update data since it's the same
-          updateLessonDto.mediaId = undefined;
-        } else {
-          // If different media, archive old and use new
-          if (currentMedia) {
-            await this.mediaRepository.update(currentMedia.mediaId, {
-              status: MediaStatus.ARCHIVED,
-              updatedBy: userId,
-              updatedAt: new Date()
-            });
-          }
-          // Set the new mediaId in the lesson entity
-          lesson.mediaId = newMedia.mediaId;
-        }
-      }
-
+     
       // If title is changed but no alias provided, generate one from the title
       if (updateLessonDto.title && updateLessonDto.title !== lesson.title && !updateLessonDto.alias) {
         updateLessonDto.alias = await HelperUtil.generateUniqueAliasWithRepo(
@@ -494,15 +434,9 @@ export class LessonsService {
           alias: updateLessonDto.alias,
           lessonId: Not(lessonId),
           status: Not(LessonStatus.ARCHIVED),
+          tenantId: tenantId,
+          organisationId: organisationId
         };
-        
-        if (tenantId) {
-          whereClause.tenantId = tenantId;
-        }
-        
-        if (organisationId) {
-          whereClause.organisationId = organisationId;
-        }
         
         const existingLesson = await this.lessonRepository.findOne({
           where: whereClause,
@@ -592,11 +526,7 @@ export class LessonsService {
       if (updateLessonDto.params !== undefined) {
         updateData.params = updateLessonDto.params;
       }
-
-      if (updateLessonDto.mediaId !== undefined) {
-        updateData.mediaId = updateLessonDto.mediaId;
-      }
-      
+            
       // Update the lesson
       const updatedLesson = this.lessonRepository.merge(lesson, updateData);
       const savedLesson = await this.lessonRepository.save(updatedLesson);
@@ -632,7 +562,7 @@ export class LessonsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException('Error updating lesson');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_UPDATING_LESSON);
     }
   }
 
@@ -659,6 +589,8 @@ export class LessonsService {
       }
 
       // Archive the lesson
+      lesson.updatedBy = userId;
+      lesson.updatedAt = new Date();
       lesson.status = LessonStatus.ARCHIVED;
       const savedLesson = await this.lessonRepository.save(lesson);
 
@@ -689,7 +621,7 @@ export class LessonsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException('Error removing lesson');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.ERROR_REMOVING_LESSON);
     }
   }
 
