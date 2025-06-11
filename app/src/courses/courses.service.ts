@@ -533,8 +533,8 @@ export class CoursesService {
             status: lessonTrack.status,
             progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 : 
                      (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
-                     Math.min(Math.round((lessonTrack.currentPosition/lessonTrack.totalContent || 0) * 100), 99)),
-            lastAccessed: lessonTrack.updatedAt,
+                      Math.min(Math.round(((lessonTrack.totalContent > 0 ? lessonTrack.currentPosition/lessonTrack.totalContent : 0)) * 100), 99)),
+                      lastAccessed: lessonTrack.updatedAt,
             timeSpent: lessonTrack.timeSpent || 0,
             score: lessonTrack.score,
             attempt: {

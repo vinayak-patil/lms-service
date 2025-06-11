@@ -40,7 +40,7 @@ export class Course {
   title: string;
 
   @ApiProperty({ description: 'Course alias or short name', example: 'intro-web-dev', required: true })
-  @Column({ type: 'varchar'})
+  @Column({ type: 'text'})
   @Index()
   alias: string;
 
