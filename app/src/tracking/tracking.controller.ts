@@ -132,7 +132,7 @@ export class TrackingController {
     );
   }
 
-  @Patch('attempts/:attemptId/progress')
+  @Patch('attempts/progress/:attemptId')
   @ApiId(API_IDS.UPDATE_ATTEMPT_PROGRESS)
   @ApiOperation({ summary: 'Update attempt progress' })
   @ApiResponse({

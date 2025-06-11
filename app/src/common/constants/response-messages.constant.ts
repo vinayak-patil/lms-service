@@ -81,6 +81,15 @@ export const RESPONSE_MESSAGES = {
     MEDIA_NOT_ASSOCIATED_WITH_LESSON: 'The specified lesson is not associated with this media',
     COURSE_TRACKING_NOT_FOUND: 'Course tracking not found',
     COURSE_COMPLETED: 'Course is completed',
+    MAX_ATTEMPTS_REACHED: 'Max attempts reached',
+    NO_EXISTING_ATTEMPT: 'No existing attempt found',
+    RESUME_NOT_ALLOWED: 'Resume not allowed',
+    CANNOT_START_COMPLETED: 'Cannot start completed course',
+    CANNOT_RESUME_COMPLETED: 'Cannot resume completed course',
+    ATTEMPT_NOT_FOUND: 'Attempt not found',
+    MODULE_TRACKING_ERROR: 'Error while updating module tracking',
+    FILE_REQUIRED_DOCUMENT: 'File is required for document format',
+    MEDIA_ALREADY_ASSOCIATED_WITH_LESSON: 'Media is already associated with a lesson',
   },
 };
 

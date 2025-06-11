@@ -5,10 +5,9 @@ import {
   InternalServerErrorException,
   ConflictException,
   Logger,
-  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, LessThan, MoreThan, FindOptionsWhere } from 'typeorm';
+import { Repository, Not, FindOptionsWhere, DataSource } from 'typeorm';
 import { UserEnrollment, EnrollmentStatus } from './entities/user-enrollment.entity';
 import { Course } from '../courses/entities/course.entity';
 import { CourseStatus } from '../courses/entities/course.entity';
@@ -41,6 +40,7 @@ export class EnrollmentsService {
     private readonly configService: ConfigService,
     @InjectRepository(Lesson)
     private readonly lessonRepository: Repository<Lesson>,
+    private readonly dataSource: DataSource,
   ) {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
     this.cache_ttl_default = this.configService.get('CACHE_DEFAULT_TTL') || 3600;
@@ -57,9 +57,14 @@ export class EnrollmentsService {
     createEnrollmentDto: CreateEnrollmentDto,
     userId: string,
     tenantId: string,
-    organisationId?: string
+    organisationId: string
   ): Promise<UserEnrollment> {
     this.logger.log(`Enrolling user: ${JSON.stringify(createEnrollmentDto)}`);
+    
+    // Create a query runner for transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
     
     try {
       const { courseId } = createEnrollmentDto;
@@ -73,7 +78,7 @@ export class EnrollmentsService {
       };
       
       // Validate course exists with proper data isolation
-      const course = await this.courseRepository.findOne({
+      const course = await queryRunner.manager.findOne(Course, {
         where: courseWhereClause,
       });
       
@@ -95,14 +100,13 @@ export class EnrollmentsService {
       };
       
       // Check for existing active enrollment
-      const existingEnrollment = await this.userEnrollmentRepository.findOne({
+      const existingEnrollment = await queryRunner.manager.findOne(UserEnrollment, {
         where: enrollmentWhereClause,
       });
       
       if (existingEnrollment) {
         throw new ConflictException(RESPONSE_MESSAGES.ALREADY_ENROLLED);
       }
-
 
       // Calculate end time based on course settings
       let endTime: Date | null = null;
@@ -124,7 +128,7 @@ export class EnrollmentsService {
       }
 
       // Create new enrollment entity
-      const enrollment = this.userEnrollmentRepository.create({
+      const enrollment = queryRunner.manager.create(UserEnrollment, {
         courseId,
         userId: createEnrollmentDto.learnerId,
         tenantId,
@@ -141,7 +145,7 @@ export class EnrollmentsService {
       });
 
       // Save the enrollment
-      const savedEnrollment = await this.userEnrollmentRepository.save(enrollment);
+      const savedEnrollment = await queryRunner.manager.save(enrollment);
 
       // Build where clause for course validation
       const courseLessonWhereClause: any = { 
@@ -151,11 +155,12 @@ export class EnrollmentsService {
         status: CourseStatus.PUBLISHED
       };
       
-      const courseLessons = await this.lessonRepository.count({
+      const courseLessons = await queryRunner.manager.count(Lesson, {
         where: courseLessonWhereClause
       }); 
+
       // Create course tracking record
-      const courseTrack = this.courseTrackRepository.create({
+      const courseTrack = queryRunner.manager.create(CourseTrack, {
         courseId,
         tenantId,
         organisationId,
@@ -167,10 +172,10 @@ export class EnrollmentsService {
         lastAccessedDate: new Date(),
       });
       
-      await this.courseTrackRepository.save(courseTrack);
+      await queryRunner.manager.save(courseTrack);
 
       // Find and return the complete enrollment with relations
-      const completeEnrollment = await this.userEnrollmentRepository.findOne({
+      const completeEnrollment = await queryRunner.manager.findOne(UserEnrollment, {
         where: { enrollmentId: savedEnrollment.enrollmentId },
         relations: ['course'],
       });
@@ -178,6 +183,9 @@ export class EnrollmentsService {
       if (!completeEnrollment) {
         throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
       }
+
+      // Commit the transaction
+      await queryRunner.commitTransaction();
 
       // Invalidate cache
       if (this.cache_enabled) {
@@ -190,6 +198,9 @@ export class EnrollmentsService {
       
       return completeEnrollment;
     } catch (error) {
+      // Rollback the transaction on error
+      await queryRunner.rollbackTransaction();
+      
       this.logger.error(`Error enrolling user: ${error.message}`);
       if (
         error instanceof NotFoundException ||
@@ -199,6 +210,9 @@ export class EnrollmentsService {
         throw error;
       }
       throw new InternalServerErrorException(RESPONSE_MESSAGES.ENROLLMENT_ERROR);
+    } finally {
+      // Release the query runner
+      await queryRunner.release();
     }
   }
 
