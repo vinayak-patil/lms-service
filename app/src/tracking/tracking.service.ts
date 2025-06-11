@@ -238,7 +238,7 @@ export class TrackingService {
       // start over
       // Check max attempts
       const maxAttempts = lesson.noOfAttempts || 1;
-      if (latestTrack.attempt > maxAttempts) {
+      if (latestTrack.attempt >= maxAttempts) {
         throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MAX_ATTEMPTS_REACHED);
       }
 

@@ -19,7 +19,9 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { Lesson } from '../lessons/entities/lesson.entity';
+import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
+import { InjectDataSource } from '@nestjs/typeorm';
+
 
 @Injectable()
 export class EnrollmentsService {
@@ -40,6 +42,7 @@ export class EnrollmentsService {
     private readonly configService: ConfigService,
     @InjectRepository(Lesson)
     private readonly lessonRepository: Repository<Lesson>,
+    @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {
     this.cache_enabled = this.configService.get('CACHE_ENABLED') || true;
@@ -63,10 +66,11 @@ export class EnrollmentsService {
     
     // Create a query runner for transaction
     const queryRunner = this.dataSource.createQueryRunner();
+
+    try{
     await queryRunner.connect();
     await queryRunner.startTransaction();
     
-    try {
       const { courseId } = createEnrollmentDto;
       
       // Build where clause for course validation with data isolation
@@ -152,7 +156,7 @@ export class EnrollmentsService {
         courseId, 
         tenantId,
         organisationId,
-        status: CourseStatus.PUBLISHED
+        status: LessonStatus.PUBLISHED
       };
       
       const courseLessons = await queryRunner.manager.count(Lesson, {
