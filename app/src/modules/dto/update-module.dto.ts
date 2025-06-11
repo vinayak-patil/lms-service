@@ -9,14 +9,4 @@ import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.cons
 export class UpdateModuleDto extends PartialType(
   OmitType(CreateModuleDto, ['courseId'] as const)
 ) {
-  @IsOptional()
-  @ApiPropertyOptional({ type: String, format: 'uuid' })
-  @IsString()
-  updatedBy?: string;
-  
-  @IsOptional()
-  @ApiPropertyOptional({ type: String, format: 'date-time' })
-  @Type(() => Date)
-  @IsDate()
-  updatedAt?: Date;
 }
