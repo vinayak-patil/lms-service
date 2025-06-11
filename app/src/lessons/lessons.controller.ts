@@ -9,7 +9,7 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
-  Put,
+  Patch,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -128,7 +128,7 @@ export class LessonsController {
     );
   }
 
-  @Put(':lessonId')
+  @Patch(':lessonId')
   @ApiId(API_IDS.UPDATE_LESSON)
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiBody({ type: UpdateLessonDto })

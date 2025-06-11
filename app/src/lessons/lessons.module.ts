@@ -10,7 +10,7 @@ import { AssociatedFile } from '../media/entities/associated-file.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CommonModule } from '../common/common.module';
 import { CacheModule } from '../cache/cache.module';
-
+import { ConfigurationModule } from '../configuration/configuration.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -23,6 +23,7 @@ import { CacheModule } from '../cache/cache.module';
     ]),
     CommonModule,
     CacheModule,
+    ConfigurationModule,
   ],
   controllers: [LessonsController],
   providers: [LessonsService],

@@ -343,6 +343,8 @@ export class ModulesService {
       // Find the module to update
       const module = await this.findOne(moduleId, tenantId, organisationId);
 
+      updateModuleDto.updatedBy = userId;
+      updateModuleDto.updatedAt = new Date();
       // Update the module
       const updatedModule = this.moduleRepository.merge(module, updateModuleDto);
       const savedModule = await this.moduleRepository.save(updatedModule);

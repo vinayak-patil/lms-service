@@ -398,7 +398,7 @@ export class TrackingService {
     const savedAttempt = await this.lessonTrackRepository.save(attempt);
 
     // Update course and module tracking if lesson is completed
-    if (savedAttempt.status === TrackingStatus.COMPLETED && savedAttempt.courseId) {
+    if (savedAttempt.courseId) {
       await this.updateCourseAndModuleTracking(savedAttempt, tenantId, organisationId);
     }
 
@@ -431,7 +431,7 @@ export class TrackingService {
     courseTrack.lastAccessedDate = new Date();
 
     // If the lesson is completed, update completed lessons count
-    if (lessonTrack.status === TrackingStatus.COMPLETED) {
+    if (lessonTrack.status === TrackingStatus.COMPLETED || courseTrack.status === TrackingStatus.STARTED) {
       // Get all completed lessons for this course
       const completedLessonTracks = await this.lessonTrackRepository.find({
         where: { 
@@ -455,10 +455,9 @@ export class TrackingService {
         courseTrack.endDatetime = new Date();
         
       } else {
-        // Course is not fully completed yet - status remains INCOMPLETE
+        courseTrack.status = TrackingStatus.INCOMPLETE;
       }
     }
-
     await this.courseTrackRepository.save(courseTrack);
 
     // Find and update module tracking if applicable
@@ -543,6 +542,10 @@ export class TrackingService {
       moduleTrack.status = ModuleTrackStatus.INCOMPLETE;
     }
 
-    await this.moduleTrackRepository.save(moduleTrack);
+    try {
+      await this.moduleTrackRepository.save(moduleTrack);
+    } catch (error) {
+      console.log('at error', error);
+    }
   }
 }

@@ -8,7 +8,7 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  @Post('presign-url')
+  @Get('presign-url')
   @ApiOperation({ summary: 'Get a pre-signed URL for file upload' })
   @ApiQuery({ type: GetPresignedUrlDto })
   @ApiResponse({
@@ -35,7 +35,7 @@ export class StorageController {
   @ApiResponse({ status: 400, description: 'Invalid request parameters' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getPresignedUrl(  
-    @Body() query: GetPresignedUrlDto,
+    @Query() query: GetPresignedUrlDto,
   ) {
     return this.storageService.getPresignedUrl(
       query.type,
