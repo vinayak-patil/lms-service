@@ -41,6 +41,7 @@ export class UpdateLessonDto extends PartialType(
   })
   @ValidateIf((o) => o.format && o.format !== LessonFormat.DOCUMENT)
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content source') })
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Source') })
   mediaContentSource?: string;
 
   @ApiProperty({
@@ -50,7 +51,8 @@ export class UpdateLessonDto extends PartialType(
   })
   @ValidateIf((o) => o.format && o.format === LessonFormat.DOCUMENT)
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content path') })
-  mediaContentPath: string;
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Path') })
+  mediaContentPath?: string;
 
   @ApiProperty({
     description: 'Media content sub-format',
@@ -59,7 +61,7 @@ export class UpdateLessonDto extends PartialType(
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content sub-format') })
   @IsEnum(LessonSubFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Media content sub-format') })  
-  mediaContentsubFormat: LessonSubFormat;
+  mediaContentSubFormat?: LessonSubFormat;
 
   @ApiProperty({
     description: 'User ID who checked out the lesson',

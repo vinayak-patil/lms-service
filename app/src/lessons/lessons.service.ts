@@ -124,7 +124,7 @@ export class LessonsService {
           tenantId: tenantId,
           organisationId: organisationId,
           format: createLessonDto.format,
-          subFormat: createLessonDto.mediaContentsubFormat,
+          subFormat: createLessonDto.mediaContentSubFormat, 
           source: createLessonDto.mediaContentSource || undefined,
           path: createLessonDto.mediaContentPath || undefined,
           storage: storage,
@@ -392,7 +392,7 @@ export class LessonsService {
         
           // For other formats
           // Validate format matches lesson format
-          if (lesson.format !== lesson.format as LessonFormat) {
+          if (updateLessonDto.format && updateLessonDto.format !== lesson.format) {
             throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_CHANGE_FORMAT);
           }
 
@@ -410,7 +410,7 @@ export class LessonsService {
             tenantId: tenantId,
             organisationId: organisationId,
             format: lesson.format as LessonFormat,
-            subFormat: updateLessonDto.mediaContentsubFormat,
+            subFormat: updateLessonDto.mediaContentSubFormat,
             source: updateLessonDto.mediaContentSource,
             path: updateLessonDto.mediaContentPath,
             storage: storage,

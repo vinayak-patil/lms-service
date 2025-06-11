@@ -74,7 +74,7 @@ export class CreateLessonDto {
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content sub-format') })
   @IsEnum(LessonSubFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Media content sub-format') })  
-  mediaContentsubFormat: LessonSubFormat;
+  mediaContentSubFormat: LessonSubFormat;
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.IMAGE,

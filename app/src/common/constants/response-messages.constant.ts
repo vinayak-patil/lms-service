@@ -41,7 +41,6 @@ export const RESPONSE_MESSAGES = {
   ENROLLMENT_NOT_FOUND: 'Enrollment not found',
   ALREADY_ENROLLED: 'User is already enrolled in this course',
   ADMIN_APPROVAL_REQUIRED: 'Admin approval required for this course',
-  INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
   ENROLLMENT_ERROR: 'Error enrolling user for course',
   FETCH_ERROR: 'Error retrieving enrollments',
   UPDATE_ERROR: 'Error updating enrollment',
