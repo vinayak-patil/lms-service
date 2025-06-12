@@ -12,7 +12,7 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -62,22 +62,18 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
 
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { type: 'course' });
+        createCourseDto.image = await this.fileUploadService.uploadFile(file, { type: 'course' });
       }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
       const course = await this.coursesService.create(
-        {
-          ...createCourseDto,
-          image: imagePath,
-        },
+        createCourseDto,
         query.userId,
         tenantOrg.tenantId,
         tenantOrg.organisationId,
@@ -255,25 +251,21 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
 
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { 
+        updateCourseDto.image = await this.fileUploadService.uploadFile(file, { 
           type: 'course',
         });
       }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
     const course = await this.coursesService.update(
       courseId,
-      {
-        ...updateCourseDto,
-        image: imagePath,
-      },
+      updateCourseDto,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,

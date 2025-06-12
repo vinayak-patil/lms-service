@@ -9,7 +9,7 @@ export class StorageHelper {
     // File Validation Methods
   validateMimeType(mimeType: string, allowedMimeTypes: string[]): void {
     if (!allowedMimeTypes.includes(mimeType)) {
-      throw new Error(
+      throw new UnsupportedMediaTypeException(
         `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${allowedMimeTypes.join(', ')}`
       );
     }
@@ -17,7 +17,7 @@ export class StorageHelper {
 
   validateFileSize(fileSize: number, maxSize: number): void {
     if (fileSize > (maxSize * 1024 * 1024)) {
-      throw new Error(
+      throw new PayloadTooLargeException(
         `${RESPONSE_MESSAGES.ERROR.FILE_TOO_LARGE}: ${maxSize}MB`
       );
     }
@@ -61,7 +61,7 @@ export class StorageHelper {
         basePath = this.configurationService.getValue('lessons_associated_media_upload_path');
         break;
       default:
-        throw new Error(`${RESPONSE_MESSAGES.ERROR.INVALID_UPLOAD_TYPE}: ${entityType}`);
+        throw new BadRequestException(`${RESPONSE_MESSAGES.ERROR.INVALID_UPLOAD_TYPE}: ${entityType}`);
     }
 
     return filename ? path.join(basePath, filename).replace(/\\/g, '/') : basePath;
@@ -77,11 +77,11 @@ export class StorageHelper {
     const { region, accessKeyId, secretAccessKey, container, expiresIn } = storageConfig;
 
     if (!region || !accessKeyId || !secretAccessKey) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.MISSING_AWS_CONFIG);
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MISSING_AWS_CONFIG);
     }
 
     if (!container) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.MISSING_S3_BUCKET);
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MISSING_S3_BUCKET);
     }
 
     return {

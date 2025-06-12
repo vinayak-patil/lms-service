@@ -119,6 +119,18 @@
             "title": "Lessons Upload Path",
             "description": "Lessons Upload Path",
             "default": "lessons"
+          },
+          "lessons_media_upload_path": {
+            "type": "string",
+            "title": "Lessons Media Upload Path",
+            "description": "Filesystem path for lesson media uploads",
+            "default": ""
+          },
+          "lessons_associated_media_upload_path": {
+            "type": "string",
+            "title": "Lessons Associated Media Upload Path",
+            "description": "Filesystem path for associated lesson media uploads",
+            "default": ""
           }
         }
       },

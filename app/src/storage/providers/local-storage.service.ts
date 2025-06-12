@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage, StorageEngine } from 'multer';
@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import { HttpStatus } from '@nestjs/common';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { StorageHelper } from '../helpers/storage.helper';
-
+import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
 export class FileValidationError extends HttpException {
   constructor(message: string, status: HttpStatus = HttpStatus.BAD_REQUEST) {
     super(message, status);
@@ -77,5 +77,8 @@ export class FileUploadService {
       }
       return;
     }
+    
+    // TODO: Implement cloud storage deletion
+    throw new BadRequestException(RESPONSE_MESSAGES.ERROR.FILE_DELETION_NOT_IMPLEMENTED + driver);
   }
 } 

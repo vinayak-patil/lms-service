@@ -13,6 +13,7 @@ import {
   BadRequestException,
   Query,
   Patch,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -61,22 +62,17 @@ export class ModulesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
-
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { type: 'module' });
+        createModuleDto.image = await this.fileUploadService.uploadFile(file, { type: 'module' });
       }
       } catch (error) {
-        throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+    throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
       }
 
     const module = await this.modulesService.create(
-      {
-        ...createModuleDto,
-        image: imagePath,
-      },
+      createModuleDto,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
@@ -162,31 +158,27 @@ export class ModulesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   async updateModule(
-    @Param('moduleId') moduleId: string,
+    @Param('moduleId', ParseUUIDPipe) moduleId: string,
     @Body() updateModuleDto: UpdateModuleDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
 
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { 
+        updateModuleDto.image = await this.fileUploadService.uploadFile(file, { 
         type: 'module',
       });
     }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
     const module = await this.modulesService.update(
       moduleId,
-      {
-        ...updateModuleDto,
-        image: imagePath,
-      },
+      updateModuleDto,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,

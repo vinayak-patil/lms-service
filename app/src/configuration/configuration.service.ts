@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigDto } from './dto/configuration.dto';
@@ -54,7 +54,7 @@ export class ConfigurationService {
         data: updatedConfig
       };
     } catch (error) {
-      throw new Error(`${RESPONSE_MESSAGES.ERROR.CONFIG_UPDATE_FAILED}: ${error.message}`);
+      throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.CONFIG_UPDATE_FAILED}: ${error.message}`);
     }
   }
 
@@ -127,7 +127,7 @@ export class ConfigurationService {
         data: tenantConfig
       };
     } catch (error) {
-      throw new Error(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_SYNC_FAILED}: ${error.message}`);
+      throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_SYNC_FAILED}: ${error.message}`);
     }
   }
 
@@ -135,7 +135,7 @@ export class ConfigurationService {
     try {
       const externalConfigUrl = this.configService.get('EXTERNAL_CONFIG_URL');
       if (!externalConfigUrl) {
-        throw new Error(RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_URL_MISSING);
+        throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_URL_MISSING);
       }
 
       const response = await firstValueFrom(
@@ -144,7 +144,7 @@ export class ConfigurationService {
 
       return response.data.result;
     } catch (error) {
-      throw new Error(`${error.message}`);
+      throw new InternalServerErrorException(`${error.message}`);
     }
   }
 

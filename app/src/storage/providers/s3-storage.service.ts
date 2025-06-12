@@ -76,7 +76,6 @@ export class S3StorageService implements IStorageService {
         Expires: this.expiresIn,
         Fields: {
           'Content-Type': mimeType,
-          'ACL': 'public-read',
           'key': key,
         },
       });

@@ -13,6 +13,7 @@ import {
   BadRequestException,
   Patch,
   HttpStatus,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -62,22 +63,18 @@ export class LessonsController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
 
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
+        createLessonDto.image = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
       }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
     const lesson = await this.lessonsService.create(
-      {
-        ...createLessonDto,
-        image: imagePath,
-      },
+      createLessonDto,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
@@ -162,25 +159,21 @@ export class LessonsController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let imagePath: string | undefined;
-
+    
     try {
       if (file) {
         // Upload file and get the path
-        imagePath = await this.fileUploadService.uploadFile(file, { 
+        updateLessonDto.image = await this.fileUploadService.uploadFile(file, { 
         type: 'lesson',
       });
     }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
     const lesson = await this.lessonsService.update(
       lessonId,
-      {
-        ...updateLessonDto,
-        image: imagePath,
-      },
+      updateLessonDto,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,

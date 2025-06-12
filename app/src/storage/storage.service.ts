@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { IStorageService, PresignedUrlResponse, FileUploadResponse } from './interfaces/storage.interface';
 import { S3StorageService } from './providers/s3-storage.service';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
@@ -23,7 +23,7 @@ export class StorageService implements IStorageService {
       case 'aws':
         return new S3StorageService(this.storageHelper);      
       default:
-        throw new Error(`${RESPONSE_MESSAGES.ERROR.UNSUPPORTED_STORAGE_PROVIDER}: ${storageProvider}`);
+        throw new BadRequestException(`${RESPONSE_MESSAGES.ERROR.UNSUPPORTED_STORAGE_PROVIDER}: ${storageProvider}`);
     }
   }
 

@@ -8,7 +8,9 @@ import {
   Query,
   UploadedFile,
   UseInterceptors,
-  ParseUUIDPipe
+  ParseUUIDPipe,
+  InternalServerErrorException,
+  BadRequestException
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -52,7 +54,7 @@ export class MediaController {
   ) {
     // Check if file is required based on format
     if (createMediaDto.format === LessonFormat.DOCUMENT && !file) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FILE_REQUIRED_DOCUMENT);
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.FILE_REQUIRED_DOCUMENT);
     }
 
     try {
@@ -62,7 +64,7 @@ export class MediaController {
         createMediaDto.path = filePath;
       }
     } catch (error) {
-      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
+  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
 
     return this.mediaService.uploadMedia(

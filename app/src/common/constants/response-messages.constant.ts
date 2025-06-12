@@ -109,7 +109,7 @@ export const RESPONSE_MESSAGES = {
     FILE_TOO_LARGE: 'File size exceeds the maximum allowed size of',
     FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
     INVALID_FILE_TYPE: 'Invalid file type. Allowed types are:',
-
+    FILE_DELETION_NOT_IMPLEMENTED: 'File deletion not implemented for storage provider:',
   },
 };
 

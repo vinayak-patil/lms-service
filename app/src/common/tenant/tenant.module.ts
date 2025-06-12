@@ -3,7 +3,7 @@ import { TenantContext } from './tenant.context';
 import { TenantMiddleware } from './tenant.middleware';
 
 @Module({
-  providers: [TenantContext],
+  providers: [TenantContext, TenantMiddleware],
   exports: [TenantContext],
 })
 export class TenantModule implements NestModule {
