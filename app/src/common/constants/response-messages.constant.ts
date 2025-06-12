@@ -81,6 +81,10 @@ export const RESPONSE_MESSAGES = {
     MEDIA_NOT_ASSOCIATED_WITH_LESSON: 'The specified lesson is not associated with this media',
     COURSE_TRACKING_NOT_FOUND: 'Course tracking not found',
     COURSE_COMPLETED: 'Course is completed',
+    EXTERNAL_CONFIG_SYNC_FAILED: 'Failed to sync external configuration',
+    EXTERNAL_CONFIG_URL_MISSING: 'External configuration URL is missing',
+    CONFIG_UPDATE_FAILED: 'Failed to update configuration',
+    EXTERNAL_CONFIG_NOT_FOUND: 'External configuration not found',
   },
 };
 
