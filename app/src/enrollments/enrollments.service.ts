@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, FindOptionsWhere, DataSource } from 'typeorm';
+import { Repository, Not, IsNull, LessThan, MoreThan, FindOptionsWhere, DataSource } from 'typeorm';
 import { UserEnrollment, EnrollmentStatus } from './entities/user-enrollment.entity';
 import { Course } from '../courses/entities/course.entity';
 import { CourseStatus } from '../courses/entities/course.entity';
@@ -70,7 +70,6 @@ export class EnrollmentsService {
     try{
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    
       const { courseId } = createEnrollmentDto;
       
       // Build where clause for course validation with data isolation
@@ -127,7 +126,7 @@ export class EnrollmentsService {
           params = JSON.parse(params);
         } catch (error) {
           this.logger.error(`Error parsing params JSON: ${error.message}`);
-          throw new BadRequestException(RESPONSE_MESSAGES.INVALID_PARAMS_FORMAT);
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.INVALID_PARAMS_FORMAT);
         }
       }
 

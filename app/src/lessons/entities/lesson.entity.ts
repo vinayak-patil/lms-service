@@ -21,6 +21,13 @@ export enum LessonFormat {
   QUIZ = 'test',
   EVENT = 'event',
 }
+export enum LessonSubFormat {
+  YOUTUBE = 'youtube.url',
+  PDF = 'pdf',
+  QUIZ = 'quiz',
+  EVENT = 'event',
+  VIDEO = 'video.url',
+}
 
 export enum LessonStatus {
   UNPUBLISHED = 'unpublished',
