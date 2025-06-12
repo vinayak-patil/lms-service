@@ -92,6 +92,13 @@ export const RESPONSE_MESSAGES = {
     ERROR_REMOVING_LESSON: 'Error removing lesson',
     PARENT_MODULE_INVALID: 'Parent module is invalid',
     COURSE_OR_PARENT_REQUIRED: 'Either courseId or parentId is required',
+    UNSUPPORTED_STORAGE_PROVIDER: 'Unsupported storage provider',
+    INVALID_UPLOAD_TYPE: 'Invalid upload type',
+    INVALID_FILE_TYPE: 'Invalid file type',
+    MISSING_S3_BUCKET: 'Missing S3 bucket',
+    MISSING_AWS_CONFIG: 'Missing AWS configuration',
+    DIRECT_UPLOAD_NOT_SUPPORTED: 'Direct upload is not supported for cloud storage. Please use presigned URLs.',
+    FILE_TOO_LARGE: 'File size exceeds the maximum allowed size of',
   },
 };
 

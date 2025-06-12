@@ -33,7 +33,7 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
-import { FileUploadService } from '../common/services/file-upload.service';
+import { FileUploadService } from '../storage/providers/local-storage.service';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Lessons')
@@ -169,7 +169,6 @@ export class LessonsController {
         // Upload file and get the path
         imagePath = await this.fileUploadService.uploadFile(file, { 
         type: 'lesson',
-        lessonId,
       });
     }
     } catch (error) {

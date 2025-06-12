@@ -12,26 +12,41 @@ import { HelperUtil } from '../utils/helper.util';
 import { Reflector } from '@nestjs/core';
 import { API_ID } from '../decorators/api-id.decorator';
 
-@Catch(HttpException)
+@Catch(HttpException, Error)
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
   constructor(private reflector: Reflector) {}
   
-  catch(exception: HttpException, host: ArgumentsHost) {
+  catch(exception: HttpException | Error, host: ArgumentsHost) {
     try {
       const ctx = host.switchToHttp();
       const response = ctx.getResponse<Response>();
       const request = ctx.getRequest<Request>();
-      const status = exception.getStatus();
-      const errorResponse = exception.getResponse();
+      
+      // Handle both HttpException and regular Error
+      const status = exception instanceof HttpException 
+        ? exception.getStatus() 
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      const errorResponse = exception instanceof HttpException 
+        ? exception.getResponse() 
+        : exception.message;
 
       // Get the apiId from the handler metadata
       const apiId = this.reflector.get<string>(API_ID, request.route?.stack[0]?.handle) || 'api.error';
 
+      // Enhanced logging with request context
       this.logger.error(
         `HTTP Exception: ${status} - ${request.method} ${request.url}`,
-        errorResponse,
+        {
+          error: errorResponse,
+          timestamp: new Date().toISOString(),
+          path: request.path,
+          method: request.method,
+          ip: request.ip,
+          userAgent: request.get('user-agent'),
+        },
       );
 
       const responseBody: ApiResponse = {
@@ -49,7 +64,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       response.status(status).json(responseBody);
     } catch (error) {
-      this.logger.error('Error in HttpExceptionFilter:', error);
+      this.logger.error('Error in HttpExceptionFilter:', {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      });
+      
       const response = host.switchToHttp().getResponse<Response>();
       response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         id: 'api.error',
@@ -72,26 +92,59 @@ export class HttpExceptionFilter implements ExceptionFilter {
       [HttpStatus.UNAUTHORIZED]: 'ERR_UNAUTHORIZED',
       [HttpStatus.FORBIDDEN]: 'ERR_FORBIDDEN',
       [HttpStatus.NOT_FOUND]: 'ERR_NOT_FOUND',
+      [HttpStatus.METHOD_NOT_ALLOWED]: 'ERR_METHOD_NOT_ALLOWED',
+      [HttpStatus.REQUEST_TIMEOUT]: 'ERR_REQUEST_TIMEOUT',
       [HttpStatus.CONFLICT]: 'ERR_CONFLICT',
+      [HttpStatus.GONE]: 'ERR_GONE',
+      [HttpStatus.PAYLOAD_TOO_LARGE]: 'ERR_PAYLOAD_TOO_LARGE',
+      [HttpStatus.UNSUPPORTED_MEDIA_TYPE]: 'ERR_UNSUPPORTED_MEDIA_TYPE',
+      [HttpStatus.UNPROCESSABLE_ENTITY]: 'ERR_UNPROCESSABLE_ENTITY',
+      [HttpStatus.TOO_MANY_REQUESTS]: 'ERR_TOO_MANY_REQUESTS',
       [HttpStatus.INTERNAL_SERVER_ERROR]: 'ERR_INTERNAL_SERVER',
+      [HttpStatus.NOT_IMPLEMENTED]: 'ERR_NOT_IMPLEMENTED',
+      [HttpStatus.BAD_GATEWAY]: 'ERR_BAD_GATEWAY',
+      [HttpStatus.SERVICE_UNAVAILABLE]: 'ERR_SERVICE_UNAVAILABLE',
+      [HttpStatus.GATEWAY_TIMEOUT]: 'ERR_GATEWAY_TIMEOUT',
     };
 
     return errorCodes[status] || 'ERR_UNKNOWN';
   }
 
   private extractErrorMessage(errorResponse: any): string {
+    if (!errorResponse) {
+      return 'An unexpected error occurred';
+    }
+
     if (typeof errorResponse === 'string') {
       return errorResponse;
     }
 
-    if (errorResponse && typeof errorResponse === 'object') {
-      if (errorResponse.message) {
-        return Array.isArray(errorResponse.message)
-          ? errorResponse.message[0]
-          : errorResponse.message;
+    if (typeof errorResponse === 'object') {
+      // Handle array of messages
+      if (Array.isArray(errorResponse.message)) {
+        return errorResponse.message[0];
       }
+      
+      // Handle single message
+      if (errorResponse.message) {
+        return errorResponse.message;
+      }
+      
+      // Handle error property
       if (errorResponse.error) {
         return errorResponse.error;
+      }
+      
+      // Handle validation errors
+      if (errorResponse.errors) {
+        const firstError = Object.values(errorResponse.errors)[0];
+        if (typeof firstError === 'string') {
+          return firstError;
+        }
+        if (Array.isArray(firstError)) {
+          return typeof firstError[0] === 'string' ? firstError[0] : 'Validation error';
+        }
+        return 'Validation error';
       }
     }
 

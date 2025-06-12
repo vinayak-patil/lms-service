@@ -33,7 +33,7 @@ import { SearchCourseDto } from './dto/search-course.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
-import { FileUploadService } from '../common/services/file-upload.service';
+import { FileUploadService } from '../storage/providers/local-storage.service';
 import e from 'express';
 
 @ApiTags('Courses')
@@ -262,7 +262,6 @@ export class CoursesController {
         // Upload file and get the path
         imagePath = await this.fileUploadService.uploadFile(file, { 
           type: 'course',
-          courseId,
         });
       }
     } catch (error) {

@@ -234,31 +234,4 @@ export class ConfigurationService {
     };
   }
 
-  getMediaConfig() {
-    return {
-      imageMimeTypes: this.getValue('image_mime_type', 'image/jpeg, image/jpg, image/png')
-        .split(',')
-        .map((type: string) => type.trim()),
-      imageMaxSize: Number(this.getValue('image_filesize', 50)) * 1024 * 1024,
-      videoMimeTypes: this.getValue('video_mime_type', 'video/mp4, video/webm')
-        .split(',')
-        .map((type: string) => type.trim()),
-      videoMaxSize: Number(this.getValue('video_filesize', 500)) * 1024 * 1024,
-      documentMimeTypes: this.getValue('document_mime_type', 'application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        .split(',')
-        .map((type: string) => type.trim()),
-      documentMaxSize: Number(this.getValue('document_filesize', 500)) * 1024 * 1024,
-    };
-  }
-
-  getUploadPaths() {
-    return {
-      courses: this.getValue('courses_upload_path', '/uploads/courses'),
-      modules: this.getValue('modules_upload_path', '/uploads/modules'),
-      lessons: this.getValue('lessons_upload_path', '/uploads/lessons'),
-      lessonsMedia: this.getValue('lessons_media_upload_path', '/uploads/lessons/media'),
-      lessonsAssociatedMedia: this.getValue('lessons_associated_media_upload_path', '/uploads/lessons/associated-media'),
-    };
-  }
-
 } 

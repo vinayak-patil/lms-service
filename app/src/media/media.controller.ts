@@ -28,7 +28,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { LessonFormat } from '../lessons/entities/lesson.entity';
-import { FileUploadService } from '../common/services/file-upload.service';
+import { FileUploadService } from '../storage/providers/local-storage.service';
 
 @ApiTags('Media')
 @Controller('media')

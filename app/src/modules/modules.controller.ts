@@ -4,9 +4,7 @@ import {
   Post,
   Body,
   Param,
-  Patch,
-  Delete,
-  Query,
+  Delete,  
   ParseUUIDPipe,
   HttpStatus,
   HttpCode,
@@ -34,7 +32,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
-import { FileUploadService } from '../common/services/file-upload.service';
+import { FileUploadService } from '../storage/providers/local-storage.service';
 
 @ApiTags('Modules')
 @Controller('modules')
@@ -176,7 +174,6 @@ export class ModulesController {
         // Upload file and get the path
         imagePath = await this.fileUploadService.uploadFile(file, { 
         type: 'module',
-        moduleId,
       });
     }
     } catch (error) {
