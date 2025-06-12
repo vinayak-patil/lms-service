@@ -8,7 +8,7 @@ export class TenantContext {
     this.currentTenantId = tenantId;
   }
 
-  getTenantId(): string {
+  getTenantId(): string | undefined {
     return this.currentTenantId;
   }
 } 

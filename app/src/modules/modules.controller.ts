@@ -12,6 +12,7 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -61,10 +62,14 @@ export class ModulesController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { type: 'module' });
-    }
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { type: 'module' });
+      }
+      } catch (error) {
+        throw new BadRequestException('Failed to upload file' + error.message);
+      }
 
     const module = await this.modulesService.create(
       {
@@ -164,12 +169,16 @@ export class ModulesController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { 
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { 
         type: 'module',
         moduleId,
       });
+    }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
     const module = await this.modulesService.update(

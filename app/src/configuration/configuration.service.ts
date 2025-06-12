@@ -19,7 +19,7 @@ export class ConfigurationService {
     private readonly httpService: HttpService,
     private readonly tenantContext: TenantContext,
   ) {
-    this.tenantId = this.tenantContext.getTenantId();
+    this.tenantId = this.tenantContext.getTenantId() || '';
     // Initialize tenant configs in ConfigService if not exists
     if (!this.configService.get(this.tenantId)) {
       this.configService.set(this.tenantId, {});
@@ -257,7 +257,7 @@ export class ConfigurationService {
       modules: this.getValue('modules_upload_path', '/uploads/modules'),
       lessons: this.getValue('lessons_upload_path', '/uploads/lessons'),
       lessonsMedia: this.getValue('lessons_media_upload_path', '/uploads/lessons/media'),
-      lessonsAssociatedMedia: this.getValue('lessons_associated_media_upload_path', '/uploads/lessons/associated- media'),
+      lessonsAssociatedMedia: this.getValue('lessons_associated_media_upload_path', '/uploads/lessons/associated-media'),
     };
   }
 

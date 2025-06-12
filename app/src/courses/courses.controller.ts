@@ -12,6 +12,7 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -33,6 +34,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { FileUploadService } from '../common/services/file-upload.service';
+import e from 'express';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -62,22 +64,26 @@ export class CoursesController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { type: 'course' });
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { type: 'course' });
+      }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
-    const course = await this.coursesService.create(
-      {
-        ...createCourseDto,
-        image: imagePath,
-      },
-      query.userId,
-      tenantOrg.tenantId,
-      tenantOrg.organisationId,
-    );
+      const course = await this.coursesService.create(
+        {
+          ...createCourseDto,
+          image: imagePath,
+        },
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId,
+      );
 
-    return course;
+      return course;
   }
 
   @Get('search')
@@ -243,7 +249,7 @@ export class CoursesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   async updateCourse(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() updateCourseDto: UpdateCourseDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
@@ -251,12 +257,16 @@ export class CoursesController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { 
-        type: 'course',
-        courseId,
-      });
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { 
+          type: 'course',
+          courseId,
+        });
+      }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
     const course = await this.coursesService.update(

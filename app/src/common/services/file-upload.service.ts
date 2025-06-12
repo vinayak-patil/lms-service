@@ -183,7 +183,7 @@ export class FileUploadService {
 
   private getAllowedMimeTypes(entityType: string): string[] {
     const mediaConfig = this.configurationService.getMediaConfig();
-    return entityType === 'lessonMedia' ? mediaConfig.videoMimeTypes : mediaConfig.imageMimeTypes;
+    return entityType === 'lessonMedia' ? mediaConfig.documentMimeTypes : mediaConfig.imageMimeTypes;
   }
 
   getUploadPath(entityType: string, filename?: string): string {
@@ -209,7 +209,7 @@ export class FileUploadService {
     const driver = this.configurationService.getValue('cloud_storage_provider', 'local');
 
     if (driver === 'local') {
-      const fullPath = path.join(this.baseUploadDir, filePath);
+      const fullPath = path.join(process.cwd(), filePath.replace(/^\/+/, ''));
       if (fs.existsSync(fullPath)) {
         await fs.promises.unlink(fullPath);
       }

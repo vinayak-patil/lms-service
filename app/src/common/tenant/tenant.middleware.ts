@@ -8,7 +8,7 @@ export class TenantMiddleware implements NestMiddleware {
     private readonly tenantContext: TenantContext,
   ) {}
 
-  async use(req: Request, res: Response, next: NextFunction) {
+  use(req: Request, res: Response, next: NextFunction) {
     const tenantId = req.headers['tenantid'] as string;
     
     this.tenantContext.setTenantId(tenantId);

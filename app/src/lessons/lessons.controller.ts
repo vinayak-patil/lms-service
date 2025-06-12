@@ -12,6 +12,7 @@ import {
   Put,
   HttpStatus,
   HttpCode,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -62,9 +63,13 @@ export class LessonsController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
+      }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
     const lesson = await this.lessonsService.create(
@@ -150,7 +155,7 @@ export class LessonsController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   async updateLesson(
-    @Param('lessonId') lessonId: string,
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Body() updateLessonDto: UpdateLessonDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
@@ -158,12 +163,16 @@ export class LessonsController {
   ) {
     let imagePath: string | undefined;
 
-    if (file) {
-      // Upload file and get the path
-      imagePath = await this.fileUploadService.uploadFile(file, { 
+    try {
+      if (file) {
+        // Upload file and get the path
+        imagePath = await this.fileUploadService.uploadFile(file, { 
         type: 'lesson',
         lessonId,
       });
+    }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
     const lesson = await this.lessonsService.update(

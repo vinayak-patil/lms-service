@@ -88,7 +88,7 @@
             "type": "number",
             "title": "Allowed video size in MB",
             "description": "Allowed video size in MB",
-            "default": "500"
+            "default": 500
           },
           "document_mime_type": {
             "type": "string",
@@ -100,7 +100,7 @@
             "type": "number",
             "title": "Allowed document size in MB",
             "description": "Allowed document size in MB",
-            "default": "500"
+            "default": 500
           },
           "courses_upload_path": {
             "type": "string",

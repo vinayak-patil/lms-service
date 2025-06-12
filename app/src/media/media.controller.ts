@@ -56,10 +56,14 @@ export class MediaController {
       throw new BadRequestException('File is required for document format');
     }
 
-    if (file) {
-      // Upload file and get the path
-      const filePath = await this.fileUploadService.uploadFile(file, { type: 'lessonMedia' });
-      createMediaDto.path = filePath;
+    try {
+      if (file) {
+        // Upload file and get the path
+        const filePath = await this.fileUploadService.uploadFile(file, { type: 'lessonMedia' });
+        createMediaDto.path = filePath;
+      }
+    } catch (error) {
+      throw new BadRequestException('Failed to upload file' + error.message);
     }
 
     return this.mediaService.uploadMedia(
