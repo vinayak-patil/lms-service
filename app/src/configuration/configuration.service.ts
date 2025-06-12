@@ -250,7 +250,7 @@ export class ConfigurationService {
   getUploadPaths() {
     return {
       courses: this.getValue('courses_upload_path', '/uploads/courses'),
-      modules: this.getValue('module_upload_path', '/uploads/modules'),
+      modules: this.getValue('modules_upload_path', '/uploads/modules'),
       lessons: this.getValue('lessons_upload_path', '/uploads/lessons'),
       lessonsMedia: this.getValue('lessons_media_upload_path', '/uploads/lessons/media'),
       lessonsAssociatedMedia: this.getValue('lessons_associated_media_upload_path', '/uploads/lessons/associated- media'),
