@@ -10,6 +10,8 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   Put,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -29,8 +31,7 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../configuration/storage.validation.config';
+import { FileUploadService } from '../common/services/file-upload.service';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 
 @ApiTags('Lessons')
@@ -38,6 +39,7 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 export class LessonsController {
   constructor(
     private readonly lessonsService: LessonsService,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   @Post()
@@ -51,19 +53,25 @@ export class LessonsController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
+  @UseInterceptors(FileInterceptor('image'))
   async createLesson(
     @Body() createLessonDto: CreateLessonDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let imagePath: string | undefined;
+
     if (file) {
-      const imagePath = getUploadPath('lesson', file.filename);
-      createLessonDto.image = imagePath;
+      // Upload file and get the path
+      imagePath = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
     }
+
     const lesson = await this.lessonsService.create(
-      createLessonDto,
+      {
+        ...createLessonDto,
+        image: imagePath,
+      },
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
@@ -140,21 +148,30 @@ export class LessonsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.lessons))
+  @UseInterceptors(FileInterceptor('image'))
   async updateLesson(
     @Param('lessonId') lessonId: string,
     @Body() updateLessonDto: UpdateLessonDto,
     @Query() query: CommonQueryDto,
-    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }, 
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let imagePath: string | undefined;
+
     if (file) {
-      const imagePath = getUploadPath('lesson', file.filename);
-      updateLessonDto.image = imagePath;
+      // Upload file and get the path
+      imagePath = await this.fileUploadService.uploadFile(file, { 
+        type: 'lesson',
+        lessonId,
+      });
     }
+
     const lesson = await this.lessonsService.update(
       lessonId,
-      updateLessonDto,
+      {
+        ...updateLessonDto,
+        image: imagePath,
+      },
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
@@ -164,21 +181,32 @@ export class LessonsController {
 
   @Delete(':lessonId')
   @ApiId(API_IDS.DELETE_LESSON)
-  @ApiOperation({ summary: 'Delete a lesson' })
-  @ApiResponse({ status: 200, description: 'Lesson deleted successfully' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete (archive) a lesson' })
+  @ApiParam({ name: 'lessonId', type: 'string', format: 'uuid', description: 'Lesson ID' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lesson deleted successfully',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' }
+      }
+    }
+  })
   @ApiResponse({ status: 404, description: 'Lesson not found' })
-  @ApiParam({ name: 'lessonId', type: String, format: 'uuid' })
   async deleteLesson(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
-    return this.lessonsService.remove(
+    const result = await this.lessonsService.remove(
       lessonId,
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
+    return result;
   }
 
 }

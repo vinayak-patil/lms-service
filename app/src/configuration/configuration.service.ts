@@ -5,7 +5,7 @@ import { ConfigDto } from './dto/configuration.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
-import { TenantContext } from '../common/middleware/tenant.context';
+import { TenantContext } from '../common/tenant/tenant.context';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { TenantConfigValue } from './interfaces/tenant-config.interface';
 
@@ -252,6 +252,8 @@ export class ConfigurationService {
       courses: this.getValue('courses_upload_path', '/uploads/courses'),
       modules: this.getValue('module_upload_path', '/uploads/modules'),
       lessons: this.getValue('lessons_upload_path', '/uploads/lessons'),
+      lessonsMedia: this.getValue('lessons_media_upload_path', '/uploads/lessons/media'),
+      lessonsAssociatedMedia: this.getValue('lessons_associated_media_upload_path', '/uploads/lessons/associated- media'),
     };
   }
 

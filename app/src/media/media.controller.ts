@@ -26,14 +26,17 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../configuration/storage.validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { LessonFormat } from '../lessons/entities/lesson.entity';
+import { FileUploadService } from '../common/services/file-upload.service';
+
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly fileUploadService: FileUploadService,
+  ) {}
 
   @Post('upload')
   @ApiId(API_IDS.UPLOAD_MEDIA)
@@ -41,7 +44,7 @@ export class MediaController {
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @UseInterceptors(FileInterceptor('file', uploadConfigs.media))
+  @UseInterceptors(FileInterceptor('file'))
   async uploadMedia(
     @Body() createMediaDto: CreateMediaDto,
     @UploadedFile() file: Express.Multer.File,
@@ -52,8 +55,10 @@ export class MediaController {
     if (createMediaDto.format === LessonFormat.DOCUMENT && !file) {
       throw new BadRequestException('File is required for document format');
     }
+
     if (file) {
-      const filePath = getUploadPath('lessonMedia', file.filename);
+      // Upload file and get the path
+      const filePath = await this.fileUploadService.uploadFile(file, { type: 'lessonMedia' });
       createMediaDto.path = filePath;
     }
 

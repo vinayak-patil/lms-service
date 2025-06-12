@@ -31,15 +31,15 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
-import { getUploadPath } from '../common/utils/upload.util';
-import { uploadConfigs } from '../configuration/storage.validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { FileUploadService } from '../common/services/file-upload.service';
 
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
   constructor(
     private readonly coursesService: CoursesService,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   @Post()
@@ -53,23 +53,30 @@ export class CoursesController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
+  @UseInterceptors(FileInterceptor('image'))
   async createCourse(
     @Body() createCourseDto: CreateCourseDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let imagePath: string | undefined;
+
     if (file) {
-      const imagePath = getUploadPath('course', file.filename);
-      createCourseDto.image = imagePath;
+      // Upload file and get the path
+      imagePath = await this.fileUploadService.uploadFile(file, { type: 'course' });
     }
+
     const course = await this.coursesService.create(
-      createCourseDto,
+      {
+        ...createCourseDto,
+        image: imagePath,
+      },
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
     );
+
     return course;
   }
 
@@ -234,7 +241,7 @@ export class CoursesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image', uploadConfigs.courses))
+  @UseInterceptors(FileInterceptor('image'))
   async updateCourse(
     @Param('courseId') courseId: string,
     @Body() updateCourseDto: UpdateCourseDto,
@@ -242,13 +249,22 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    let imagePath: string | undefined;
+
     if (file) {
-      const imagePath = getUploadPath('course', file.filename);
-      updateCourseDto.image = imagePath;
+      // Upload file and get the path
+      imagePath = await this.fileUploadService.uploadFile(file, { 
+        type: 'course',
+        courseId,
+      });
     }
+
     const course = await this.coursesService.update(
       courseId,
-      updateCourseDto,
+      {
+        ...updateCourseDto,
+        image: imagePath,
+      },
       query.userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
