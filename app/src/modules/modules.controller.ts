@@ -33,6 +33,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { FileUploadService } from '../storage/providers/local-storage.service';
+import { RESPONSE_MESSAGES } from 'src/common/constants/response-messages.constant';
 
 @ApiTags('Modules')
 @Controller('modules')
@@ -68,7 +69,7 @@ export class ModulesController {
         imagePath = await this.fileUploadService.uploadFile(file, { type: 'module' });
       }
       } catch (error) {
-        throw new BadRequestException('Failed to upload file' + error.message);
+        throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
       }
 
     const module = await this.modulesService.create(
@@ -177,7 +178,7 @@ export class ModulesController {
       });
     }
     } catch (error) {
-      throw new BadRequestException('Failed to upload file' + error.message);
+      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
     }
 
     const module = await this.modulesService.update(

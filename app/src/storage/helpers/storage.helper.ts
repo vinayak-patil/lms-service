@@ -10,7 +10,7 @@ export class StorageHelper {
   validateMimeType(mimeType: string, allowedMimeTypes: string[]): void {
     if (!allowedMimeTypes.includes(mimeType)) {
       throw new Error(
-        `Invalid file type. Allowed types are: ${allowedMimeTypes.join(', ')}`
+        `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${allowedMimeTypes.join(', ')}`
       );
     }
   }
@@ -18,7 +18,7 @@ export class StorageHelper {
   validateFileSize(fileSize: number, maxSize: number): void {
     if (fileSize > (maxSize * 1024 * 1024)) {
       throw new Error(
-        `File size exceeds the maximum allowed size of ${maxSize}MB`
+        `${RESPONSE_MESSAGES.ERROR.FILE_TOO_LARGE}: ${maxSize}MB`
       );
     }
   }

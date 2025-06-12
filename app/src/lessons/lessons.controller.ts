@@ -9,11 +9,10 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
-  Put,
-  HttpStatus,
   HttpCode,
   BadRequestException,
   Patch,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -35,6 +34,7 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
 import { FileUploadService } from '../storage/providers/local-storage.service';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 
 @ApiTags('Lessons')
 @Controller('lessons')
@@ -70,7 +70,7 @@ export class LessonsController {
         imagePath = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
       }
     } catch (error) {
-      throw new BadRequestException('Failed to upload file' + error.message);
+      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
     }
 
     const lesson = await this.lessonsService.create(
@@ -172,7 +172,7 @@ export class LessonsController {
       });
     }
     } catch (error) {
-      throw new BadRequestException('Failed to upload file' + error.message);
+      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
     }
 
     const lesson = await this.lessonsService.update(

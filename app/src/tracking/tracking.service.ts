@@ -148,7 +148,7 @@ export class TrackingService {
     // Check max attempts
     const maxAttempts = lesson.noOfAttempts || 1;
     if (existingTracks.length > 0 && existingTracks[0].attempt >= maxAttempts) {
-      throw new BadRequestException('Maximum number of attempts reached for this lesson');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MAX_ATTEMPTS_REACHED);
     }
 
     // Create new attempt
@@ -214,7 +214,7 @@ export class TrackingService {
     });
 
     if (existingTracks.length === 0) {
-      throw new NotFoundException('No existing attempt found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.NO_EXISTING_ATTEMPT);
     }
     
 
@@ -224,22 +224,22 @@ export class TrackingService {
             // Check if lesson allows resume
       const canResume = lesson.resume ?? true;
       if (!canResume) {
-        throw new BadRequestException('Resuming attempts is not allowed for this lesson');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.RESUME_NOT_ALLOWED);
       }
       if (latestTrack.status === TrackingStatus.COMPLETED) {
-        throw new BadRequestException('Cannot resume a completed attempt');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_RESUME_COMPLETED);
       }
       return latestTrack;
     } else { 
       
       if (latestTrack.status === TrackingStatus.COMPLETED) {
-        throw new BadRequestException('Cannot start over a completed attempt');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CANNOT_START_COMPLETED);
       }
       // start over
       // Check max attempts
       const maxAttempts = lesson.noOfAttempts || 1;
-      if (latestTrack.attempt > maxAttempts) {
-        throw new BadRequestException('Maximum number of attempts reached for this lesson');
+      if (latestTrack.attempt >= maxAttempts) {
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MAX_ATTEMPTS_REACHED);
       }
 
       // Create new attempt
@@ -350,7 +350,7 @@ export class TrackingService {
     });
 
     if (!attempt) {
-      throw new NotFoundException('Attempt not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
     }
 
     return attempt;
@@ -376,7 +376,7 @@ export class TrackingService {
     });
 
     if (!attempt) {
-      throw new NotFoundException('Attempt not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
     }
 
     // Update progress
@@ -398,7 +398,7 @@ export class TrackingService {
     const savedAttempt = await this.lessonTrackRepository.save(attempt);
 
     // Update course and module tracking if lesson is completed
-    if (savedAttempt.status === TrackingStatus.COMPLETED && savedAttempt.courseId) {
+    if (savedAttempt.courseId) {
       await this.updateCourseAndModuleTracking(savedAttempt, tenantId, organisationId);
     }
 
@@ -431,7 +431,7 @@ export class TrackingService {
     courseTrack.lastAccessedDate = new Date();
 
     // If the lesson is completed, update completed lessons count
-    if (lessonTrack.status === TrackingStatus.COMPLETED) {
+    if (lessonTrack.status === TrackingStatus.COMPLETED || courseTrack.status === TrackingStatus.STARTED) {
       // Get all completed lessons for this course
       const completedLessonTracks = await this.lessonTrackRepository.find({
         where: { 
@@ -455,10 +455,9 @@ export class TrackingService {
         courseTrack.endDatetime = new Date();
         
       } else {
-        // Course is not fully completed yet - status remains INCOMPLETE
+        courseTrack.status = TrackingStatus.INCOMPLETE;
       }
     }
-
     await this.courseTrackRepository.save(courseTrack);
 
     // Find and update module tracking if applicable
@@ -477,6 +476,8 @@ export class TrackingService {
    * Helper method to update module tracking
    */
   private async updateModuleTracking(moduleId: string, userId: string, tenantId: string, organisationId: string): Promise<void> {
+    
+    try {
     // Get module
     const module = await this.moduleRepository.findOne({
       where: { 
@@ -488,7 +489,7 @@ export class TrackingService {
     });
     
     if (!module) {
-      throw new NotFoundException('Module not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
     // Get or create module tracking
@@ -544,5 +545,9 @@ export class TrackingService {
     }
 
     await this.moduleTrackRepository.save(moduleTrack);
+
+    } catch (error) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_TRACKING_ERROR);
+    }
   }
 }

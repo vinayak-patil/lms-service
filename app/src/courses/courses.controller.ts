@@ -34,7 +34,7 @@ import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { FileUploadService } from '../storage/providers/local-storage.service';
-import e from 'express';
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -70,7 +70,7 @@ export class CoursesController {
         imagePath = await this.fileUploadService.uploadFile(file, { type: 'course' });
       }
     } catch (error) {
-      throw new BadRequestException('Failed to upload file' + error.message);
+      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
     }
 
       const course = await this.coursesService.create(
@@ -265,7 +265,7 @@ export class CoursesController {
         });
       }
     } catch (error) {
-      throw new BadRequestException('Failed to upload file' + error.message);
+      throw new Error(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE + error.message);
     }
 
     const course = await this.coursesService.update(
