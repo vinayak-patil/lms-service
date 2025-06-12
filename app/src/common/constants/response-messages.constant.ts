@@ -90,6 +90,8 @@ export const RESPONSE_MESSAGES = {
     MODULE_TRACKING_ERROR: 'Error while updating module tracking',
     FILE_REQUIRED_DOCUMENT: 'File is required for document format',
     MEDIA_ALREADY_ASSOCIATED_WITH_LESSON: 'Media is already associated with a lesson',
+    PARENT_MODULE_INVALID: 'Parent module is invalid',
+    COURSE_OR_PARENT_REQUIRED: 'Either courseId or parentId is required',
   },
 };
 

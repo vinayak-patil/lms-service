@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   Param,
-  Put,
   Delete,
   ParseUUIDPipe,
   HttpStatus,
@@ -12,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -138,7 +138,7 @@ export class ModulesController {
     );
   }
 
-  @Put(':id')
+  @Patch(':moduleId')
   @ApiId(API_IDS.UPDATE_MODULE)
   @ApiOperation({ summary: 'Update a module' })
   @ApiBody({ type: UpdateModuleDto })
@@ -152,7 +152,7 @@ export class ModulesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image', uploadConfigs.modules))
   async updateModule(
-    @Param('id') id: string,
+    @Param('moduleId') moduleId: string,
     @Body() updateModuleDto: UpdateModuleDto,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
@@ -163,7 +163,7 @@ export class ModulesController {
       updateModuleDto.image = imagePath;
     }
     const module = await this.modulesService.update(
-      id,
+      moduleId,
       updateModuleDto,
       query.userId,
       tenantOrg.tenantId,

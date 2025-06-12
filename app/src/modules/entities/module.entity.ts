@@ -50,7 +50,7 @@ export class Module {
   title: string;
 
   @ApiProperty({ description: 'Module description', example: 'Learn about different machine learning algorithms', required: false })
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description: string;
 
   @ApiProperty({ description: 'Module image path', example: 'https://example.com/images/module-image.jpg', required: false })
@@ -84,7 +84,6 @@ export class Module {
   @ApiProperty({ description: 'Module status', enum: ModuleStatus, example: ModuleStatus.PUBLISHED, default: ModuleStatus.UNPUBLISHED })
   @Column({
     type: 'varchar',
-    length: 255,
     enum: ModuleStatus,
     default: ModuleStatus.UNPUBLISHED,
   })

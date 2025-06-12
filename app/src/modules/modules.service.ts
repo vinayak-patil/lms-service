@@ -73,7 +73,7 @@ export class ModulesService {
       });
 
       if (!parentModule) {
-        throw new BadRequestException('Parent module does not belong to the specified course');
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.PARENT_MODULE_INVALID);
       }
     } 
     else if (createModuleDto.courseId) {
@@ -91,26 +91,9 @@ export class ModulesService {
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
       }
     } 
-    else if (createModuleDto.parentId) {
-      // If only parentId is specified, get the courseId from the parent module
-      const parentModule = await this.moduleRepository.findOne({
-        where: { 
-          moduleId: createModuleDto.parentId,
-          status: Not(ModuleStatus.ARCHIVED),
-          tenantId,
-          ...(organisationId && { organisationId }), // conditionally add organisationId if it exists
-        } as FindOptionsWhere<Module>,
-      });
-
-      if (!parentModule) {
-        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
-      }
-
-      createModuleDto.courseId = parentModule.courseId;
-    } 
     else {
       // Either courseId or parentId is required
-      throw new BadRequestException('Either courseId or parentId is required');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_OR_PARENT_REQUIRED);
     }
 
     // Check if a module with the same title already exists in the same context
@@ -122,14 +105,14 @@ export class ModulesService {
           parentId: undefined,
           status: Not(ModuleStatus.ARCHIVED),
           tenantId,
-          ...(organisationId && { organisationId }), // conditionally add organisationId if it exists
+          organisationId
         } as FindOptionsWhere<Module>,
         { 
           title: createModuleDto.title, 
           parentId: createModuleDto.parentId,
           status: Not(ModuleStatus.ARCHIVED),
           tenantId,
-          ...(organisationId && { organisationId }), // conditionally add organisationId if it exists
+          organisationId
         } as FindOptionsWhere<Module>,
       ],
     });
@@ -343,8 +326,14 @@ export class ModulesService {
       // Find the module to update
       const module = await this.findOne(moduleId, tenantId, organisationId);
 
+      const enrichedDto = {
+        ...updateModuleDto,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      };
+
+      const updatedModule = this.moduleRepository.merge(module, enrichedDto);
       // Update the module
-      const updatedModule = this.moduleRepository.merge(module, updateModuleDto);
       const savedModule = await this.moduleRepository.save(updatedModule);
 
       if (this.cache_enabled) {
