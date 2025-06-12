@@ -86,6 +86,8 @@ export const RESPONSE_MESSAGES = {
     INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
     ERROR_UPDATING_LESSON: 'Error updating lesson',
     ERROR_REMOVING_LESSON: 'Error removing lesson',
+    PARENT_MODULE_INVALID: 'Parent module is invalid',
+    COURSE_OR_PARENT_REQUIRED: 'Either courseId or parentId is required',
   },
 };
 
