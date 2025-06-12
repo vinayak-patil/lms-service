@@ -13,7 +13,6 @@ export class CreateCourseDto {
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Title') })
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Title') })
-  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Title', 3) })
   @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Title', 255) })
   title: string;
 
@@ -53,8 +52,6 @@ export class CreateCourseDto {
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Short description') })
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Short description') })
-  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Short description', 3) })
-  @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Short description', 255) })
   shortDescription: string;
 
   @ApiProperty({ 
@@ -72,7 +69,6 @@ export class CreateCourseDto {
   })
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Image') })
-  @Matches(/\.(jpg|jpeg|png)$/i, { message: VALIDATION_MESSAGES.COMMON.IMAGE_FORMAT })
   image?: string;
 
   @ApiPropertyOptional({ 

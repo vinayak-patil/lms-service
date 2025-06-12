@@ -29,7 +29,7 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { LessonFormat } from '../lessons/entities/lesson.entity';
 import { FileUploadService } from '../common/services/file-upload.service';
-
+import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
@@ -53,7 +53,7 @@ export class MediaController {
   ) {
     // Check if file is required based on format
     if (createMediaDto.format === LessonFormat.DOCUMENT && !file) {
-      throw new BadRequestException('File is required for document format');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.FILE_REQUIRED_DOCUMENT);
     }
 
     try {
