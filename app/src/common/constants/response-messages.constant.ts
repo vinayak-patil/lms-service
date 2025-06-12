@@ -81,6 +81,8 @@ export const RESPONSE_MESSAGES = {
     MEDIA_NOT_ASSOCIATED_WITH_LESSON: 'The specified lesson is not associated with this media',
     COURSE_TRACKING_NOT_FOUND: 'Course tracking not found',
     COURSE_COMPLETED: 'Course is completed',
+    PARENT_MODULE_INVALID: 'Parent module is invalid',
+    COURSE_OR_PARENT_REQUIRED: 'Either courseId or parentId is required',
   },
 };
 
