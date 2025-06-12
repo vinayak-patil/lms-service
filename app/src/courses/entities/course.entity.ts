@@ -40,12 +40,12 @@ export class Course {
   title: string;
 
   @ApiProperty({ description: 'Course alias or short name', example: 'intro-web-dev', required: true })
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'text'})
   @Index()
   alias: string;
 
   @ApiProperty({ description: 'Short description of the course', example: 'A brief intro to web development', required: false })
-  @Column({ type: 'varchar', length: 255})
+  @Column({ type: 'text'})
   shortDescription: string;
 
   @ApiProperty({ description: 'Detailed description of the course', example: 'Learn the fundamentals of web development', required: false })
