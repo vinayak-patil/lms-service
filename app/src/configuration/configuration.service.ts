@@ -12,17 +12,16 @@ import { TenantConfigValue } from './interfaces/tenant-config.interface';
 @Injectable()
 export class ConfigurationService {
   private lmsConfigJson: any;
-  private tenantId: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly tenantContext: TenantContext,
   ) {
-    this.tenantId = this.tenantContext.getTenantId() || '';
     // Initialize tenant configs in ConfigService if not exists
-    if (!this.configService.get(this.tenantId)) {
-      this.configService.set(this.tenantId, {});
+    const tenantId = this.tenantContext.getTenantId() || '';
+    if (!this.configService.get(tenantId)) {
+      this.configService.set(tenantId, {});
     }
     
     // Load LMS config

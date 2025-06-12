@@ -1,8 +1,9 @@
-import { BadRequestException, HttpStatus, PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Injectable, PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
 import * as path from 'path';
 
+@Injectable()
 export class StorageHelper {
   constructor(private readonly configurationService: ConfigurationService) {}
 

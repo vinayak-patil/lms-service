@@ -13,7 +13,7 @@ export class S3StorageService implements IStorageService {
   private expiresIn: number;
 
   constructor(
-    private storageHelper: StorageHelper,
+    private readonly storageHelper: StorageHelper,
   ) {
     const storageConfig = this.storageHelper.getStorageConfig();
     const { region, accessKeyId, secretAccessKey, container, expiresIn } = storageConfig;
