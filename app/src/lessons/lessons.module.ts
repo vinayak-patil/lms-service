@@ -10,7 +10,6 @@ import { AssociatedFile } from '../media/entities/associated-file.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { CommonModule } from '../common/common.module';
 import { CacheModule } from '../cache/cache.module';
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([

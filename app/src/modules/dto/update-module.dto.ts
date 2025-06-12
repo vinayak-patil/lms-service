@@ -8,4 +8,5 @@ import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.cons
 // Inherits all fields from CreateModuleDto as optional, but omits courseId since it shouldn't be updatable
 export class UpdateModuleDto extends PartialType(
   OmitType(CreateModuleDto, ['courseId'] as const)
-) {}
+) {
+}

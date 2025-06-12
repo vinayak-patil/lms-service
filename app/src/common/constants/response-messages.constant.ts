@@ -41,7 +41,6 @@ export const RESPONSE_MESSAGES = {
   ENROLLMENT_NOT_FOUND: 'Enrollment not found',
   ALREADY_ENROLLED: 'User is already enrolled in this course',
   ADMIN_APPROVAL_REQUIRED: 'Admin approval required for this course',
-  INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
   ENROLLMENT_ERROR: 'Error enrolling user for course',
   FETCH_ERROR: 'Error retrieving enrollments',
   UPDATE_ERROR: 'Error updating enrollment',
@@ -85,6 +84,14 @@ export const RESPONSE_MESSAGES = {
     EXTERNAL_CONFIG_URL_MISSING: 'External configuration URL is missing',
     CONFIG_UPDATE_FAILED: 'Failed to update configuration',
     EXTERNAL_CONFIG_NOT_FOUND: 'External configuration not found',
+    ERROR_RETRIEVING_LESSONS: 'Error retrieving lessons',
+    LESSON_CHECKED_OUT: 'Lesson is checked out and cannot be updated',
+    CANNOT_CHANGE_FORMAT: 'Cannot change format of checked out lesson',
+    INVALID_PARAMS_FORMAT: 'Invalid params JSON format',
+    ERROR_UPDATING_LESSON: 'Error updating lesson',
+    ERROR_REMOVING_LESSON: 'Error removing lesson',
+    PARENT_MODULE_INVALID: 'Parent module is invalid',
+    COURSE_OR_PARENT_REQUIRED: 'Either courseId or parentId is required',
   },
 };
 
