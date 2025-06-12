@@ -65,8 +65,8 @@ export class TrackingService {
   async getCourseTracking(
     courseId: string, 
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<CourseTrack> {
     // Build where clause with required filters
     const whereClause: any = { 

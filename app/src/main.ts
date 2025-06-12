@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import {  HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseTransformerInterceptor } from './common/interceptors/response-transformer.interceptor';
 import { ConfigService } from '@nestjs/config';
 

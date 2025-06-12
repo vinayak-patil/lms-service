@@ -5,6 +5,7 @@ import { Cache } from 'cache-manager';
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
+  private readonly defaultTTL = 3600; // 1 hour in seconds
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
@@ -33,12 +34,13 @@ export class CacheService {
    * Set value in cache
    * @param key Cache key
    * @param value Value to cache
-   * @param ttl Time to live in seconds
+   * @param ttl Time to live in seconds (optional)
    */
-  async set(key: string, value: any, ttl: number): Promise<void> {
+  async set(key: string, value: any, ttl?: number): Promise<void> {
     try {
-      this.logger.debug(`Setting cache for key ${key} with TTL ${ttl}s`);
-      await this.cacheManager.set(key, value, ttl * 1000); // Convert to milliseconds
+      const cacheTTL = ttl || this.defaultTTL;
+      this.logger.debug(`Setting cache for key ${key} with TTL ${cacheTTL}s`);
+      await this.cacheManager.set(key, value, cacheTTL * 1000); // Convert to milliseconds
     } catch (error) {
       this.logger.error(`Error setting cache for key ${key}: ${error.message}`);
     }
@@ -64,7 +66,6 @@ export class CacheService {
   async delByPattern(pattern: string): Promise<void> {
     try {
       this.logger.debug(`Deleting cache by pattern ${pattern}`);
-      // Get all keys from the cache store
       const store = (this.cacheManager as any).store;
       if (!store || typeof store.keys !== 'function') {
         this.logger.warn('Cache store does not support pattern deletion');
@@ -100,5 +101,31 @@ export class CacheService {
     } catch (error) {
       this.logger.error(`Error clearing cache: ${error.message}`);
     }
+  }
+
+  /**
+   * Get or set cache value with automatic fallback
+   * @param key Cache key
+   * @param fetchFn Function to fetch data if cache miss
+   * @param ttl Time to live in seconds (optional)
+   */
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttl?: number): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    const value = await fetchFn();
+    await this.set(key, value, ttl);
+    return value;
+  }
+
+  /**
+   * Generate a cache key with prefix
+   * @param prefix Key prefix
+   * @param parts Key parts to join
+   */
+  generateKey(prefix: string, ...parts: (string | number | undefined)[]): string {
+    return `${prefix}:${parts.map(part => part === undefined ? '' : part).join(':')}`;
   }
 } 

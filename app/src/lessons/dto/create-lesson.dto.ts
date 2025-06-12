@@ -266,4 +266,15 @@ export class CreateLessonDto {
   @IsBoolean({ message: VALIDATION_MESSAGES.COMMON.BOOLEAN('Consider for passing') })
   @Type(() => Boolean)
   considerForPassing?: boolean = true;
+
+  @ApiProperty({
+    description: 'Order of the lesson in the course/module',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Ordering') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Ordering') })
+  @Type(() => Number)
+  ordering?: number;
 }

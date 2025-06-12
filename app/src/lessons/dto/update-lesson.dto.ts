@@ -237,4 +237,15 @@ export class UpdateLessonDto extends PartialType(
   @IsOptional()
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Updated by') })
   updatedBy?: string;
+
+  @ApiProperty({
+    description: 'Order of the lesson in the course/module',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt({ message: VALIDATION_MESSAGES.COMMON.NUMBER('Ordering') })
+  @Min(0, { message: VALIDATION_MESSAGES.COMMON.POSITIVE('Ordering') })
+  @Type(() => Number)
+  ordering?: number;
 }

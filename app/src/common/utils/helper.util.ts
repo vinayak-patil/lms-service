@@ -91,7 +91,7 @@ export class HelperUtil {
     title: string,
     repository: any,
     tenantId: string,
-    organisationId?: string
+    organisationId: string
   ): Promise<string> {
     const baseAlias = this.generateAlias(title);
     
@@ -100,7 +100,7 @@ export class HelperUtil {
       where: { 
         alias: baseAlias,
         tenantId,
-        ...(organisationId && { organisationId })
+        organisationId
       }
     });
 
@@ -117,7 +117,7 @@ export class HelperUtil {
         where: { 
           alias: finalAlias,
           tenantId,
-          ...(organisationId && { organisationId })
+          organisationId
         }
       });
 

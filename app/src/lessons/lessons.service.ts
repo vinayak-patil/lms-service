@@ -164,6 +164,7 @@ export class LessonsService {
         moduleId: createLessonDto.moduleId,
         sampleLesson: createLessonDto.sampleLesson || false,
         considerForPassing: createLessonDto.considerForPassing || true,
+        ordering: createLessonDto.ordering,
       };
 
       // Create and save the lesson
@@ -188,8 +189,8 @@ export class LessonsService {
     paginationDto: PaginationDto,
     status?: string,
     format?: string,
-    tenantId?: string,
-    organisationId?: string,
+    tenantId: string,
+    organisationId: string,
   ): Promise<{ count: number; lessons: Lesson[] }> {
     try {
       const { page = 1, limit = 10 } = paginationDto;
@@ -255,8 +256,8 @@ export class LessonsService {
    */
   async findOne(
     lessonId: string,
-    tenantId?: string,
-    organisationId?: string    
+    tenantId: string,
+    organisationId: string    
   ): Promise<Lesson> {
     const cacheKey = `${this.cache_prefix_lesson}:${lessonId}:${tenantId}:${organisationId}`;
     
@@ -299,8 +300,8 @@ export class LessonsService {
    */
   async findByModule(
     moduleId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<any[]> {
     const cacheKey = `${this.cache_prefix_lesson}:module:${moduleId}:${tenantId}:${organisationId}`;
     
@@ -359,7 +360,7 @@ export class LessonsService {
     updateLessonDto: UpdateLessonDto,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
   ): Promise<Lesson> {
     try {
       const lesson = await this.lessonRepository.findOne({
@@ -518,6 +519,10 @@ export class LessonsService {
         updateData.passingMarks = updateLessonDto.passingMarks;
       }
       
+      if (updateLessonDto.ordering !== undefined) {
+        updateData.ordering = updateLessonDto.ordering;
+      }
+      
       // Handle image field mapping
       if (updateLessonDto.image) {
         updateData.image = updateLessonDto.image;
@@ -577,7 +582,7 @@ export class LessonsService {
     lessonId: string,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
   ): Promise<Lesson> {
     try {
       const lesson = await this.lessonRepository.findOne({

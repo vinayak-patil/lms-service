@@ -170,8 +170,8 @@ export class MediaService {
    */
   async findOne(
     mediaId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<Media> {
     const cacheKey = `${this.cache_prefix_media}:${mediaId}:${tenantId}:${organisationId}`;
     
@@ -287,8 +287,8 @@ export class MediaService {
   async remove(
     mediaId: string,
     userId?: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Find the media to remove

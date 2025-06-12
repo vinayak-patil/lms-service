@@ -227,8 +227,8 @@ export class EnrollmentsService {
     learnerId?: string,
     courseId?: string,
     status?: string,
-    tenantId?: string,
-    organisationId?: string,
+    tenantId: string,
+    organisationId: string,
   ): Promise<{ count: number; enrollments: UserEnrollment[] }> {
     try {
       const { page = 1, limit = 10 } = paginationDto;
@@ -287,8 +287,8 @@ export class EnrollmentsService {
    */
   async findOne(
     enrollmentId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<UserEnrollment> {
     try {
       const cacheKey = `${this.cache_prefix_enrollment}:${enrollmentId}:${tenantId}:${organisationId}`;
@@ -335,8 +335,8 @@ export class EnrollmentsService {
   async update(
     enrollmentId: string,
     updateEnrollmentDto: UpdateEnrollmentDto,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<UserEnrollment> {
     try {
       const enrollment = await this.findOne(enrollmentId, tenantId, organisationId);
@@ -371,8 +371,8 @@ export class EnrollmentsService {
    */
   async cancel(
     enrollmentId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const enrollment = await this.findOne(enrollmentId, tenantId, organisationId);

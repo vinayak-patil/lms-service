@@ -8,7 +8,7 @@ export class SearchCourseDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Search keyword to match in title, description, or short description' })
   @IsOptional()
   @IsString()
-  query?: string;
+  keyword?: string;
 
   @ApiPropertyOptional({ enum: CourseStatus, description: 'Filter by course status' })
   @IsOptional()

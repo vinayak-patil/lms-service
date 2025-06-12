@@ -55,7 +55,7 @@ export class ModulesService {
     createModuleDto: CreateModuleDto,
     userId: string,
     tenantId: string,
-    organisationId?: string
+    organisationId: string
   ): Promise<Module> {
     this.logger.log(`Creating module: ${JSON.stringify(createModuleDto)}`);
 
@@ -68,7 +68,7 @@ export class ModulesService {
           courseId: createModuleDto.courseId,
           status: Not(ModuleStatus.ARCHIVED),
           tenantId,
-          ...(organisationId && { organisationId }), // conditionally add organisationId if it exists
+          organisationId, // conditionally add organisationId if it exists
         } as FindOptionsWhere<Module>,
       });
 
@@ -83,7 +83,7 @@ export class ModulesService {
           courseId: createModuleDto.courseId,
           status: Not(CourseStatus.ARCHIVED),
           tenantId,
-          ...(organisationId && { organisationId }), // conditionally add organisationId if it exists
+          organisationId, // conditionally add organisationId if it exists
         } as FindOptionsWhere<Course>,
       });
 
@@ -175,8 +175,8 @@ export class ModulesService {
    */
   async findOne(
     moduleId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<Module> {
     const cacheKey = `${this.cache_prefix_module}:${moduleId}:${tenantId}:${organisationId}`;
     
@@ -223,8 +223,8 @@ export class ModulesService {
    */
   async findByCourse(
     courseId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<Module[]> {
     const cacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
     
@@ -272,8 +272,8 @@ export class ModulesService {
    */
   async findByParent(
     parentId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<Module[]> {
     const cacheKey = `${this.cache_prefix_module}:parent:${parentId}:${tenantId}:${organisationId}`;
     
@@ -320,7 +320,7 @@ export class ModulesService {
     updateModuleDto: UpdateModuleDto,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
   ): Promise<Module> {
     try {
       // Find the module to update
@@ -398,8 +398,8 @@ export class ModulesService {
   async remove(
     moduleId: string,
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const module = await this.findOne(moduleId, tenantId, organisationId);
