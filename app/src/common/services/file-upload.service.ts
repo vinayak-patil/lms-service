@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage, StorageEngine } from 'multer';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
-import { FileValidationError } from '../exceptions/file-validation.error';
 import { HttpStatus } from '@nestjs/common';
 import { ConfigurationService } from '../../configuration/configuration.service';
 
@@ -16,6 +15,12 @@ export interface UploadConfig {
   };
   fileFilter?: (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => void;
 }
+
+export class FileValidationError extends HttpException {
+  constructor(message: string, status: HttpStatus = HttpStatus.BAD_REQUEST) {
+    super(message, status);
+  }
+}   
 
 interface UploadMetadata {
   type: 'course' | 'module' | 'lesson' | 'lessonMedia' | 'lessonAssociatedMedia';
