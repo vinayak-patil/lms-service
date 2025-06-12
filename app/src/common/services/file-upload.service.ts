@@ -75,8 +75,8 @@ export class FileUploadService {
       },
       lessonMedia: {
         path: uploadPaths.lessonsMedia,
-        allowedMimeTypes: mediaConfig.videoMimeTypes,
-        maxSizeInBytes: mediaConfig.videoMaxSize,
+        allowedMimeTypes: mediaConfig.documentMimeTypes,
+        maxSizeInBytes: mediaConfig.documentMaxSize,
       },
       lessonAssociatedMedia: {
         path: uploadPaths.lessonsAssociatedMedia,
@@ -193,8 +193,8 @@ export class FileUploadService {
       course: uploadPaths.courses,
       module: uploadPaths.modules,
       lesson: uploadPaths.lessons,
-      lessonMedia: 'lessons/media',
-      lessonAssociatedMedia: 'lessons/associated-media',
+      lessonMedia: uploadPaths.lessonsMedia,
+      lessonAssociatedMedia: uploadPaths.lessonsAssociatedMedia,
     };
 
     const basePath = paths[entityType as keyof typeof paths] || 'uploads';
@@ -203,36 +203,6 @@ export class FileUploadService {
 
   getFileInterceptor(entityType: 'course' | 'module' | 'lesson' | 'lessonMedia' | 'lessonAssociatedMedia') {
     return FileInterceptor('image', this.getUploadConfig(entityType));
-  }
-
-  getStorageConfig(): StorageConfig {
-    return this.configurationService.getStorageConfig();
-  }
-
-  async getSignedUrl(filePath: string, expiresIn?: number): Promise<string> {
-    const storageConfig = this.getStorageConfig();
-    const driver = this.configurationService.getValue('cloud_storage_provider', 'local');
-
-    if (driver === 'local') {
-      return filePath;
-    }
-
-    // Here you would implement the logic to generate signed URLs for cloud storage providers
-    // For example, using AWS S3:
-    // const s3 = new AWS.S3({
-    //   region: storageConfig.region,
-    //   credentials: {
-    //     accessKeyId: storageConfig.accessKeyId,
-    //     secretAccessKey: storageConfig.secretAccessKey,
-    //   },
-    // });
-    // return s3.getSignedUrl('getObject', {
-    //   Bucket: storageConfig.container,
-    //   Key: filePath,
-    //   Expires: expiresIn || storageConfig.expiresIn,
-    // });
-
-    throw new Error('Cloud storage provider not implemented');
   }
 
   async deleteFile(filePath: string): Promise<void> {
@@ -245,21 +215,5 @@ export class FileUploadService {
       }
       return;
     }
-
-    // Here you would implement the logic to delete files from cloud storage providers
-    // For example, using AWS S3:
-    // const s3 = new AWS.S3({
-    //   region: this.getStorageConfig().region,
-    //   credentials: {
-    //     accessKeyId: this.getStorageConfig().accessKeyId,
-    //     secretAccessKey: this.getStorageConfig().secretAccessKey,
-    //   },
-    // });
-    // await s3.deleteObject({
-    //   Bucket: this.getStorageConfig().container,
-    //   Key: filePath,
-    // }).promise();
-
-    throw new Error('Cloud storage provider not implemented');
   }
 } 

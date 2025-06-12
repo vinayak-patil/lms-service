@@ -244,6 +244,10 @@ export class ConfigurationService {
         .split(',')
         .map((type: string) => type.trim()),
       videoMaxSize: Number(this.getValue('video_filesize', 500)) * 1024 * 1024,
+      documentMimeTypes: this.getValue('document_mime_type', 'application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        .split(',')
+        .map((type: string) => type.trim()),
+      documentMaxSize: Number(this.getValue('document_filesize', 500)) * 1024 * 1024,
     };
   }
 
