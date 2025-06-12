@@ -22,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/s3-presigned-post": "^3.826.0",
     "@aws-sdk/s3-request-presigner": "^3.826.0",
+    "@aws-sdk/client-s3": "^3.826.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.2",
