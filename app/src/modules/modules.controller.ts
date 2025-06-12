@@ -165,8 +165,6 @@ export class ModulesController {
     let imagePath: string | undefined;
 
     if (file) {
-      // Validate file if provided
-      await this.fileUploadService.validateFile(file, { type: 'module' });
       // Upload file and get the path
       imagePath = await this.fileUploadService.uploadFile(file, { 
         type: 'module',
