@@ -10,18 +10,15 @@ import {
   IsEnum,
   ValidateIf,
   IsNotEmpty,
-  ValidateNested,
-  Matches,
   MaxLength,
-  MinLength,
   Validate,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RESPONSE_MESSAGES, VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
-import { LessonStatus } from '../entities/lesson.entity';
+import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
+import { LessonStatus, LessonSubFormat } from '../entities/lesson.entity';
 import { LessonFormat, AttemptsGradeMethod } from '../entities/lesson.entity';
-import { MediaContentDto } from './media-content.dto';
 import { HelperUtil } from 'src/common/utils/helper.util';
+
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -31,7 +28,6 @@ export class CreateLessonDto {
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Title') })
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Title') })
-  @MinLength(3, { message: VALIDATION_MESSAGES.COMMON.MIN_LENGTH('Title', 3) })
   @MaxLength(255, { message: VALIDATION_MESSAGES.COMMON.MAX_LENGTH('Title', 255) })
   title: string;
 
@@ -54,14 +50,31 @@ export class CreateLessonDto {
   format: LessonFormat;
 
   @ApiProperty({
-    description: VALIDATION_MESSAGES.LESSON.MEDIA_CONTENT,
-    type: MediaContentDto,
+    description: 'Media content source',
+    example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content') })
-  @ValidateNested()
-  @Type(() => MediaContentDto)
-  mediaContent: MediaContentDto;
+  @ValidateIf((o) => o.format != LessonFormat.DOCUMENT)
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Source') })
+  mediaContentSource: string;
+
+  @ApiProperty({
+    description: 'Media content path',
+    example: '/course/uuid.pdf',
+    required: true
+  })
+  @ValidateIf((o) => o.format === LessonFormat.DOCUMENT)
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Path') })
+  mediaContentPath: string;
+
+  @ApiProperty({
+    description: 'Media content sub-format',
+    example: 'youtube',
+    required: true
+  })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Media content sub-format') })
+  @IsEnum(LessonSubFormat, { message: VALIDATION_MESSAGES.COMMON.ENUM('Media content sub-format') })  
+  mediaContentSubFormat: LessonSubFormat;
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.IMAGE,
