@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ConfigurationService } from './configuration.service';    
 import { ConfigDto } from './dto/configuration.dto';
@@ -10,21 +10,21 @@ import { response } from 'express';
 export class ConfigController {
   constructor(private readonly configurationService: ConfigurationService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Update LMS configuration' })
+  @Get(':entityType')
+  @ApiOperation({ summary: 'Get LMS configuration' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Configuration updated successfully',
+    description: 'Configuration retrieved successfully',
     type: ConfigDto 
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateConfig(
-    @Body() configData: ConfigDto,
+  async getConfig(
+    @Param('entityType') entityType: string,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
-    return this.configurationService.updateConfig(
-        configData, 
-        tenantOrg.tenantId
+    return this.configurationService.getConfig(
+      entityType,
+      tenantOrg.tenantId,
     );
   }
 

@@ -3,7 +3,7 @@ export interface TenantConfig {
     config: {
       [key: string]: any;
     };
-    lastSynced?: string;
+    lastSynced?: string;    
   };
 }
 
@@ -12,4 +12,5 @@ export interface TenantConfigValue {
     [key: string]: any;
   };
   lastSynced?: string;
+  IsConfigsSync?: number;
 } 

@@ -110,6 +110,8 @@ export const RESPONSE_MESSAGES = {
     FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
     INVALID_FILE_TYPE: 'Invalid file type. Allowed types are:',
     FILE_DELETION_NOT_IMPLEMENTED: 'File deletion not implemented for storage provider:',
+    CONFIG_NOT_FOUND: 'LMS Configuration not found',
+    CONFIG_FAILED: 'Failed to get LMS Configuration',
   },
 };
 

@@ -33,7 +33,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
-import { FileUploadService } from '../storage/providers/local-storage.service';
+import { FileUploadService } from '../common/utils/local-storage.service';
 import { RESPONSE_MESSAGES } from 'src/common/constants/response-messages.constant';
 
 @ApiTags('Modules')

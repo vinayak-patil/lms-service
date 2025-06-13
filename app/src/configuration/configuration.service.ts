@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigDto } from './dto/configuration.dto';
@@ -8,6 +8,20 @@ import { ConfigService } from '@nestjs/config';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { TenantConfigValue } from './interfaces/tenant-config.interface';
+
+export interface config {
+  path: string;
+  maxFileSize: number;
+  allowedMimeTypes: string[];
+  storageConfig: {
+    cloudStorageProvider: string;
+    region: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    container: string;
+    expiresIn: number;
+  };
+} 
 
 @Injectable()
 export class ConfigurationService {
@@ -21,39 +35,35 @@ export class ConfigurationService {
     // Initialize tenant configs in ConfigService if not exists
     const tenantId = this.tenantContext.getTenantId() || '';
     if (!this.configService.get(tenantId)) {
-      this.configService.set(tenantId, {});
+      this.configService.set(tenantId, { config: {},IsConfigsSync: 0 });
     }
     
     // Load LMS config
     this.loadLmsConfig();
   }
 
-  async updateConfig(
-    configData: ConfigDto,
+  async getConfig(
+    entityType: string,
     tenantId: string,
-  ): Promise<any> {
+  ): Promise<Record<string, any>> {
     try {
       // Get current tenant config
-      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
-      
-      // Create or update tenant configuration
-      const updatedConfig: TenantConfigValue = {
-        config: this.deepMerge(
-          tenantConfig.config || {},
-          configData.config
-        )
-      };
-      
-      // Update ConfigService
-      this.configService.set(tenantId, updatedConfig);
-      
-      return {
-        success: true,
-        message: 'Configuration updated successfully',
-        data: updatedConfig
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.CONFIG_UPDATE_FAILED}: ${error.message}`);
+      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
+
+      // If config is synced, return entity config directly
+      if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
+        const entityConfig = this.getEntityConfigs(entityType, tenantConfig);
+        if (!entityConfig) {
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
+        }
+        return entityConfig;
+      }else{
+        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
+      }
+    } catch (error) {     
+      throw new NotFoundException(
+        `${RESPONSE_MESSAGES.ERROR.CONFIG_FAILED}: ${error.message}`
+      );
     }
   }
 
@@ -75,18 +85,14 @@ export class ConfigurationService {
         }
         
         // Get current tenant config
-        let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
+        let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
         
-        // Ensure tenantConfig is an object
-        if (typeof tenantConfig !== 'object' || tenantConfig === null) {
-          this.configService.set(tenantId, { config: {} });
-          tenantConfig = { config: {} };
-        }
-        
+               
         // Update tenant config
         tenantConfig = {
           config: config,
-          lastSynced: new Date().toISOString()
+          lastSynced: new Date().toISOString(),
+          IsConfigsSync: 1
         };
 
         // Update ConfigService
@@ -100,13 +106,7 @@ export class ConfigurationService {
       }
 
       // Get current tenant config
-      let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {} };
-      
-      // Ensure tenantConfig is an object
-      if (typeof tenantConfig !== 'object' || tenantConfig === null) {
-        this.configService.set(tenantId, { config: {} });
-        tenantConfig = { config: {} };
-      }
+      let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
       
       // Create or update tenant configuration with external data
       tenantConfig = {
@@ -114,7 +114,8 @@ export class ConfigurationService {
           tenantConfig.config || {},
           externalConfig
         ),
-        lastSynced: new Date().toISOString()
+        lastSynced: new Date().toISOString(),
+        IsConfigsSync: 1
       };
       
       // Update ConfigService
@@ -138,7 +139,7 @@ export class ConfigurationService {
       }
 
       const response = await firstValueFrom(
-        this.httpService.get(`${externalConfigUrl}/${tenantId}`)
+        this.httpService.get(`${externalConfigUrl}/${tenantId}?context=lms`)
       );
 
       return response.data.result;
@@ -149,7 +150,7 @@ export class ConfigurationService {
 
   private loadLmsConfig() {
     try {
-      const lmsConfigPath = path.join(process.cwd(), 'src/lms-config.json');
+      const lmsConfigPath = path.join(process.cwd(), this.configService.get('LMS_CONFIG_PATH') || 'src/lms-config.json');
       this.lmsConfigJson = JSON.parse(fs.readFileSync(lmsConfigPath, 'utf8'));
     } catch (error) {
       console.error('Error loading LMS configuration:', error);
@@ -178,58 +179,57 @@ export class ConfigurationService {
     return item && typeof item === 'object' && !Array.isArray(item);
   }
 
-  // LMS Config Service Methods
-  getValue(key: string, defaultValue: any = null): any {
-    // First try tenant-specific config if tenantId is provided
-    const tenantId = this.tenantContext.getTenantId();
-   
-    if (tenantId) {
-      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId);
-      if (tenantConfig?.config && tenantConfig.config[key] !== undefined) {
-          return tenantConfig.config[key];
-      }
-    }
-
-    // Then try environment variables
-    const envValue = this.configService.get(key);
-    if (envValue !== undefined) {
-      return envValue;
-    }
-    
-    // Finally try lms-config.json
-    if (this.lmsConfigJson) {
-      const lmsValue = this.getLmsConfigValue(key);
-      if (lmsValue !== undefined) {
-        return lmsValue;
-      }
-    }
-    
-    return defaultValue;
+  // Helper methods for specific configuration types
+  private getStorageConfig(tenantConfig: TenantConfigValue) {
+    return {
+      cloudStorageProvider: tenantConfig.config['cloud_storage_provider'],
+      region: tenantConfig.config['storage_region'],
+      accessKeyId: tenantConfig.config['storage_key'],
+      secretAccessKey: tenantConfig.config['storage_secret'],
+      container: tenantConfig.config['storage_container'],
+      expiresIn: Number(tenantConfig.config['presigned_url_expires_in']),
+    };
   }
 
-  private getLmsConfigValue(key: string): any {
-    // Helper function to search through lms-config.json structure
-    const searchInProperties = (properties: any): any => {
-      for (const section in properties) {
-        const sectionProps = properties[section].properties;
-        if (sectionProps && sectionProps[key]) {
-          return sectionProps[key].default;
-        }
+  getEntityConfigs(entityType: string, tenantConfig: TenantConfigValue): config {
+    const entityConfigMap = {
+      course: {
+        path: 'courses_upload_path',
+        maxFileSize: 'courses_max_file_size',
+        allowedMimeTypes: 'courses_allowed_mime_types'
+      },
+      module: {
+        path: 'modules_upload_path',
+        maxFileSize: 'modules_max_file_size',
+        allowedMimeTypes: 'modules_allowed_mime_types'
+      },
+      lesson: {
+        path: 'lessons_upload_path',
+        maxFileSize: 'lessons_max_file_size',
+        allowedMimeTypes: 'lessons_allowed_mime_types'
+      },
+      lessonMedia: {
+        path: 'lessons_media_upload_path',
+        maxFileSize: 'lessons_media_max_file_size',
+        allowedMimeTypes: 'lessons_media_allowed_mime_types'
+      },
+      lessonAssociatedMedia: {
+        path: 'lessons_associated_media_upload_path',
+        maxFileSize: 'lessons_associated_media_max_file_size',
+        allowedMimeTypes: 'lessons_associated_media_allowed_mime_types'
       }
-      return undefined;
     };
 
-    return searchInProperties(this.lmsConfigJson.properties);
-  }
+    const config = entityConfigMap[entityType];
+    if (!config) {
+      throw new BadRequestException(`${RESPONSE_MESSAGES.ERROR.INVALID_UPLOAD_TYPE}: ${entityType}`);
+    }
 
-  // Helper methods for specific configuration types
-  getStorageConfig() {
     return {
-      region: this.getValue('storage_region', ''),
-      accessKeyId: this.getValue('storage_key', ''),
-      secretAccessKey: this.getValue('storage_secret', ''),
-      container: this.getValue('storage_container', ''),
-      expiresIn: Number(this.getValue('presigned_url_expires_in', 300)), // 300 seconds
+      path: tenantConfig.config[config.path],
+      maxFileSize: tenantConfig.config[config.maxFileSize],
+      allowedMimeTypes: tenantConfig.config[config.allowedMimeTypes],
+      storageConfig: this.getStorageConfig(tenantConfig)
     };
   }
 

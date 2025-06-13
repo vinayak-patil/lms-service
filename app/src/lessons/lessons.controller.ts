@@ -33,7 +33,7 @@ import { API_IDS } from '../common/constants/api-ids.constant';
 import { CommonQueryDto } from '../common/dto/common-query.dto';
 import { ApiId } from '../common/decorators/api-id.decorator';
 import { Lesson } from './entities/lesson.entity';
-import { FileUploadService } from '../storage/providers/local-storage.service';
+import { FileUploadService } from '../common/utils/local-storage.service';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 

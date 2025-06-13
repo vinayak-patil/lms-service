@@ -1,0 +1,124 @@
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage, StorageEngine } from 'multer';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import { HttpStatus } from '@nestjs/common';
+import { ConfigurationService } from '../../configuration/configuration.service';
+import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
+import { TenantConfigValue } from 'src/configuration/interfaces/tenant-config.interface';
+import { TenantContext } from '../tenant/tenant.context';
+
+interface Config {
+  path: string;
+  maxFileSize: number;
+  allowedMimeTypes: string[];
+  storageConfig: {
+    cloudStorageProvider: string;
+    region: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    container: string;
+    expiresIn: number;
+  };
+}
+
+export class FileValidationError extends HttpException {
+  constructor(message: string, status: HttpStatus = HttpStatus.BAD_REQUEST) {
+    super(message, status);
+  }
+}   
+
+interface UploadMetadata {
+  type: 'course' | 'module' | 'lesson' | 'lessonMedia' | 'lessonAssociatedMedia';
+}
+
+@Injectable()
+export class FileUploadService {
+  private readonly baseUploadDir: string;
+
+  constructor(
+    private readonly configurationService: ConfigurationService,
+    private readonly configService: ConfigService,
+    private readonly tenantContext: TenantContext,
+  ) {
+    // Set base upload directory relative to the application root
+    this.baseUploadDir = path.join(process.cwd(), 'uploads');
+    // Ensure base upload directory exists
+    if (!fs.existsSync(this.baseUploadDir)) {
+      fs.mkdirSync(this.baseUploadDir, { recursive: true });
+    }
+  }
+
+  async validateFile(file: Express.Multer.File, metadata: UploadMetadata, entityConfig: Config): Promise<void> {
+    // Validate file size
+    if (file.size > (entityConfig.maxFileSize * 1024 * 1024)) {
+      throw new FileValidationError(
+        `${RESPONSE_MESSAGES.ERROR.FILE_TOO_LARGE}: ${entityConfig.maxFileSize}MB`
+      );
+    }
+
+    // Validate mime type
+    if (!entityConfig.allowedMimeTypes.includes(file.mimetype)) {
+      throw new FileValidationError(
+        `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${entityConfig.allowedMimeTypes.join(', ')}`
+      );
+    }
+  }
+
+  async uploadFile(file: Express.Multer.File, metadata: UploadMetadata): Promise<string> {
+    const tenantId = this.tenantContext.getTenantId() || '';
+    const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {}, IsConfigsSync: 0 };
+
+    let entityConfig: Config = {} as Config;
+    // If config is synced, return entity config directly
+    if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
+      entityConfig = this.configurationService.getEntityConfigs(metadata.type, tenantConfig);
+    }
+
+    if(entityConfig){      
+
+        await this.validateFile(file, metadata, entityConfig);
+
+        const uploadDir = path.join(process.cwd(), entityConfig.path);
+
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const fileName = `${uuidv4()}${path.extname(file.originalname)}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        // Write file to disk
+        await fs.promises.writeFile(filePath, file.buffer);
+
+        // Return the relative path
+        return path.join(entityConfig.path, fileName);
+      }else {
+        throw new BadRequestException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
+      }
+  }
+
+  async deleteFile(filePath: string, metadata: UploadMetadata): Promise<void> {
+    const tenantId = this.tenantContext.getTenantId() || '';
+    const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {}, IsConfigsSync: 0 };
+
+    if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
+      const entityConfig = this.configurationService.getEntityConfigs(metadata.type, tenantConfig);
+      const storageProvider = entityConfig.storageConfig.cloudStorageProvider;
+
+      if (storageProvider === 'local') {
+        const fullPath = path.join(process.cwd(), filePath);
+        if (fs.existsSync(fullPath)) {
+          await fs.promises.unlink(fullPath);
+        }
+        return;
+      }
+    }
+    
+    // TODO: Implement cloud storage deletion
+    throw new BadRequestException(RESPONSE_MESSAGES.ERROR.FILE_DELETION_NOT_IMPLEMENTED);
+  }
+} 
