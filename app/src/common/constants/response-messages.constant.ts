@@ -81,7 +81,7 @@ export const RESPONSE_MESSAGES = {
     COURSE_TRACKING_NOT_FOUND: 'Course tracking not found',
     COURSE_COMPLETED: 'Course is completed',
     EXTERNAL_CONFIG_SYNC_FAILED: 'Failed to sync external configuration',
-    EXTERNAL_CONFIG_URL_MISSING: 'External configuration URL is missing',
+    CONFIG_URL_MISSING: 'Configuration URL is missing',
     CONFIG_UPDATE_FAILED: 'Failed to update configuration',
     EXTERNAL_CONFIG_NOT_FOUND: 'External configuration not found',
     MAX_ATTEMPTS_REACHED: 'Max attempts reached',

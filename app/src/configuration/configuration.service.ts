@@ -74,35 +74,7 @@ export class ConfigurationService {
 
       //if externalConfig is empty
       if (Object.keys(externalConfig).length === 0) {
-        // if external config is not found, parse lms-config.json - only child properties with values
-        const config = {};
-        for (const section in this.lmsConfigJson.properties) {
-          for (const property in this.lmsConfigJson.properties[section].properties) {
-            if (this.lmsConfigJson.properties[section].properties[property].default) {
-              config[property] = this.lmsConfigJson.properties[section].properties[property].default;
-            }
-          }
-        }
-        
-        // Get current tenant config
-        let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
-        
-               
-        // Update tenant config
-        tenantConfig = {
-          config: config,
-          lastSynced: new Date().toISOString(),
-          IsConfigsSync: 1
-        };
-
-        // Update ConfigService
-        this.configService.set(tenantId, tenantConfig);
-
-        return {
-          success: true,
-          message: RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_NOT_FOUND,
-          data: config
-        };
+        return this.loadLocalConfig(tenantId);
       }
 
       // Get current tenant config
@@ -127,15 +99,47 @@ export class ConfigurationService {
         data: tenantConfig
       };
     } catch (error) {
-      throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_SYNC_FAILED}: ${error.message}`);
+      return this.loadLocalConfig(tenantId);
     }
+  }
+
+  loadLocalConfig(tenantId: string): any {
+    // if external config is not found, parse lms-config.json - only child properties with values
+    const config = {};
+    for (const section in this.lmsConfigJson.properties) {
+      for (const property in this.lmsConfigJson.properties[section].properties) {
+        if (this.lmsConfigJson.properties[section].properties[property].default) {
+          config[property] = this.lmsConfigJson.properties[section].properties[property].default;
+        }
+      }
+    }
+    
+    // Get current tenant config
+    let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
+    
+           
+    // Update tenant config
+    tenantConfig = {
+      config: config,
+      lastSynced: new Date().toISOString(),
+      IsConfigsSync: 1
+    };
+
+    // Update ConfigService
+    this.configService.set(tenantId, tenantConfig);
+
+    return {
+      success: true,
+      message: RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_NOT_FOUND,
+      data: config
+    };
   }
 
   async fetchExternalConfig(tenantId: string): Promise<any> {
     try {
-      const externalConfigUrl = this.configService.get('EXTERNAL_CONFIG_URL');
+      const externalConfigUrl = this.configService.get('CONFIG_URL');
       if (!externalConfigUrl) {
-        throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_URL_MISSING);
+        throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.CONFIG_URL_MISSING);
       }
 
       const response = await firstValueFrom(
