@@ -157,7 +157,7 @@ export class ConfigurationService {
   }
 
   // Helper methods for specific configuration types
-  public getStorageConfig(tenantConfig: TenantConfigValue) {
+  private getStorageConfig(tenantConfig: TenantConfigValue) {
     return {
       cloudStorageProvider: tenantConfig.config['cloud_storage_provider'],
       region: tenantConfig.config['storage_region'],
