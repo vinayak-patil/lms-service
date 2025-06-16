@@ -12,7 +12,9 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
-import { StorageModule } from './storage/storage.module';
+import { CloudStorageModule } from '@tekdi/nestjs-cloud-storage';
+
+
 @Module({
   imports: [
     // Configuration
@@ -20,11 +22,18 @@ import { StorageModule } from './storage/storage.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    CloudStorageModule.register({
+      provider: process.env.CLOUD_STORAGE_PROVIDER as 'aws' | 'azure' | 'gcp',
+      region: process.env.CLOUD_STORAGE_REGION,
+      credentials: {
+        accessKeyId: process.env.CLOUD_STORAGE_ACCESS_KEY_ID,
+        secretAccessKey: process.env.CLOUD_STORAGE_SECRET_ACCESS_KEY,
+      },
+      bucket: process.env.CLOUD_STORAGE_BUCKET_NAME,
+    }),
     CacheModule,
     DatabaseModule,
-    // Common module
-    CommonModule,    
-    // Feature modules
+    CommonModule,
     CoursesModule,
     ModulesModule,
     LessonsModule,
@@ -32,7 +41,6 @@ import { StorageModule } from './storage/storage.module';
     EnrollmentsModule,
     HealthModule,
     TrackingModule,
-    StorageModule
   ],
   controllers: [AppController],
   providers: [AppService],

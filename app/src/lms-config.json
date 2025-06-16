@@ -39,22 +39,32 @@
           "storage_key": {
             "type": "string",
             "title": "Storage Key",
-            "description": "Storage Key"
+            "description": "Storage Key",
+            "default": "AKIA3JETBQXB5YVYKM5UL"
           },
           "storage_secret": {
             "type": "string",
             "title": "Storage Secret",
-            "description": "Storage Secret"
+            "description": "Storage Secret",
+            "default": "J41I6G6SYYrLN6i5QKv7MJQC5LzuH3GnG2Y97iMDL"
           },
           "storage_container": {
             "type": "string",
             "title": "Storage Container",
-            "description": "Storage Container"
+            "description": "Storage Container",
+            "default": "aspire-leaders-assetsL"
           },
           "storage_region": {
             "type": "string",
             "title": "Storage Region",
-            "description": "Storage Region"
+            "description": "Storage Region",
+            "default": "us-east-1"
+          },
+          "presigned_url_expires_in": {
+            "type": "number",
+            "title": "Presigned URL Expires In",
+            "description": "Presigned URL Expires In",
+            "default": 3600
           }
         }
       },
@@ -84,7 +94,49 @@
             "type": "number",
             "title": "Allowed video size in MB",
             "description": "Allowed video size in MB",
-            "default": "500"
+            "default": 500
+          },
+          "document_mime_type": {
+            "type": "string",
+            "title": "Allowed Document Mime types",
+            "description": "Allowed Document Mime types",
+            "default": "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          },
+          "document_filesize": {
+            "type": "number",
+            "title": "Allowed document size in MB",
+            "description": "Allowed document size in MB",
+            "default": 500
+          },
+          "courses_upload_path": {
+            "type": "string",
+            "title": "Courses Upload Path",
+            "description": "Courses Upload Path",
+            "default": "courses"
+          },
+          "modules_upload_path": {
+            "type": "string",
+            "title": "Modules Upload Path",
+            "description": "Modules Upload Path",
+            "default": "modules"
+          },
+          "lessons_upload_path": {
+            "type": "string",
+            "title": "Lessons Upload Path",
+            "description": "Lessons Upload Path",
+            "default": "lessons"
+          },
+          "lessons_media_upload_path": {
+            "type": "string",
+            "title": "Lessons Media Upload Path",
+            "description": "Filesystem path for lesson media uploads",
+            "default": ""
+          },
+          "lessons_associated_media_upload_path": {
+            "type": "string",
+            "title": "Lessons Associated Media Upload Path",
+            "description": "Filesystem path for associated lesson media uploads",
+            "default": ""
           }
         }
       },

@@ -20,9 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.826.0",
     "@aws-sdk/s3-presigned-post": "^3.826.0",
     "@aws-sdk/s3-request-presigner": "^3.826.0",
-    "@aws-sdk/client-s3": "^3.826.0",
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.2",
     "@nestjs/config": "^4.0.2",
@@ -30,6 +31,7 @@
     "@nestjs/platform-express": "^11.1.2",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@tekdi/nestjs-cloud-storage": "github:tekdi/nestjs-cloud-storage",
     "cache-manager": "^6.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
