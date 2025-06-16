@@ -59,6 +59,12 @@
             "title": "Storage Region",
             "description": "Storage Region",
             "default": ""
+          },
+          "presigned_url_expires_in": {
+            "type": "number",
+            "title": "Presigned URL Expires In",
+            "description": "Presigned URL Expires In",
+            "default": 3600
           }
         }
       },
