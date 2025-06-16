@@ -40,25 +40,25 @@
             "type": "string",
             "title": "Storage Key",
             "description": "Storage Key",
-            "default": "AKIA3JETBQXB5YVYKM5UL"
+            "default": ""
           },
           "storage_secret": {
             "type": "string",
             "title": "Storage Secret",
             "description": "Storage Secret",
-            "default": "J41I6G6SYYrLN6i5QKv7MJQC5LzuH3GnG2Y97iMDL"
+            "default": ""
           },
           "storage_container": {
             "type": "string",
             "title": "Storage Container",
             "description": "Storage Container",
-            "default": "aspire-leaders-assetsL"
+            "default": ""
           },
           "storage_region": {
             "type": "string",
             "title": "Storage Region",
             "description": "Storage Region",
-            "default": "us-east-1"
+            "default": ""
           },
           "presigned_url_expires_in": {
             "type": "number",
