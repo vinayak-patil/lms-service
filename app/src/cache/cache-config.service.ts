@@ -35,8 +35,28 @@ export class CacheConfigService {
     return `${this.COURSE_PREFIX}hierarchy:${courseId}:${tenantId}:${organisationId}`;
   }
 
-  getCourseSearchKey(tenantId: string, organisationId: string, page?: number, limit?: number): string {
-    return `${this.COURSE_PREFIX}search:${tenantId}:${organisationId}:${page || 1}:${limit || 10}`;
+  getCourseSearchKey(
+    tenantId: string, 
+    organisationId: string, 
+    filters: Record<string, any>,
+    page?: number, 
+    limit?: number
+  ): string {
+    // Create a deterministic string representation of filters
+    const filterString = Object.entries(filters || {})
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB)) // Sort keys for consistency
+      .map(([key, value]) => {
+        if (value instanceof Date) {
+          return `${key}:${value.toISOString()}`;
+        }
+        if (typeof value === 'object' && value !== null) {
+          return `${key}:${JSON.stringify(value)}`;
+        }
+        return `${key}:${value}`;
+      })
+      .join('|');
+
+    return `${this.COURSE_PREFIX}search:${tenantId}:${organisationId}:${filterString}:${page || 1}:${limit || 10}`;
   }
 
   getCourseModulesPattern(courseId: string, tenantId: string, organisationId: string): string {
@@ -79,8 +99,8 @@ export class CacheConfigService {
     return `${this.ENROLLMENT_PREFIX}${enrollmentId}::${tenantId}:${organisationId}`;
   }
 
-  getEnrollmentListKey(tenantId: string, organisationId: string, learnerId: string, courseId: string, page: number, limit: number): string {
-    return `${this.ENROLLMENT_PREFIX}list:${tenantId}:${organisationId}:${learnerId}:${courseId}:${page}:${limit}`;
+  getEnrollmentListKey(tenantId: string, organisationId: string, learnerId: string, courseId: string, status: string, page: number, limit: number): string {
+    return `${this.ENROLLMENT_PREFIX}list:${tenantId}:${organisationId}:${learnerId}:${courseId}:${status}:${page}:${limit}`;
   }
 
   getEnrollmentPattern(tenantId: string, organisationId: string): string {

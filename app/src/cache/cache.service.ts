@@ -9,10 +9,9 @@ import { UserEnrollment } from '../enrollments/entities/user-enrollment.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class CacheService implements OnModuleInit {
+export class CacheService {
   private readonly logger = new Logger(CacheService.name);
   private readonly cacheEnabled: boolean;
-  private isConnected = false;
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -20,37 +19,6 @@ export class CacheService implements OnModuleInit {
     private readonly cacheConfig: CacheConfigService
   ) {
     this.cacheEnabled = this.configService.get('CACHE_ENABLED') === 'true';
-    this.logger.log(`Cache is ${this.cacheEnabled ? 'enabled' : 'disabled'}`);
-    this.logger.log(`Redis configuration: host=${this.configService.get('REDIS_HOST')}, port=${this.configService.get('REDIS_PORT')}`);
-  }
-
-  async onModuleInit() {
-    if (this.cacheEnabled) {
-      await this.testRedisConnection();
-    }
-  }
-
-  private async testRedisConnection() {
-    try {
-      const testKey = 'test:connection';
-      await this.cacheManager.set(testKey, 'connected', 10);
-      const value = await this.cacheManager.get(testKey);
-      
-      if (value === 'connected') {
-        this.isConnected = true;
-        this.logger.log('Redis connection test: SUCCESS');
-        
-        // Log store details
-        const store = (this.cacheManager as any).store;
-        this.logger.log(`Cache store type: ${store?.constructor?.name || 'unknown'}`);
-        this.logger.log(`Cache store methods: ${Object.keys(store || {}).join(', ')}`);
-      } else {
-        this.logger.error('Redis connection test: FAILED - Value mismatch');
-      }
-    } catch (error) {
-      this.logger.error('Redis connection test failed:', error);
-      this.isConnected = false;
-    }
   }
 
   /**
@@ -59,7 +27,7 @@ export class CacheService implements OnModuleInit {
    * @returns Cached value or null if not found
    */
   async get<T>(key: string): Promise<T | null> {
-    if (!this.cacheEnabled || !this.isConnected) {
+    if (!this.cacheEnabled) {
       this.logger.debug(`Cache is ${!this.cacheEnabled ? 'disabled' : 'not connected'}, skipping get for key ${key}`);
       return null;
     }
@@ -76,7 +44,6 @@ export class CacheService implements OnModuleInit {
       }
     } catch (error) {
       this.logger.error(`Error getting cache for key ${key}: ${error.message}`, error.stack);
-      this.isConnected = false;
       return null;
     }
   }
@@ -88,7 +55,7 @@ export class CacheService implements OnModuleInit {
    * @param ttl Time to live in seconds
    */
   async set(key: string, value: any, ttl: number): Promise<void> {
-    if (!this.cacheEnabled || !this.isConnected) {
+    if (!this.cacheEnabled) {
       this.logger.debug(`Cache is ${!this.cacheEnabled ? 'disabled' : 'not connected'}, skipping set for key ${key}`);
       return;
     }
@@ -99,7 +66,6 @@ export class CacheService implements OnModuleInit {
       this.logger.debug(`Successfully set cache for key ${key}`);
     } catch (error) {
       this.logger.error(`Error setting cache for key ${key}: ${error.message}`, error.stack);
-      this.isConnected = false;
     }
   }
 
@@ -113,7 +79,7 @@ export class CacheService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug(`Deleting cache for key ${key}`);
+      // this.logger.debug(`Deleting cache for key ${key}`);
       await this.cacheManager.del(key);
     } catch (error) {
       this.logger.error(`Error deleting cache for key ${key}: ${error.message}`);
@@ -122,7 +88,7 @@ export class CacheService implements OnModuleInit {
 
   /**
    * Delete multiple values from cache using pattern
-   * @param pattern Cache key pattern
+   * @param pattern Cache key pattern (supports :* wildcard at the end)
    */
   async delByPattern(pattern: string): Promise<void> {
     if (!this.cacheEnabled) {
@@ -130,25 +96,27 @@ export class CacheService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug(`Deleting cache by pattern ${pattern}`);
       // Get all keys from the cache store
       const store = (this.cacheManager as any).store;
       if (!store || typeof store.keys !== 'function') {
-        this.logger.warn('Cache store does not support pattern deletion');
         return;
       }
 
       const keys = await store.keys();
-      const matchingKeys = keys.filter(key => key.includes(pattern));
+
+      // Convert pattern to regex if it ends with :*
+      const patternRegex = pattern.endsWith(':*') 
+        ? new RegExp(`^${pattern.slice(0, -2)}:.*$`)
+        : new RegExp(`^${pattern}$`);
+
+      const matchingKeys = keys.filter(key => patternRegex.test(key));
       
       if (matchingKeys.length > 0) {
         this.logger.debug(`Found ${matchingKeys.length} keys matching pattern ${pattern}`);
         await Promise.all(matchingKeys.map(key => this.del(key)));
       } else {
-        this.logger.debug(`No keys found matching pattern ${pattern}`);
       }
     } catch (error) {
-      this.logger.error(`Error deleting cache by pattern ${pattern}: ${error.message}`);
     }
   }
 
@@ -161,7 +129,6 @@ export class CacheService implements OnModuleInit {
     }
 
     try {
-      this.logger.debug('Clearing all cache');
       const store = (this.cacheManager as any).store;
       if (!store || typeof store.reset !== 'function') {
         this.logger.warn('Cache store does not support reset');
@@ -201,7 +168,7 @@ export class CacheService implements OnModuleInit {
       this.del(this.cacheConfig.getCourseKey(courseId, tenantId, organisationId)),
       this.del(this.cacheConfig.getCourseHierarchyKey(courseId, tenantId, organisationId)),
       this.delByPattern(this.cacheConfig.getCourseModulesPattern(courseId, tenantId, organisationId)),
-      this.delByPattern(this.cacheConfig.getCourseSearchKey(tenantId, organisationId)),
+      this.delByPattern(`${this.cacheConfig.COURSE_PREFIX}search:${tenantId}:${organisationId}:*`),
     ]);
 
     // Invalidate related module caches
@@ -330,31 +297,6 @@ export class CacheService implements OnModuleInit {
       this.delByPattern(`${this.cacheConfig.ENROLLMENT_PREFIX}list:${tenantId}:${organisationId}:*`),
       this.del(this.cacheConfig.getEnrollmentKey(userId, courseId, tenantId, organisationId)),
       this.delByPattern(this.cacheConfig.getEnrollmentPattern(tenantId, organisationId)),
-    ]);
-  }
-
-  // Tenant and Organization specific cache invalidation
-  async invalidateTenantCache(tenantId: string): Promise<void> {
-    if (!this.cacheEnabled) {
-      return;
-    }
-    await Promise.all([
-      this.delByPattern(`${this.cacheConfig.COURSE_PREFIX}*:${tenantId}:*`),
-      this.delByPattern(`${this.cacheConfig.MODULE_PREFIX}*:${tenantId}:*`),
-      this.delByPattern(`${this.cacheConfig.LESSON_PREFIX}*:${tenantId}:*`),
-      this.delByPattern(`${this.cacheConfig.ENROLLMENT_PREFIX}*:${tenantId}:*`),
-    ]);
-  }
-
-  async invalidateOrganizationCache(organisationId: string): Promise<void> {
-    if (!this.cacheEnabled) {
-      return;
-    }
-    await Promise.all([
-      this.delByPattern(`${this.cacheConfig.COURSE_PREFIX}*:*:${organisationId}:*`),
-      this.delByPattern(`${this.cacheConfig.MODULE_PREFIX}*:*:${organisationId}:*`),
-      this.delByPattern(`${this.cacheConfig.LESSON_PREFIX}*:*:${organisationId}:*`),
-      this.delByPattern(`${this.cacheConfig.ENROLLMENT_PREFIX}*:*:${organisationId}:*`),
     ]);
   }
 } 

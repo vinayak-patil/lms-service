@@ -173,7 +173,7 @@ export class EnrollmentsService {
       // Find and return the complete enrollment with relations
       const completeEnrollment = await queryRunner.manager.findOne(UserEnrollment, {
         where: { enrollmentId: savedEnrollment.enrollmentId },
-        relations: ['course'],
+        // relations: ['course'],
       });
 
       if (!completeEnrollment) {
@@ -226,7 +226,7 @@ export class EnrollmentsService {
       const skip = (page - 1) * limit;
 
       // Generate cache key using standardized pattern
-      const cacheKey = this.cacheConfig.getEnrollmentListKey(tenantId, organisationId, learnerId || '', courseId || '',page,limit);
+      const cacheKey = this.cacheConfig.getEnrollmentListKey(tenantId, organisationId, learnerId || '', courseId || '',status || '',page,limit);
 
       // Try to get from cache first
       const cachedResult = await this.cacheService.get<{ count: number; enrollments: UserEnrollment[] }>(cacheKey);
@@ -257,7 +257,7 @@ export class EnrollmentsService {
         order: {
           enrolledOnTime: 'DESC',
         },
-        relations: ['course'],
+        // relations: ['course'],
       });
 
       const result = { count, enrollments };
@@ -297,7 +297,7 @@ export class EnrollmentsService {
       // Get enrollment from database first to get userId and courseId for cache key
       const enrollment = await this.userEnrollmentRepository.findOne({
         where: { enrollmentId, tenantId, organisationId },
-        relations: ['course'],
+        // relations: ['course'],
       });
 
       if (!enrollment) {

@@ -153,8 +153,8 @@ export class ModulesService {
    */
   async findOne(
     moduleId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<Module> {
     // Check cache first
     const cacheKey = this.cacheConfig.getModuleKey(moduleId, tenantId || '', organisationId || '');
@@ -197,7 +197,7 @@ export class ModulesService {
   async findByCourse(
     courseId: string,
     tenantId: string,
-    organisationId?: string
+    organisationId: string
   ): Promise<Module[]> {
     // Check cache first
     const cacheKey = this.cacheConfig.getCourseModulesPattern(courseId, tenantId, organisationId);

@@ -129,10 +129,11 @@ export class CoursesService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{ courses: Course[]; total: number }> {
-    // Generate cache key with empty string for undefined organisationId
+    // Generate cache key with all filter parameters
     const cacheKey = this.cacheConfig.getCourseSearchKey(
       tenantId,
       organisationId,
+      filters,
       paginationDto.page,
       paginationDto.limit
     );
@@ -147,9 +148,16 @@ export class CoursesService {
 
     const whereClause: any = { 
       tenantId,
-      ...(organisationId && { organisationId }), // Add organisationId for data isolation if it exists
+      organisationId,
       status: filters?.status || Not(CourseStatus.ARCHIVED),
     };
+
+    // Add cohort filter if provided, cohortid will be at params in json format
+    if (filters?.cohortId) {
+      whereClause.params = {
+        cohortId: filters.cohortId
+      };
+    }
 
     // Add boolean filters if provided
     if (filters?.featured !== undefined) {
@@ -183,9 +191,12 @@ export class CoursesService {
         whereClause.endDatetime.lte = filters.endDateTo;
       }
     }
+
+    let result: { courses: Course[]; total: number };
+
     // If there's a search query, search in title and description
     if (filters?.query) {
-      const result = await this.courseRepository.findAndCount({
+      result = await this.courseRepository.findAndCount({
         where: [
           { 
             title: ILike(`%${filters.query}%`),
@@ -204,24 +215,18 @@ export class CoursesService {
         take: limit,
         skip,
       }).then(([items, total]) => ({ courses: items, total }));
-
-      // Set in cache
-    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
-    
-    return result;
+    } else {
+      // If no search query, just use filters
+      result = await this.courseRepository.findAndCount({
+        where: whereClause,
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip,
+      }).then(([items, total]) => ({ courses: items, total }));
     }
 
-    // If no search query, just use filters
-     const result = await this.courseRepository.findAndCount({
-      where: whereClause,
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip,
-    }).then(([items, total]) => ({ courses: items, total }));
-
-    // Set in cache
+    // Set in cache with TTL
     await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
-    
 
     return result;
   }
