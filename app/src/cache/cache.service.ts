@@ -327,6 +327,7 @@ export class CacheService implements OnModuleInit {
     }
     // Invalidate enrollment-specific caches
     await Promise.all([
+      this.delByPattern(`${this.cacheConfig.ENROLLMENT_PREFIX}list:${tenantId}:${organisationId}:*`),
       this.del(this.cacheConfig.getEnrollmentKey(userId, courseId, tenantId, organisationId)),
       this.delByPattern(this.cacheConfig.getEnrollmentPattern(tenantId, organisationId)),
     ]);

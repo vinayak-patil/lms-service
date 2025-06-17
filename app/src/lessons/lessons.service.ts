@@ -156,9 +156,12 @@ export class LessonsService {
       const lesson = this.lessonRepository.create(lessonData);
       const savedLesson = await this.lessonRepository.save(lesson);
 
-      // Cache the new lesson
-      await this.cacheService.setLesson(savedLesson);
-      await this.cacheService.invalidateLesson(savedLesson.lessonId, savedLesson.moduleId, savedLesson.courseId, tenantId, organisationId);
+      // Cache the new lesson with proper key and TTL
+      const lessonKey = this.cacheConfig.getLessonKey(savedLesson.lessonId, tenantId, organisationId);
+      await Promise.all([
+        this.cacheService.set(lessonKey, savedLesson, this.cacheConfig.LESSON_TTL),
+        this.cacheService.invalidateLesson(savedLesson.lessonId, savedLesson.moduleId, savedLesson.courseId, tenantId, organisationId),
+      ]);
       return savedLesson;
     } catch (error) {
       this.logger.error(`Error creating lesson: ${error.message}`, error.stack);
@@ -509,8 +512,9 @@ export class LessonsService {
       const savedLesson = await this.lessonRepository.save(updatedLesson);
 
       // Update cache and invalidate related caches
+      const lessonKey = this.cacheConfig.getLessonKey(savedLesson.lessonId, tenantId, organisationId);
       await Promise.all([
-        this.cacheService.setLesson(savedLesson),
+        this.cacheService.set(lessonKey, savedLesson, this.cacheConfig.LESSON_TTL),
         this.cacheService.invalidateLesson(lessonId, lesson.moduleId, lesson.courseId, tenantId, organisationId),
       ]);
 
@@ -553,7 +557,11 @@ export class LessonsService {
       await this.lessonRepository.save(lesson);
 
       // Invalidate all related caches
-      await this.cacheService.invalidateLesson(lessonId, lesson.moduleId, lesson.courseId, tenantId, organisationId);
+      const lessonKey = this.cacheConfig.getLessonKey(lessonId, tenantId, organisationId);
+      await Promise.all([
+        this.cacheService.del(lessonKey),
+        this.cacheService.invalidateLesson(lessonId, lesson.moduleId, lesson.courseId, tenantId, organisationId),
+      ]);
 
       return {
         success: true,

@@ -184,8 +184,9 @@ export class EnrollmentsService {
       await queryRunner.commitTransaction();
 
       // Cache the new enrollment and invalidate related caches
+      const enrollmentKey = this.cacheConfig.getEnrollmentKey(savedEnrollment.userId, savedEnrollment.courseId, tenantId, organisationId);
       await Promise.all([
-        this.cacheService.setEnrollment(savedEnrollment),
+        this.cacheService.set(enrollmentKey, savedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
         this.cacheService.invalidateEnrollment(savedEnrollment.userId, savedEnrollment.courseId, tenantId, organisationId),
       ]);
       
@@ -280,7 +281,20 @@ export class EnrollmentsService {
     organisationId: string
   ): Promise<UserEnrollment> {
     try {
-      // Get enrollment from cache first
+
+      // Check cache using the enrollment's userId and courseId
+      const cacheKey = this.cacheConfig.getUserEnrollmentKey(
+        enrollmentId,
+        tenantId,
+        organisationId
+      );
+      const cachedEnrollment = await this.cacheService.get<UserEnrollment>(cacheKey);
+      
+      if (cachedEnrollment) {
+        return cachedEnrollment;
+      }
+
+      // Get enrollment from database first to get userId and courseId for cache key
       const enrollment = await this.userEnrollmentRepository.findOne({
         where: { enrollmentId, tenantId, organisationId },
         relations: ['course'],
@@ -290,20 +304,8 @@ export class EnrollmentsService {
         throw new NotFoundException(RESPONSE_MESSAGES.ENROLLMENT_NOT_FOUND);
       }
 
-      // Get from cache using the found enrollment's userId
-      const cachedEnrollment = await this.cacheService.getEnrollment(
-        enrollment.userId,
-        enrollment.courseId,
-        tenantId,
-        organisationId
-      );
-      
-      if (cachedEnrollment) {
-        return cachedEnrollment;
-      }
-
-      // Cache the enrollment
-      await this.cacheService.setEnrollment(enrollment);
+      // Cache the enrollment with TTL
+      await this.cacheService.set(cacheKey, enrollment, this.cacheConfig.ENROLLMENT_TTL);
 
       return enrollment;
     } catch (error) {
@@ -334,8 +336,10 @@ export class EnrollmentsService {
       const updatedEnrollment = await this.userEnrollmentRepository.save(enrollment);
 
       // Update cache and invalidate related caches
+      const enrollmentKey = this.cacheConfig.getEnrollmentKey(updatedEnrollment.userId, updatedEnrollment.courseId, tenantId, organisationId);
       await Promise.all([
-        this.cacheService.setEnrollment(updatedEnrollment),
+        this.cacheService.del(this.cacheConfig.getUserEnrollmentKey(enrollmentId, tenantId, organisationId)),
+        this.cacheService.set(enrollmentKey, updatedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
         this.cacheService.invalidateEnrollment(updatedEnrollment.userId, updatedEnrollment.courseId, tenantId, organisationId),
       ]);
 
@@ -369,8 +373,10 @@ export class EnrollmentsService {
       await this.userEnrollmentRepository.save(enrollment);
 
       // Invalidate all related caches
+      const enrollmentKey = this.cacheConfig.getEnrollmentKey(enrollment.userId, enrollment.courseId, tenantId, organisationId);
       await Promise.all([
-        this.cacheService.invalidateEnrollment(enrollment.userId, enrollment.courseId, tenantId, organisationId),
+        this.cacheService.del(this.cacheConfig.getUserEnrollmentKey(enrollmentId, tenantId, organisationId)),
+        this.cacheService.del(enrollmentKey),
         this.cacheService.invalidateEnrollment(enrollment.userId, enrollment.courseId, tenantId, organisationId),
       ]);
 

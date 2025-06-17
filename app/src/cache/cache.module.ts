@@ -13,6 +13,16 @@ import * as redisStore from 'cache-manager-redis-store';
       useFactory: async (configService: ConfigService) => {
         const logger = new Logger('CacheModule');
         
+        const cacheEnabled = configService.get('CACHE_ENABLED') === 'true';
+        
+        if (!cacheEnabled) {
+          logger.log('Cache is disabled, using memory store');
+          return {
+            ttl: configService.get('CACHE_TTL', 300),
+            max: configService.get('REDIS_MAX_ITEMS', 1000),
+          };
+        }
+
         try {
           const store = redisStore.create({
             host: configService.get('REDIS_HOST', 'localhost'),

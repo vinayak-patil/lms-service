@@ -156,8 +156,9 @@ export class ModulesService {
     tenantId?: string,
     organisationId?: string
   ): Promise<Module> {
-    // Standardized cache handling for findOne
-    const cachedModule = await this.cacheService.getModule(moduleId, tenantId || '', organisationId || '');
+    // Check cache first
+    const cacheKey = this.cacheConfig.getModuleKey(moduleId, tenantId || '', organisationId || '');
+    const cachedModule = await this.cacheService.get<Module>(cacheKey);
     if (cachedModule) {
       return cachedModule;
     }
@@ -182,8 +183,8 @@ export class ModulesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND);
     }
 
-    // Cache the module
-    await this.cacheService.setModule(module);
+    // Cache the module with TTL
+    await this.cacheService.set(cacheKey, module, this.cacheConfig.MODULE_TTL);
     return module;
   }
 
@@ -292,12 +293,13 @@ export class ModulesService {
       const savedModule = await this.moduleRepository.save(updatedModule);
 
     // Update cache and invalidate related caches
+    const moduleKey = this.cacheConfig.getModuleKey(savedModule.moduleId, savedModule.tenantId, savedModule.organisationId);
     await Promise.all([
-      this.cacheService.setModule(savedModule),
+      this.cacheService.set(moduleKey, savedModule, this.cacheConfig.MODULE_TTL),
       this.cacheService.invalidateModule(moduleId, module.courseId, tenantId, organisationId),
     ]);
 
-    return updatedModule;
+    return savedModule;
   }
 
 
@@ -321,7 +323,11 @@ export class ModulesService {
       const savedModule = await this.moduleRepository.save(module);
 
     // Invalidate all related caches
-    await this.cacheService.invalidateModule(moduleId, module.courseId, tenantId, organisationId);
+    const moduleKey = this.cacheConfig.getModuleKey(moduleId, tenantId, organisationId);
+    await Promise.all([
+      this.cacheService.del(moduleKey),
+      this.cacheService.invalidateModule(moduleId, module.courseId, tenantId, organisationId),
+    ]);
 
     return {
       success: true,

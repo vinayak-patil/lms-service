@@ -39,26 +39,26 @@ export class CacheConfigService {
     return `${this.COURSE_PREFIX}search:${tenantId}:${organisationId}:${page || 1}:${limit || 10}`;
   }
 
-  getCourseModulesPattern(courseId: string, tenantId: string, organisationId?: string): string {
+  getCourseModulesPattern(courseId: string, tenantId: string, organisationId: string): string {
     return `${this.MODULE_PREFIX}course:${courseId}:${tenantId}:${organisationId}:*`;
   }
 
   // Module-related methods
-  getModuleKey(moduleId: string, tenantId: string, organisationId?: string): string {
-    return `${this.MODULE_PREFIX}${moduleId}:${tenantId}:${organisationId || ''}`;
+  getModuleKey(moduleId: string, tenantId: string, organisationId: string): string {
+    return `${this.MODULE_PREFIX}${moduleId}:${tenantId}:${organisationId}`;
   }
 
-  getModulePattern(parentId: string, tenantId: string, organisationId?: string): string {
-    return `${this.MODULE_PREFIX}parent:${parentId}:${tenantId}:${organisationId || ''}:*`;
+  getModulePattern(parentId: string, tenantId: string, organisationId: string): string {
+    return `${this.MODULE_PREFIX}parent:${parentId}:${tenantId}:${organisationId}:*`;
   }
 
-  getModuleHierarchyKey(moduleId: string, tenantId: string, organisationId?: string): string {
-    return `${this.MODULE_PREFIX}hierarchy:${moduleId}:${tenantId}:${organisationId || ''}`;
+  getModuleHierarchyKey(moduleId: string, tenantId: string, organisationId: string): string {
+    return `${this.MODULE_PREFIX}hierarchy:${moduleId}:${tenantId}:${organisationId}`;
   }
 
   // Lesson-related methods
-  getLessonKey(lessonId: string, tenantId: string, organisationId?: string): string {
-    return `${this.LESSON_PREFIX}${lessonId}:${tenantId}:${organisationId || ''}`;
+  getLessonKey(lessonId: string, tenantId: string, organisationId: string): string {
+    return `${this.LESSON_PREFIX}${lessonId}:${tenantId}:${organisationId}`;
   }
 
   getLessonPattern(tenantId: string, organisationId?: string): string {
@@ -70,15 +70,20 @@ export class CacheConfigService {
   }
 
   // Enrollment-related methods
-  getEnrollmentKey(userId: string, courseId: string, tenantId: string, organisationId?: string): string {
-    return `${this.ENROLLMENT_PREFIX}${userId}:${courseId}:${tenantId}:${organisationId || ''}`;
+  getEnrollmentKey(userId: string, courseId: string, tenantId: string, organisationId: string): string {
+    return `${this.ENROLLMENT_PREFIX}${userId}:${courseId}:${tenantId}:${organisationId}`;
+  }
+
+   // Enrollment-related methods
+   getUserEnrollmentKey(enrollmentId: string, tenantId: string, organisationId: string): string {
+    return `${this.ENROLLMENT_PREFIX}${enrollmentId}::${tenantId}:${organisationId}`;
   }
 
   getEnrollmentListKey(tenantId: string, organisationId: string, learnerId: string, courseId: string, page: number, limit: number): string {
     return `${this.ENROLLMENT_PREFIX}list:${tenantId}:${organisationId}:${learnerId}:${courseId}:${page}:${limit}`;
   }
 
-  getEnrollmentPattern(tenantId: string, organisationId?: string): string {
-    return `${this.ENROLLMENT_PREFIX}*:${tenantId}:${organisationId || ''}:*`;
+  getEnrollmentPattern(tenantId: string, organisationId: string): string {
+    return `${this.ENROLLMENT_PREFIX}*:${tenantId}:${organisationId}:*`;
   }
 } 
