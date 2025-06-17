@@ -18,24 +18,25 @@ import * as redisStore from 'cache-manager-redis-store';
         if (!cacheEnabled) {
           logger.log('Cache is disabled, using memory store');
           return {
-            ttl: configService.get('CACHE_TTL', 300),
-            max: configService.get('REDIS_MAX_ITEMS', 1000),
+            ttl: configService.get('CACHE_DEFAULT_TTL', 300),
+            max: configService.get('CACHE_MAX_ITEMS', 1000),
           };
         }
 
         try {
-          const store = redisStore.create({
+          const redisOptions = {
             host: configService.get('REDIS_HOST', 'localhost'),
             port: configService.get('REDIS_PORT', 6379),
             password: configService.get('REDIS_PASSWORD', ''),
             db: configService.get('REDIS_DB', 0)
-          });
+          };
 
           logger.log('Redis store initialized successfully');
           
           return {
-            store,
-            ttl: configService.get('CACHE_DEFAULT_TTL', 3600) * 1000,
+            store: redisStore,
+            ...redisOptions,
+            ttl: configService.get('CACHE_DEFAULT_TTL', 3600),
             max: configService.get('CACHE_MAX_ITEMS', 1000),
           };
         } catch (error) {

@@ -200,7 +200,7 @@ export class ModulesService {
     organisationId: string
   ): Promise<Module[]> {
     // Check cache first
-    const cacheKey = this.cacheConfig.getCourseModulesPattern(courseId, tenantId, organisationId);
+    const cacheKey = this.cacheConfig.getCourseModulesKey(courseId, tenantId, organisationId);
     const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
     if (cachedModules) {
       return cachedModules;
@@ -245,7 +245,7 @@ export class ModulesService {
     organisationId: string
   ): Promise<Module[]> {
     // Check cache first
-    const cacheKey = this.cacheConfig.getModulePattern(parentId, tenantId, organisationId);
+    const cacheKey = this.cacheConfig.getModuleParentKey(parentId, tenantId, organisationId);
     const cachedModules = await this.cacheService.get<Module[]>(cacheKey);
     if (cachedModules) {
       return cachedModules;

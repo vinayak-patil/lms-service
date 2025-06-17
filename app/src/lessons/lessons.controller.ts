@@ -32,6 +32,7 @@ import { Lesson, LessonFormat, LessonStatus } from './entities/lesson.entity';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
+import { ParseEnumPipe } from '@nestjs/common';
 
 @ApiTags('Lessons')
 @Controller('lessons')
@@ -82,8 +83,8 @@ export class LessonsController {
   async getAllLessons(
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
     @Query() paginationDto: PaginationDto,
-    @Query('status') status?: string,
-    @Query('format') format?: string,
+    @Query('status', new ParseEnumPipe(LessonStatus, { optional: true })) status?: LessonStatus,
+    @Query('format', new ParseEnumPipe(LessonFormat, { optional: true })) format?: LessonFormat,
   ) {
     return this.lessonsService.findAll(
       tenantOrg.tenantId,

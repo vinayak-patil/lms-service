@@ -63,6 +63,10 @@ export class CacheConfigService {
     return `${this.MODULE_PREFIX}course:${courseId}:${tenantId}:${organisationId}:*`;
   }
 
+  getCourseModulesKey(courseId: string, tenantId: string, organisationId: string): string {
+    return `${this.MODULE_PREFIX}course:${courseId}:${tenantId}:${organisationId}`;
+  }
+
   // Module-related methods
   getModuleKey(moduleId: string, tenantId: string, organisationId: string): string {
     return `${this.MODULE_PREFIX}${moduleId}:${tenantId}:${organisationId}`;
@@ -70,6 +74,10 @@ export class CacheConfigService {
 
   getModulePattern(parentId: string, tenantId: string, organisationId: string): string {
     return `${this.MODULE_PREFIX}parent:${parentId}:${tenantId}:${organisationId}:*`;
+  }
+
+  getModuleParentKey(parentId: string, tenantId: string, organisationId: string): string {
+    return `${this.MODULE_PREFIX}parent:${parentId}:${tenantId}:${organisationId}`;
   }
 
   getModuleHierarchyKey(moduleId: string, tenantId: string, organisationId: string): string {
@@ -96,7 +104,7 @@ export class CacheConfigService {
 
    // Enrollment-related methods
    getUserEnrollmentKey(enrollmentId: string, tenantId: string, organisationId: string): string {
-    return `${this.ENROLLMENT_PREFIX}${enrollmentId}::${tenantId}:${organisationId}`;
+    return `${this.ENROLLMENT_PREFIX}${enrollmentId}:${tenantId}:${organisationId}`;
   }
 
   getEnrollmentListKey(tenantId: string, organisationId: string, learnerId: string, courseId: string, status: string, page: number, limit: number): string {

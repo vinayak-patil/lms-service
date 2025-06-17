@@ -155,6 +155,7 @@ export class CoursesService {
     // Add cohort filter if provided, cohortid will be at params in json format
     if (filters?.cohortId) {
       whereClause.params = {
+        ...whereClause.params,
         cohortId: filters.cohortId
       };
     }

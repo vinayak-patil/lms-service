@@ -186,8 +186,8 @@ export class EnrollmentsService {
       // Cache the new enrollment and invalidate related caches
       const enrollmentKey = this.cacheConfig.getEnrollmentKey(savedEnrollment.userId, savedEnrollment.courseId, tenantId, organisationId);
       await Promise.all([
-        this.cacheService.set(enrollmentKey, savedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
         this.cacheService.invalidateEnrollment(savedEnrollment.userId, savedEnrollment.courseId, tenantId, organisationId),
+        this.cacheService.set(enrollmentKey, savedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
       ]);
       
       return completeEnrollment;
@@ -338,9 +338,9 @@ export class EnrollmentsService {
       // Update cache and invalidate related caches
       const enrollmentKey = this.cacheConfig.getEnrollmentKey(updatedEnrollment.userId, updatedEnrollment.courseId, tenantId, organisationId);
       await Promise.all([
+        this.cacheService.invalidateEnrollment(updatedEnrollment.userId, updatedEnrollment.courseId, tenantId, organisationId),
         this.cacheService.del(this.cacheConfig.getUserEnrollmentKey(enrollmentId, tenantId, organisationId)),
         this.cacheService.set(enrollmentKey, updatedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
-        this.cacheService.invalidateEnrollment(updatedEnrollment.userId, updatedEnrollment.courseId, tenantId, organisationId),
       ]);
 
       return updatedEnrollment;
