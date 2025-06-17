@@ -30,6 +30,8 @@
     "@nestjs/platform-express": "^10.2.7",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/typeorm": "^10.0.1",   
+    "@tekdi/nestjs-cloud-storage": "github:tekdi/nestjs-cloud-storage#main",
+
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "pg": "^8.16.0",
