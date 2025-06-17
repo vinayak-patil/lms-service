@@ -28,15 +28,7 @@ import * as redisStore from 'cache-manager-redis-store';
             host: configService.get('REDIS_HOST', 'localhost'),
             port: configService.get('REDIS_PORT', 6379),
             password: configService.get('REDIS_PASSWORD', ''),
-            db: configService.get('REDIS_DB', 0),
-            retry_strategy: (options) => {
-              logger.error(`Redis connection error: ${options.error?.message}`);
-              if (options.attempt > 3) {
-                logger.error('Redis connection failed after 3 attempts');
-                return new Error('Redis connection failed');
-              }
-              return Math.min(options.attempt * 100, 3000);
-            }
+            db: configService.get('REDIS_DB', 0)
           });
 
           logger.log('Redis store initialized successfully');
