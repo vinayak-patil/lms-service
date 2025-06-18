@@ -7,6 +7,7 @@ import { Module } from '../modules/entities/module.entity';
 import { Lesson } from '../lessons/entities/lesson.entity';
 import { UserEnrollment } from '../enrollments/entities/user-enrollment.entity';
 import { ConfigService } from '@nestjs/config';
+import { TenantConfigValue } from '../configuration/interfaces/tenant-config.interface';
 
 @Injectable()
 export class CacheService {
@@ -140,6 +141,32 @@ export class CacheService {
     }
   }
 
+  // Configuration-specific cache methods
+  async getTenantConfig(tenantId: string): Promise<TenantConfigValue | null> {  
+    const key = this.cacheConfig.getTenantConfigKey(tenantId);
+    const value = await this.cacheManager.get<TenantConfigValue>(key);
+    if (value !== undefined && value !== null) {
+      this.logger.debug(`Cache HIT for key ${key}`);
+      return value;
+    } else {
+      this.logger.debug(`Cache MISS for key ${key}`);
+      return null;
+    }
+  }
+
+  async setTenantConfig(tenantId: string, config: TenantConfigValue): Promise<void> {
+   
+    const key = this.cacheConfig.getTenantConfigKey(tenantId);
+    await this.cacheManager.set(key, config); 
+  
+  }
+
+  async deleteTenantConfig(tenantId: string): Promise<void> {
+   
+    const key = this.cacheConfig.getTenantConfigKey(tenantId);
+    await this.cacheManager.del(key); 
+  
+  }
   // Course-specific cache methods
   async getCourse(courseId: string, tenantId: string, organisationId: string): Promise<Course | null> {
     if (!this.cacheEnabled) {

@@ -12,6 +12,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
+import { ConfigurationModule } from './configuration/configuration.module';
 import { CloudStorageModule } from '@tekdi/nestjs-cloud-storage';
 
 
@@ -34,6 +35,7 @@ import { CloudStorageModule } from '@tekdi/nestjs-cloud-storage';
     CacheModule,
     DatabaseModule,
     CommonModule,
+    ConfigurationModule,
     CoursesModule,
     ModulesModule,
     LessonsModule,

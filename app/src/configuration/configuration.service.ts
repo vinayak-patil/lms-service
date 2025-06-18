@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { TenantConfigValue } from './interfaces/tenant-config.interface';
+import { CacheService } from '../cache/cache.service';
 
 export interface config {
   path: string;
@@ -22,40 +23,36 @@ export interface config {
 } 
 
 @Injectable()
-export class ConfigurationService {
+export class ConfigurationService  {
   private lmsConfigJson: any;
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly tenantContext: TenantContext,
+    private readonly cacheService: CacheService,
   ) {
-    // Initialize tenant configs in ConfigService if not exists
-    const tenantId = this.tenantContext.getTenantId() || '';
-    if (!this.configService.get(tenantId)) {
-      this.configService.set(tenantId, { config: {},IsConfigsSync: 0 });
-    }
-    
     // Load LMS config
     this.loadLmsConfig();
   }
 
+  /**
+   * Get tenant configuration with Redis caching
+   */
   async getConfig(
-    entityType: string,
     tenantId: string,
   ): Promise<Record<string, any>> {
     try {
-      // Get current tenant config
-      const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
-
-      // If config is synced, return entity config directly
-      if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
-        const entityConfig = this.getEntityConfigs(entityType, tenantConfig);
-        if (!entityConfig) {
-          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
-        }
-        return entityConfig;
+      // Try to get from cache first
+      const cachedConfig = await this.cacheService.getTenantConfig(tenantId);
+      
+      if (cachedConfig && cachedConfig.IsConfigsSync == 1) {   
+        return cachedConfig;
       }else{
-        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
+         const syncResult = await this.syncTenantConfig(tenantId);
+         if (Object.keys(syncResult).length > 0) {
+           return syncResult;
+         }else{
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
+         }
       }
     } catch (error) {     
       throw new NotFoundException(
@@ -64,40 +61,41 @@ export class ConfigurationService {
     }
   }
 
+  /**
+   * Sync tenant configuration and update cache
+   */
   async syncTenantConfig(tenantId: string): Promise<any> {
+    
     try {
       // Fetch configuration from external service
       const externalConfig = await this.fetchExternalConfig(tenantId);
 
       //if externalConfig is empty
       if (Object.keys(externalConfig).length === 0) {
-        return this.loadLocalConfig(tenantId);
+        const tenantConfig = await this.loadLocalConfig(tenantId);
+        return tenantConfig;
       }
 
-      // Get current tenant config
-      let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
-      
-      // Create or update tenant configuration with external data
-      tenantConfig = {
+      // Create tenant configuration with external data
+      const tenantConfig: TenantConfigValue = {
         config: externalConfig,
         lastSynced: new Date().toISOString(),
         IsConfigsSync: 1
       };
       
-      // Update ConfigService
-      this.configService.set(tenantId, tenantConfig);
-      
-      return {
-        success: true,
-        message: 'External configuration synced successfully',
-        data: tenantConfig
-      };
+      // Update cache (primary storage)
+      await this.cacheService.setTenantConfig(tenantId, tenantConfig);
+      return  tenantConfig;
+
     } catch (error) {
       return this.loadLocalConfig(tenantId);
     }
   }
 
-  loadLocalConfig(tenantId: string): any {
+  /**
+   * Load local configuration and update cache
+   */
+  async loadLocalConfig(tenantId: string): Promise<any> {
     // if external config is not found, parse lms-config.json - only child properties with values
     const config = {};
     for (const section in this.lmsConfigJson.properties) {
@@ -108,25 +106,30 @@ export class ConfigurationService {
       }
     }
     
-    // Get current tenant config
-    let tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {},IsConfigsSync: 0 };
-    
-           
-    // Update tenant config
-    tenantConfig = {
+    // Create tenant config
+    const tenantConfig: TenantConfigValue = {
       config: config,
       lastSynced: new Date().toISOString(),
       IsConfigsSync: 1
     };
 
-    // Update ConfigService
-    this.configService.set(tenantId, tenantConfig);
+    // Update cache (primary storage)
+    await this.cacheService.setTenantConfig(tenantId, tenantConfig);
 
-    return {
-      success: true,
-      message: RESPONSE_MESSAGES.ERROR.EXTERNAL_CONFIG_NOT_FOUND,
-      data: config
-    };
+    return tenantConfig;
+  }
+  /**
+   * Get tenant configuration directly from cache (for internal use)
+   */
+  async getTenantConfig(tenantId: string): Promise<TenantConfigValue | null> {
+    return await this.cacheService.getTenantConfig(tenantId);
+  }
+
+  /**
+   * Set tenant configuration directly to cache (for internal use)
+   */
+  async setTenantConfig(tenantId: string, config: TenantConfigValue): Promise<void> {
+    await this.cacheService.setTenantConfig(tenantId, config);
   }
 
   async fetchExternalConfig(tenantId: string): Promise<any> {
@@ -139,7 +142,7 @@ export class ConfigurationService {
       const response = await axios.get(`${externalConfigUrl}/${tenantId}?context=lms`);
       return response.data.result;
     } catch (error) {
-      throw new InternalServerErrorException(`${error.message}`);
+      return {}; 
     }
   }
 
