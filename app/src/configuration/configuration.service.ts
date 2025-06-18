@@ -44,7 +44,7 @@ export class ConfigurationService  {
       // Try to get from cache first
       const cachedConfig = await this.cacheService.getTenantConfig(tenantId);
       
-      if (cachedConfig && cachedConfig.IsConfigsSync == 1) {   
+      if (cachedConfig && cachedConfig.IsConfigsSync == 1) {      
         return cachedConfig;
       }else{
         throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
@@ -61,13 +61,14 @@ export class ConfigurationService  {
    */
   async syncTenantConfig(tenantId: string): Promise<any> {
     
-    try {
       // Fetch configuration from external service
       const externalConfig = await this.fetchExternalConfig(tenantId);
 
       //if externalConfig is empty
       if (Object.keys(externalConfig).length === 0) {
+        console.log('syncTenantConfig empty ', tenantId);
         const tenantConfig = await this.loadLocalConfig(tenantId);
+        console.log('syncTenantConfig loadLocalConfig ', tenantId);
         return tenantConfig;
       }
 
@@ -80,11 +81,13 @@ export class ConfigurationService  {
       
       // Update cache (primary storage)
       await this.cacheService.setTenantConfig(tenantId, tenantConfig);
+      console.log('fetchExternalConfig ', tenantId);
       return  tenantConfig;
 
-    } catch (error) {
-      return this.loadLocalConfig(tenantId);
-    }
+    // } catch (error) {
+    //   console.log('syncTenantConfig catch ', tenantId);
+    //   return this.loadLocalConfig(tenantId);
+    // }
   }
 
   /**
@@ -108,6 +111,7 @@ export class ConfigurationService  {
       IsConfigsSync: 1
     };
 
+    console.log('loadLocalConfig ', tenantId);
     // Update cache (primary storage)
     await this.cacheService.setTenantConfig(tenantId, tenantConfig);
 
@@ -137,7 +141,8 @@ export class ConfigurationService  {
       const response = await axios.get(`${externalConfigUrl}/${tenantId}?context=lms`);
       return response.data.result;
     } catch (error) {
-      return {}; 
+      console.log('fetchExternalConfig catch ', tenantId);
+      return {};
     }
   }
 
