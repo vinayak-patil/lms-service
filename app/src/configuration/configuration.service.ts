@@ -47,12 +47,7 @@ export class ConfigurationService  {
       if (cachedConfig && cachedConfig.IsConfigsSync == 1) {   
         return cachedConfig;
       }else{
-         const syncResult = await this.syncTenantConfig(tenantId);
-         if (Object.keys(syncResult).length > 0) {
-           return syncResult;
-         }else{
-          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
-         }
+        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.CONFIG_NOT_FOUND);
       }
     } catch (error) {     
       throw new NotFoundException(
