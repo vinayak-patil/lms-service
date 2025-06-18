@@ -22,7 +22,7 @@ export class CacheService {
       } else {
         this.logger.debug(`Cache MISS for key ${key}`);
       }
-      return value;
+      return value || null;
     } catch (error) {
       this.logger.error(`Error getting cache for key ${key}: ${error.message}`);
       return null;
