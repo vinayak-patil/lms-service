@@ -51,6 +51,9 @@ export const RESPONSE_MESSAGES = {
   TRACKING_UPDATED: 'Tracking updated successfully',
   TRACKING_COMPLETED: 'Tracking completed successfully',
 
+  // Order Saving Specific Messages
+  ORDER_SAVED_SUCCESSFULLY: 'Order saved successfully',
+
   // Error Messages
   ERROR: {
     COURSE_NOT_FOUND: 'Course not found',
@@ -125,6 +128,14 @@ export const RESPONSE_MESSAGES = {
     LESSON_SAVE_FAILED: 'Failed to save new lesson',
     MEDIA_SAVE_FAILED: 'Failed to save new media',
     ASSOCIATED_FILE_SAVE_FAILED: 'Failed to save new associated file',
+    SOME_LESSONS_NOT_FOUND: 'Some lessons not found or do not belong to the specified module',
+
+    // Order Saving Specific Errors
+    COURSE_ID_REQUIRED: 'Course ID is required when saving module order',
+    MODULE_ID_REQUIRED: 'Module ID is required when saving lesson order',
+    SOME_MODULES_NOT_FOUND: 'Some modules not found or do not belong to the specified course',
+    CANNOT_ORDER_SUBMODULES: 'Cannot save order for submodules at course level. Use parent module ordering instead.',
+    SAVING_ORDER_FAILED: 'Failed to save order for ',
   },
 };
 
