@@ -74,8 +74,8 @@ export class EnrollmentsController {
       }
     }
   })
-  @ApiQuery({ name: 'learnerId', required: false, type: String, format: 'uuid' })
-  @ApiQuery({ name: 'courseId', required: false, type: String, format: 'uuid' })
+  @ApiQuery({ name: 'learnerId', required: false, type: String })
+  @ApiQuery({ name: 'courseId', required: false, type: String })
   @ApiQuery({ 
     name: 'status', 
     required: false, 

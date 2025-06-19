@@ -112,6 +112,19 @@ export const RESPONSE_MESSAGES = {
     FILE_DELETION_NOT_IMPLEMENTED: 'File deletion not implemented for storage provider:',
     CONFIG_NOT_FOUND: 'LMS Configuration not found',
     CONFIG_FAILED: 'Failed to get LMS Configuration',
+    
+    // Course Cloning Specific Errors
+    COURSE_CLONE_FAILED: 'Failed to clone course',
+    MODULE_COPY_FAILED: 'Failed to copy module',
+    LESSON_COPY_FAILED: 'Failed to copy lesson',
+    MEDIA_COPY_FAILED: 'Failed to copy media',
+    ASSOCIATED_FILE_COPY_FAILED: 'Failed to copy associated file',
+    SUBMODULE_COPY_FAILED: 'Failed to copy submodule',
+    COURSE_SAVE_FAILED: 'Failed to save new course',
+    MODULE_SAVE_FAILED: 'Failed to save new module',
+    LESSON_SAVE_FAILED: 'Failed to save new lesson',
+    MEDIA_SAVE_FAILED: 'Failed to save new media',
+    ASSOCIATED_FILE_SAVE_FAILED: 'Failed to save new associated file',
   },
 };
 

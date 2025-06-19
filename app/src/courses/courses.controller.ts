@@ -66,7 +66,7 @@ export class CoursesController {
     }
     const course = await this.coursesService.create(
       createCourseDto,
-      query.userId,
+      query.userId, 
       tenantOrg.tenantId,
       tenantOrg.organisationId,
     );
@@ -284,5 +284,33 @@ export class CoursesController {
       tenantOrg.organisationId
     );
     return result;
+  }
+
+  @Post('/clone/:courseId')
+  @ApiId(API_IDS.COPY_COURSE)
+  @ApiOperation({ 
+    summary: 'Copy a course with all its modules, lessons, and media',
+    description: 'Creates a deep copy of the course including all modules, lessons, and associated media files'
+  })
+  @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID to copy' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Course copied successfully', 
+    type: Course 
+  })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async cloneCourse(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
+  ) {
+    const copiedCourse = await this.coursesService.cloneCourse(
+      courseId,
+      query.userId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
+    );
+    return copiedCourse;
   }
 }
