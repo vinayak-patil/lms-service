@@ -915,13 +915,14 @@ export class CoursesService {
           updatedBy: userId,
           // Remove properties that should not be copied
           courseId: undefined,
-          createdAt: undefined,
-          updatedAt: undefined,
         };
+
+        this.logger.log(`Creating new course with title: ${newTitle}`);
 
         const newCourse = transactionalEntityManager.create(Course, newCourseData);
         const savedCourse = await transactionalEntityManager.save(Course, newCourse);
         const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
+
 
         // Clone modules and their content
         await this.cloneModulesWithTransaction(
@@ -967,11 +968,11 @@ export class CoursesService {
     transactionalEntityManager: any,
   ): Promise<void> {
     try {
-      // Get all modules for the original course
+      // Get only top-level modules (parentId is null or undefined)
       const modules = await transactionalEntityManager.find(Module, {
         where: {
           courseId: originalCourseId,
-          parentId: undefined, // Only top-level modules
+          parentId: IsNull(), // Explicitly check for null parentId
           status: Not(ModuleStatus.ARCHIVED),
           tenantId,
           organisationId,
@@ -980,7 +981,7 @@ export class CoursesService {
       });
 
       if (!modules || modules.length === 0) {
-        this.logger.warn(`No modules found for course ${originalCourseId}`);
+        this.logger.warn(`No top-level modules found for course ${originalCourseId}`);
         return;
       }
 
@@ -1013,18 +1014,13 @@ export class CoursesService {
     try {
       // Create new module data
       const newModuleData = {
-        title: originalModule.title,        
-        description: originalModule.description,
+        ...originalModule,
         courseId: newCourseId,
-        parentId: undefined, // Will be updated if this is a submodule
-        image: originalModule.image,
-        ordering: originalModule.ordering,
-        status: originalModule.status,
-        badgeTerm: originalModule.badgeTerm,
-        tenantId,
-        organisationId,
+        parentId: undefined,
         createdBy: userId,
         updatedBy: userId,
+        // Remove properties that should not be copied
+        moduleId: undefined,
       };
 
       const newModule = transactionalEntityManager.create(Module, newModuleData);
@@ -1051,6 +1047,7 @@ export class CoursesService {
         this.logger.warn(`No submodules found for module ${originalModule.moduleId}`);
         return null;
       }
+
 
       for (const submodule of submodules) {
         try {
@@ -1083,18 +1080,13 @@ export class CoursesService {
   try {
     // Create new submodule data
     const newSubmoduleData = {
-      title: originalSubmodule.title,
-      description: originalSubmodule.description,
+      ...originalSubmodule,
       courseId: newCourseId,
       parentId: newParentId,
-      image: originalSubmodule.image,
-      ordering: originalSubmodule.ordering,
-      status: originalSubmodule.status,
-      badgeTerm: originalSubmodule.badgeTerm,
-      tenantId,
-      organisationId,
       createdBy: userId,
       updatedBy: userId,
+      // Remove properties that should not be copied
+      moduleId: undefined,
     };
 
     const newSubmodule = transactionalEntityManager.create(Module, newSubmoduleData);
@@ -1177,18 +1169,12 @@ export class CoursesService {
 
         if (originalMedia) {
           const newMediaData = {
-            format: originalMedia.format,
-            subFormat: originalMedia.subFormat,
-            orgFilename: originalMedia.orgFilename,
-            path: originalMedia.path,
-            storage: originalMedia.storage,
-            source: originalMedia.source,
-            params: originalMedia.params || {},
-            status: originalMedia.status,
-            tenantId,
-            organisationId,
+            ...originalMedia,
             createdBy: userId,
             updatedBy: userId,
+            // Remove properties that should not be copied
+            mediaId: undefined,
+            // Don't set createdAt/updatedAt - let TypeORM handle them automatically
           };
 
           const newMedia = transactionalEntityManager.create(Media, newMediaData);
@@ -1201,13 +1187,16 @@ export class CoursesService {
           newMediaId = savedMedia.mediaId;
         }
       }
+     
+
+      this.logger.log(`Final newMediaId value: ${newMediaId}`);
 
       // Create new lesson data
       const newLessonData = {
+        // Copy all properties from original lesson except the ones we want to override
         title: originalLesson.title,
         alias: originalLesson.alias + '-copy',
         format: originalLesson.format,
-        mediaId: newMediaId,
         image: originalLesson.image,
         description: originalLesson.description,
         status: originalLesson.status,
@@ -1222,15 +1211,18 @@ export class CoursesService {
         totalMarks: originalLesson.totalMarks,
         passingMarks: originalLesson.passingMarks,
         params: originalLesson.params || {},
-        courseId: newCourseId,
-        moduleId: newModuleId,
         sampleLesson: originalLesson.sampleLesson,
         considerForPassing: originalLesson.considerForPassing,
         tenantId,
         organisationId,
+        // Override with new values
+        mediaId: newMediaId || null, //Use null if no new media was created
+        courseId: newCourseId,
+        moduleId: newModuleId,
         createdBy: userId,
         updatedBy: userId,
       };
+
 
       const newLesson = transactionalEntityManager.create(Lesson, newLessonData);
       const savedLesson = await transactionalEntityManager.save(Lesson, newLesson);
@@ -1238,6 +1230,7 @@ export class CoursesService {
       if (!savedLesson) {
         throw new Error(`${RESPONSE_MESSAGES.ERROR.LESSON_SAVE_FAILED}: ${originalLesson.title}`);
       }
+
 
       // Clone associated files if lesson has them
       if (originalLesson.associatedFiles && originalLesson.associatedFiles.length > 0) {
@@ -1290,18 +1283,11 @@ export class CoursesService {
           if (associatedFile.media) {
             const originalMedia = associatedFile.media;
             const newMediaData = {
-              format: originalMedia.format,
-              subFormat: originalMedia.subFormat,
-              orgFilename: originalMedia.orgFilename,
-              path: originalMedia.path,
-              storage: originalMedia.storage,
-              source: originalMedia.source,
-              params: originalMedia.params || {},
-              status: originalMedia.status,
-              tenantId,
-              organisationId,
+              ...originalMedia,
               createdBy: userId,
               updatedBy: userId,
+              // Remove properties that should not be copied
+              mediaId: undefined,
             };
 
             const newMedia = transactionalEntityManager.create(Media, newMediaData);
@@ -1312,6 +1298,7 @@ export class CoursesService {
             }
             
             newMediaId = savedMedia.mediaId;
+            this.logger.log(`Cloned associated file media from ${originalMedia.mediaId} to ${newMediaId}`);
 
             // Create new associated file record
             const newAssociatedFileData = {
