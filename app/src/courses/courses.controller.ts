@@ -299,7 +299,6 @@ export class CoursesController {
     type: Course 
   })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
   async cloneCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
