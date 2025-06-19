@@ -286,7 +286,7 @@ export class CoursesController {
     return result;
   }
 
-  @Post(':courseId/copy')
+  @Post('/clone/:courseId')
   @ApiId(API_IDS.COPY_COURSE)
   @ApiOperation({ 
     summary: 'Copy a course with all its modules, lessons, and media',
@@ -300,12 +300,12 @@ export class CoursesController {
   })
   @ApiResponse({ status: 404, description: 'Course not found' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  async copyCourse(
+  async cloneCourse(
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query() query: CommonQueryDto,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
-    const copiedCourse = await this.coursesService.copyCourse(
+    const copiedCourse = await this.coursesService.cloneCourse(
       courseId,
       query.userId,
       tenantOrg.tenantId,
