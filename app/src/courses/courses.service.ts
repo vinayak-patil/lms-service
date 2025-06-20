@@ -22,7 +22,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { CourseStructureDto } from '../modules/dto/course-structure.dto';
+import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 
 @Injectable()
 export class CoursesService {

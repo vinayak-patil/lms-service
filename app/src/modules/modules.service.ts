@@ -17,7 +17,6 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
-import { CourseStructureDto } from './dto/course-structure.dto';
 
 @Injectable()
 export class ModulesService {
