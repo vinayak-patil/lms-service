@@ -28,7 +28,7 @@
     "@nestjs/platform-express": "^11.1.2",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/typeorm": "^11.0.0",
-    "@tekdi/nestjs-cloud-storage": "github:tekdi/nestjs-cloud-storage#release-1.0.0",
+    "@tekdi/nestjs-cloud-storage": "https://github.com/vinayak-patil/cloud-storage/archive/refs/tags/v1.0.0.tar.gz",
     "cache-manager": "^6.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
