@@ -32,7 +32,6 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { getUploadPath } from '../common/utils/upload.util';
 import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
-import { SaveOrderDto } from './dto/save-order.dto';
 
 @ApiTags('Modules')
 @Controller('modules')
@@ -200,45 +199,5 @@ export class ModulesController {
       tenantOrg.tenantId,
       tenantOrg.organisationId
     );
-  }
-
-  @Post('re-structure')
-  @ApiId(API_IDS.SAVE_MODULE_ORDER)
-  @ApiOperation({ summary: 'Save order for modules or lessons within a course' })
-  @ApiBody({ type: SaveOrderDto })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Module or lesson order saved successfully',
-    schema: {
-      properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' }
-      }
-    }
-  })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid data or validation error' })
-  @ApiResponse({ status: 404, description: 'Module, course, or lessons not found' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
-  async saveOrder(
-    @Body() saveOrderDto: SaveOrderDto,
-    @Query() query: CommonQueryDto,
-    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
-  ) {
-    try {
-      const result = await this.modulesService.saveOrder(
-        saveOrderDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId
-      );
-      
-      return result;
-    } catch (error) {
-      // Log the error for debugging
-      console.error('Error in saveOrder controller:', error);
-      
-      // Re-throw the error to let the global exception filter handle it
-      throw error;
-    }
   }
 }
