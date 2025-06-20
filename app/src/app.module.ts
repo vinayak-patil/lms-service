@@ -12,8 +12,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
-import { CloudStorageModule } from '@tekdi/nestjs-cloud-storage';
-
+import { CloudStorageModule } from '@vinayak-patil/cloud-storage';
 
 @Module({
   imports: [
