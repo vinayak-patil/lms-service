@@ -18,7 +18,6 @@ export const API_IDS = {
   GET_SUBMODULES_BY_PARENT: 'api.module.list',
   UPDATE_MODULE: 'api.module.update',
   DELETE_MODULE: 'api.module.delete',
-  SAVE_MODULE_ORDER: 'api.module.order.save',
   
   // Lesson APIs
   CREATE_LESSON: 'api.lesson.create',

@@ -51,9 +51,6 @@ export const RESPONSE_MESSAGES = {
   TRACKING_UPDATED: 'Tracking updated successfully',
   TRACKING_COMPLETED: 'Tracking completed successfully',
 
-  // Order Saving Specific Messages
-  ORDER_SAVED_SUCCESSFULLY: 'Order saved successfully',
-
   // Course Structure Specific Messages
   COURSE_STRUCTURE_UPDATED: 'Course structure updated successfully',
 
@@ -133,13 +130,6 @@ export const RESPONSE_MESSAGES = {
     ASSOCIATED_FILE_SAVE_FAILED: 'Failed to save new associated file',
     SOME_LESSONS_NOT_FOUND: 'Some lessons not found or do not belong to the specified module',
 
-    // Order Saving Specific Errors
-    COURSE_ID_REQUIRED: 'Course ID is required when saving module order',
-    MODULE_ID_REQUIRED: 'Module ID is required when saving lesson order',
-    SOME_MODULES_NOT_FOUND: 'Some modules not found or do not belong to the specified course',
-    CANNOT_ORDER_SUBMODULES: 'Cannot save order for submodules at course level. Use parent module ordering instead.',
-    SAVING_ORDER_FAILED: 'Failed to save order for ',
-
     // Course Structure Specific Errors
     LESSONS_NOT_FOUND_IN_STRUCTURE: 'Some lessons not found or do not belong to the specified modules',
     LESSON_MODULE_MISMATCH: 'Some lessons do not belong to the specified modules',
@@ -147,6 +137,8 @@ export const RESPONSE_MESSAGES = {
     COURSE_TRACKING_STARTED_LESSON_MOVEMENT_NOT_ALLOWED: 'Cannot move lessons between modules as users have already started this course. Only reordering within modules is allowed.',
     MISSING_MODULES_IN_STRUCTURE: (count: number, ids: string) => `Request is missing ${count} module(s): ${ids}. All existing modules must be included in the structure update.`,
     MISSING_LESSONS_IN_STRUCTURE: (count: number, ids: string) => `Request is missing ${count} lesson(s): ${ids}. All existing lessons must be included in the structure update.`,
+    SOME_MODULES_NOT_FOUND: 'Some modules not found or do not belong to the specified course',
+
   },
 };
 

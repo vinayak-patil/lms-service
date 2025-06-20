@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Not, IsNull, In } from 'typeorm';
+import { Repository, FindOptionsWhere, Not, IsNull } from 'typeorm';
 import { Module, ModuleStatus } from './entities/module.entity';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Lesson } from '../lessons/entities/lesson.entity';
@@ -437,6 +437,4 @@ export class ModulesService {
       throw error;
     }
   }
-
-
 }
