@@ -17,11 +17,14 @@ services:
       - DB_USERNAME=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_DATABASE=${DB_DATABASE}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     volumes:
       - ./uploads:/app/uploads
       - ./src:/app/src
     depends_on:
       - postgres
+      - redis
     networks:
       - shiksha-lms-network
     restart: unless-stopped
@@ -48,6 +51,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  redis:
+    image: redis:7
+    container_name: shiksha-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - shiksha-lms-network
 
 volumes:
   pgdata:
