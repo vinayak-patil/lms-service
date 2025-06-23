@@ -37,6 +37,7 @@ import { uploadConfigs } from '../config/file-validation.config';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 
+
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
@@ -353,9 +354,6 @@ export class CoursesController {
       
       return result;
     } catch (error) {
-      // Log the error for debugging
-      console.error('Error in updateCourseStructure controller:', error);
-      
       // Re-throw the error to let the global exception filter handle it
       throw error;
     }

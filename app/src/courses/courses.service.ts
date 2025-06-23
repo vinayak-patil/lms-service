@@ -5,7 +5,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+<<<<<<< HEAD
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, In } from 'typeorm';
+=======
+import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, Like } from 'typeorm';
+>>>>>>> 673445b6e68315bf70d072dd1ea84d7020008b1b
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
@@ -23,16 +27,11 @@ import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
+import { CacheConfigService } from '../cache/cache-config.service';
 
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
-  private readonly cache_ttl_default: number;
-  private readonly cache_ttl_user: number;
-  private readonly cache_prefix_course: string;
-  private readonly cache_prefix_module: string;
-  private readonly cache_prefix_lesson: string;
-  private readonly cache_enabled: boolean;
 
   constructor(
     @InjectRepository(Course)
@@ -52,16 +51,8 @@ export class CoursesService {
     @InjectRepository(AssociatedFile)
     private readonly associatedFileRepository: Repository<AssociatedFile>,
     private readonly cacheService: CacheService,
-    private readonly configService: ConfigService,
-  ) {
-    const cacheEnabledConfig = this.configService.get('CACHE_ENABLED');
-    this.cache_enabled = cacheEnabledConfig === 'true' || cacheEnabledConfig === true;
-    this.cache_ttl_default = parseInt(this.configService.get('CACHE_TTL_DEFAULT') || '3600', 10);
-    this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
-    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'course';
-    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'module';
-    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lesson';
-  }
+    private readonly cacheConfig: CacheConfigService,
+  ) {}
 
   /**
    * Create a new course
@@ -70,7 +61,7 @@ export class CoursesService {
     createCourseDto: CreateCourseDto,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
   ): Promise<Course> {
     this.logger.log(`Creating course: ${JSON.stringify(createCourseDto)}`);
 
@@ -132,19 +123,11 @@ export class CoursesService {
     const savedCourse = await this.courseRepository.save(course);
     const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
     
-    if (this.cache_enabled) {
-      // Invalidate and set new cache values
-      const entityCacheKey = `${this.cache_prefix_course}:${result.courseId}:${tenantId}:${organisationId}`;
-      const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-      const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${result.courseId}:${tenantId}:${organisationId}`;
-
-      // Invalidate existing caches
-      await Promise.all([
-        this.cacheService.del(searchCacheKey),
-        this.cacheService.del(hierarchyCacheKey),
-        this.cacheService.set(entityCacheKey, result, this.cache_ttl_default),
-         ]);
-       }
+    // Cache the new course and invalidate related caches
+    await Promise.all([
+      this.cacheService.setCourse(result),
+      this.cacheService.invalidateCourse(result.courseId, tenantId, organisationId),
+    ]);
     
     return result;
   }
@@ -156,26 +139,40 @@ export class CoursesService {
     filters: Omit<SearchCourseDto, keyof PaginationDto>,
     paginationDto: PaginationDto,
     tenantId: string,
-    organisationId?: string,
-  ): Promise<{ items: Course[]; total: number }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const cacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-      if (this.cache_enabled) {
-        // Try to get from cache first
-        const cachedResult = await this.cacheService.get<{ items: Course[]; total: number }>(cacheKey);
-        if (cachedResult) {
-          return cachedResult;
-        }
-      }
+    organisationId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ courses: Course[]; total: number }> {
+    // Generate cache key with all filter parameters
+    const cacheKey = this.cacheConfig.getCourseSearchKey(
+      tenantId,
+      organisationId,
+      filters,
+      paginationDto.page,
+      paginationDto.limit
+    );
+    
+    // Check cache first
+    const cachedResult = await this.cacheService.get<{ courses: Course[]; total: number }>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
 
     const skip = (page - 1) * limit;
 
     const whereClause: any = { 
       tenantId,
-      ...(organisationId && { organisationId }), // Add organisationId for data isolation if it exists
+      organisationId,
       status: filters?.status || Not(CourseStatus.ARCHIVED),
     };
+
+    // Add cohort filter if provided, cohortid will be at params in json format
+    if (filters?.cohortId) {
+      whereClause.params = {
+        ...whereClause.params,
+        cohortId: filters.cohortId
+      };
+    }
 
     // Add boolean filters if provided
     if (filters?.featured !== undefined) {
@@ -210,9 +207,11 @@ export class CoursesService {
       }
     }
 
+    let result: { courses: Course[]; total: number };
+
     // If there's a search query, search in title and description
     if (filters?.query) {
-      return this.courseRepository.findAndCount({
+      result = await this.courseRepository.findAndCount({
         where: [
           { 
             title: ILike(`%${filters.query}%`),
@@ -230,21 +229,19 @@ export class CoursesService {
         order: { createdAt: 'DESC' },
         take: limit,
         skip,
-      }).then(([items, total]) => ({ items, total }));
+      }).then(([items, total]) => ({ courses: items, total }));
+    } else {
+      // If no search query, just use filters
+      result = await this.courseRepository.findAndCount({
+        where: whereClause,
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip,
+      }).then(([items, total]) => ({ courses: items, total }));
     }
 
-    // If no search query, just use filters
-    const result = await this.courseRepository.findAndCount({
-      where: whereClause,
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip,
-    }).then(([items, total]) => ({ items, total }));
-
-    // Cache the result
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, result,  this.cache_ttl_default);
-    }
+    // Set in cache with TTL
+    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
 
     return result;
   }
@@ -258,16 +255,13 @@ export class CoursesService {
    */
   async findOne(
     courseId: string, 
-    tenantId?: string, 
-    organisationId?: string
+    tenantId: string, 
+    organisationId: string
   ): Promise<Course> {
-    const cacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-    
-    if (this.cache_enabled) {
-      const cachedCourse = await this.cacheService.get<Course>(cacheKey);
-      if (cachedCourse) {
-        return cachedCourse;
-      }
+    // Standardized cache handling for findOne
+    const cachedCourse = await this.cacheService.getCourse(courseId, tenantId, organisationId);
+    if (cachedCourse) {
+      return cachedCourse;
     }
 
     const whereClause: FindOptionsWhere<Course> = { courseId };
@@ -289,11 +283,8 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
-    // Cache the course if caching is enabled
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, course, this.cache_ttl_default);
-    }
-
+    // Cache the course
+    await this.cacheService.setCourse(course);
     return course;
   }
 
@@ -303,39 +294,30 @@ export class CoursesService {
    * @param tenantId The tenant ID for data isolation
    * @param organisationId The organization ID for data isolation
    */
-  async findCourseHierarchy(
-    courseId: string,
-    tenantId?: string,
-    organisationId?: string
-  ): Promise<any> {
-    const cacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-    
-    if (this.cache_enabled) {
-      const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
-      if (cachedHierarchy) {
-        return cachedHierarchy;
-      }
+  async findCourseHierarchy(courseId: string, tenantId: string, organisationId: string): Promise<any> {
+    // Check cache first
+    const cacheKey = this.cacheConfig.getCourseHierarchyKey(
+      courseId,
+      tenantId,
+      organisationId
+    );
+    const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
+    if (cachedHierarchy) {
+      return cachedHierarchy;
     }
 
-    // Find the course with tenant/org filtering
+    // If not in cache, get from database
     const course = await this.findOne(courseId, tenantId, organisationId);
     
     // For data isolation, ensure we filter modules by tenantId as well
     const moduleWhereClause: any = { 
       courseId,
       parentId: IsNull(),
+      tenantId,
+      organisationId,
       status: Not(ModuleStatus.ARCHIVED as any),
     };
-    
-    // Apply tenant and organization filters if they exist
-    if (tenantId) {
-      moduleWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      moduleWhereClause.organisationId = organisationId;
-    }
-    
+
     // Fetch all modules related to this course with proper isolation
     const modules = await this.moduleRepository.find({
       where: moduleWhereClause,
@@ -400,12 +382,9 @@ export class CoursesService {
       ...course,
       modules: enrichedModules,
     };
-
-    // Cache the result if caching is enabled
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
-    }
-
+   
+    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
+    
     return result;
   }
 
@@ -419,8 +398,8 @@ export class CoursesService {
   async findCourseHierarchyWithTracking(
     courseId: string, 
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<any> {
     
     // Get the basic course hierarchy first with proper filtering
@@ -716,7 +695,7 @@ export class CoursesService {
     updateCourseDto: any,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
     image?: Express.Multer.File,
   ): Promise<Course> {
     // Find the course with tenant/org filtering
@@ -779,24 +758,11 @@ export class CoursesService {
     
     const savedCourse = await this.courseRepository.save(updatedCourse);
     
-    if (this.cache_enabled) { 
-      // Invalidate and set new cache values
-      const entityCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-      const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-      const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-      const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
-      const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-      
-      // Invalidate existing caches
-      await Promise.all([
-        this.cacheService.del(entityCacheKey),
-        this.cacheService.del(searchCacheKey),
-        this.cacheService.del(hierarchyCacheKey),
-        this.cacheService.del(moduleCacheKey),
-        this.cacheService.del(lessonCacheKey)
-      ]);
-    }
-    
+    // Cache the new course and invalidate related caches
+    await Promise.all([
+      this.cacheService.setCourse(savedCourse),
+      this.cacheService.invalidateCourse(courseId, tenantId, organisationId),
+    ]);
     return savedCourse;
   }
 
@@ -809,8 +775,8 @@ export class CoursesService {
   async remove(
     courseId: string,
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const course = await this.findOne(courseId, tenantId, organisationId);
@@ -819,23 +785,8 @@ export class CoursesService {
       course.updatedAt = new Date();
       const savedCourse = await this.courseRepository.save(course);
 
-      // Invalidate and set new cache values
-      if (this.cache_enabled) {
-        const courseCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-        const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
-        const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-        const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-        // Invalidate existing caches
-        await Promise.all([
-          this.cacheService.del(courseCacheKey),
-          this.cacheService.del(moduleCacheKey),
-          this.cacheService.del(lessonCacheKey),
-          this.cacheService.del(hierarchyCacheKey),
-          this.cacheService.del(searchCacheKey)
-        ]);
-      }
+       // Cache the new course and invalidate related caches
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return { 
         success: true, 
@@ -942,14 +893,7 @@ export class CoursesService {
       });
 
       // Handle cache operations after successful transaction
-      if (this.cache_enabled) {
-        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-        // Invalidate existing caches and set new cache values
-        await Promise.all([
-          this.cacheService.del(searchCacheKey),
-        ]);
-      }
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return result;
     } catch (error) {
