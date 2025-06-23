@@ -94,7 +94,7 @@ export class ModulesService {
         { 
           title: createModuleDto.title, 
           courseId: createModuleDto.courseId,
-          parentId: undefined,
+          parentId: IsNull(),
           status: Not(ModuleStatus.ARCHIVED),
           tenantId,
           organisationId
@@ -209,7 +209,7 @@ export class ModulesService {
     // Build where clause with required filters
     const whereClause: FindOptionsWhere<Module> = { 
       courseId, 
-      parentId: undefined,
+      parentId: IsNull(),
       status: Not(ModuleStatus.ARCHIVED),
     };
     

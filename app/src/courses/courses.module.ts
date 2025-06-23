@@ -10,9 +10,21 @@ import { CommonModule } from '../common/common.module';
 import { CacheModule } from '../cache/cache.module';
 import { Lesson } from 'src/lessons/entities/lesson.entity';
 import { ModuleTrack } from 'src/tracking/entities/module-track.entity';
+import { Media } from '../media/entities/media.entity';
+import { AssociatedFile } from '../media/entities/associated-file.entity';
+
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Course, CourseModule, CourseTrack, LessonTrack,Lesson,ModuleTrack]),
+    TypeOrmModule.forFeature([
+      Course, 
+      CourseModule, 
+      CourseTrack, 
+      LessonTrack,
+      Lesson,
+      ModuleTrack,
+      Media,
+      AssociatedFile
+    ]),
     CommonModule,
     CacheModule,
 
