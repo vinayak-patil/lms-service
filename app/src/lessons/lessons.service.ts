@@ -141,6 +141,7 @@ export class LessonsService {
         totalMarks: createLessonDto.totalMarks,
         passingMarks: createLessonDto.passingMarks,
         params: createLessonDto.params || {},
+        ordering: createLessonDto.ordering || 0,
         createdBy: userId,
         updatedBy: userId,
         tenantId: tenantId,
@@ -320,6 +321,7 @@ export class LessonsService {
         tenantId: tenantId,
         organisationId: organisationId
       },
+      order: { ordering: 'ASC' },
       relations: ['media','associatedFiles.media'],
     });
 

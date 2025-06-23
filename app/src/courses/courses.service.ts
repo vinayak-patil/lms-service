@@ -2,9 +2,14 @@ import {
   Injectable,
   NotFoundException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+<<<<<<< HEAD
+import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, In } from 'typeorm';
+=======
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, Like } from 'typeorm';
+>>>>>>> 673445b6e68315bf70d072dd1ea84d7020008b1b
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
@@ -20,6 +25,8 @@ import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
+import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 import { CacheConfigService } from '../cache/cache-config.service';
 
 @Injectable()
@@ -329,7 +336,7 @@ export class CoursesService {
             ...(organisationId && { organisationId }),
           },
           relations: ['media'],
-          order: { idealTime: 'ASC' },
+          order: { ordering: 'ASC' },
         });
 
         // Fetch all submodules for this module
@@ -353,7 +360,7 @@ export class CoursesService {
                 ...(organisationId && { organisationId }),
               },
               relations: ['media'],
-              order: { idealTime: 'ASC' },
+              order: { ordering: 'ASC' },
             });
 
             return {
@@ -886,14 +893,7 @@ export class CoursesService {
       });
 
       // Handle cache operations after successful transaction
-      if (this.cache_enabled) {
-        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-        // Invalidate existing caches and set new cache values
-        await Promise.all([
-          this.cacheService.del(searchCacheKey),
-        ]);
-      }
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return result;
     } catch (error) {
@@ -1275,4 +1275,220 @@ export class CoursesService {
     }
   }
 
+  /**
+   * Update the entire course structure including module and lesson ordering
+   * and moving lessons between modules
+   */
+  async updateCourseStructure(
+    courseId: string,
+    courseStructureDto: CourseStructureDto,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(`Updating course structure for course ${courseId}: ${JSON.stringify(courseStructureDto)}`);
+
+    try {
+      // Use Repository Manager transaction approach
+      const result = await this.courseRepository.manager.transaction(async (transactionalEntityManager) => {
+        // Validate that course exists
+        const course = await transactionalEntityManager.findOne(Course, {
+          where: {
+            courseId,
+            status: Not(CourseStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+        });
+
+        if (!course) {
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
+        }
+
+        // Check if any users have started tracking this course
+        const courseTrackingCount = await transactionalEntityManager.count(CourseTrack, {
+          where: {
+            courseId,
+            tenantId,
+            organisationId,
+          },
+        });
+
+        const hasCourseTracking = courseTrackingCount > 0;
+
+        // Extract all module IDs and lesson IDs from the request
+        const requestModuleIds = courseStructureDto.modules.map(m => m.moduleId);
+        const requestLessonIds = courseStructureDto.modules
+          .flatMap(m => m.lessons || [])
+          .map(l => l.lessonId);
+
+        // Get all existing modules and lessons for this course
+        const existingModules = await transactionalEntityManager.find(Module, {
+          where: {
+            courseId,
+            status: Not(ModuleStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+          select: ['moduleId'],
+        });
+
+        const existingLessons = await transactionalEntityManager.find(Lesson, {
+          where: {
+            courseId,
+            status: Not(LessonStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+          select: ['lessonId'],
+        });
+
+        const existingModuleIds = existingModules.map(m => m.moduleId);
+        const existingLessonIds = existingLessons.map(l => l.lessonId);
+
+        // Validate that request contains all existing modules
+        const missingModuleIds = existingModuleIds.filter(id => !requestModuleIds.includes(id));
+        if (missingModuleIds.length > 0) {
+          throw new BadRequestException(
+            RESPONSE_MESSAGES.ERROR.MISSING_MODULES_IN_STRUCTURE(missingModuleIds.length, missingModuleIds.join(', '))
+          );
+        }
+
+        // Validate that request contains all existing lessons
+        const missingLessonIds = existingLessonIds.filter(id => !requestLessonIds.includes(id));
+        if (missingLessonIds.length > 0) {
+          throw new BadRequestException(
+            RESPONSE_MESSAGES.ERROR.MISSING_LESSONS_IN_STRUCTURE(missingLessonIds.length, missingLessonIds.join(', '))
+          );
+        }
+
+        // Validate that all modules in request exist and belong to the course
+        const modules = await transactionalEntityManager.find(Module, {
+          where: {
+            moduleId: In(requestModuleIds),
+            courseId,
+            status: Not(ModuleStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+        });
+
+        if (modules.length !== requestModuleIds.length) {
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.SOME_MODULES_NOT_FOUND);
+        }
+
+        // Validate that all lessons in request exist
+        if (requestLessonIds.length > 0) {
+          const lessons = await transactionalEntityManager.find(Lesson, {
+            where: {
+              lessonId: In(requestLessonIds),
+              courseId,
+              tenantId,
+              organisationId,
+            },
+          });
+
+          if (lessons.length !== requestLessonIds.length) {
+            throw new BadRequestException(RESPONSE_MESSAGES.ERROR.LESSONS_NOT_FOUND_IN_STRUCTURE);
+          }
+
+          // If course tracking has started, validate that lessons are not being moved between modules
+          if (hasCourseTracking) {
+            const currentLessons = await transactionalEntityManager.find(Lesson, {
+              where: {
+                courseId,
+                tenantId,
+                organisationId,
+              },
+              select: ['lessonId', 'moduleId'],
+            });
+
+            // Create a map of current lesson module assignments
+            const currentLessonModuleMap = new Map(
+              currentLessons.map(lesson => [lesson.lessonId, lesson.moduleId])
+            );
+
+            // Check if any lesson is being moved to a different module
+            const lessonMovementDetected = courseStructureDto.modules
+              .filter(m => m.lessons && m.lessons.length > 0)
+              .some(moduleStructure => 
+                moduleStructure.lessons!.some(lessonStructure => {
+                  const currentModuleId = currentLessonModuleMap.get(lessonStructure.lessonId);
+                  return currentModuleId && currentModuleId !== moduleStructure.moduleId;
+                })
+              );
+
+            if (lessonMovementDetected) {
+              throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_TRACKING_STARTED_LESSON_MOVEMENT_NOT_ALLOWED);
+            }
+
+            this.logger.log(`Course tracking detected for course ${courseId}. Allowing only reordering within modules.`);
+          }
+        }
+
+        // Update module ordering
+        const moduleUpdatePromises = courseStructureDto.modules.map(moduleStructure => {
+          return transactionalEntityManager.update(Module, 
+            { moduleId: moduleStructure.moduleId }, 
+            {
+              ordering: moduleStructure.order,
+              updatedBy: userId,
+              updatedAt: new Date()
+            }
+          );
+        });
+
+        await Promise.all(moduleUpdatePromises);
+
+        // Update lesson ordering and module assignments
+        const lessonUpdatePromises = courseStructureDto.modules
+          .filter(m => m.lessons && m.lessons.length > 0)
+          .flatMap(moduleStructure => 
+            moduleStructure.lessons!.map(lessonStructure => {
+              return transactionalEntityManager.update(Lesson, 
+                { lessonId: lessonStructure.lessonId }, 
+                {
+                  moduleId: moduleStructure.moduleId,
+                  ordering: lessonStructure.order,
+                  updatedBy: userId,
+                  updatedAt: new Date()
+                }
+              );
+            })
+          );
+
+        if (lessonUpdatePromises.length > 0) {
+          await Promise.all(lessonUpdatePromises);
+        }
+
+        const operationType = hasCourseTracking ? 'reordering' : 'restructuring';
+        this.logger.log(`Successfully ${operationType} course structure for course ${courseId} with ${modules.length} modules and ${requestLessonIds.length} lessons`);
+        return { success: true, message: RESPONSE_MESSAGES.COURSE_STRUCTURE_UPDATED };
+      });
+
+      // Handle cache invalidation after successful transaction
+      if (this.cache_enabled) {
+        const courseModuleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
+        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
+        
+        await Promise.all([
+          this.cacheService.del(courseModuleCacheKey),
+          this.cacheService.del(courseHierarchyCacheKey)
+        ]);
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Error updating course structure for course ${courseId}: ${error.message}`, error.stack);
+      
+      // Re-throw the error with appropriate context
+      if (error instanceof BadRequestException) {
+        throw error;
+      } else if (error instanceof NotFoundException) {
+        throw error;
+      } else {
+        throw new BadRequestException(`${RESPONSE_MESSAGES.ERROR.INVALID_STRUCTURE_DATA}: ${error.message}`);
+      }
+    }
+  }
 }
