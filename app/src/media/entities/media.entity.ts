@@ -67,15 +67,13 @@ export class Media {
   })
   status: MediaStatus;
 
-  @Column({ type: 'timestamptz' })
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
   @Column({ type: 'uuid' })
   createdBy: string;
 
-  @Column({ type: 'timestamptz' })
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
   @Column({ type: 'uuid' })

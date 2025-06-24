@@ -7,6 +7,8 @@ export const API_IDS = {
   GET_COURSE_HIERARCHY_WITH_TRACKING: 'api.course.hierarchy.tracking',
   UPDATE_COURSE: 'api.course.update',
   DELETE_COURSE: 'api.course.delete',
+  COPY_COURSE: 'api.course.clone',
+  UPDATE_COURSE_STRUCTURE: 'api.course.restructure',
 
 
   // Module APIs

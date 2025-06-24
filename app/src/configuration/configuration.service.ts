@@ -66,9 +66,7 @@ export class ConfigurationService  {
 
       //if externalConfig is empty
       if (Object.keys(externalConfig).length === 0) {
-        console.log('syncTenantConfig empty ', tenantId);
         const tenantConfig = await this.loadLocalConfig(tenantId);
-        console.log('syncTenantConfig loadLocalConfig ', tenantId);
         return tenantConfig;
       }
 
@@ -81,7 +79,6 @@ export class ConfigurationService  {
       
       // Update cache (primary storage)
       await this.cacheService.setTenantConfig(tenantId, tenantConfig);
-      console.log('fetchExternalConfig ', tenantId);
       return  tenantConfig;
 
     // } catch (error) {
@@ -111,7 +108,6 @@ export class ConfigurationService  {
       IsConfigsSync: 1
     };
 
-    console.log('loadLocalConfig ', tenantId);
     // Update cache (primary storage)
     await this.cacheService.setTenantConfig(tenantId, tenantConfig);
 
@@ -141,7 +137,6 @@ export class ConfigurationService  {
       const response = await axios.get(`${externalConfigUrl}/${tenantId}?context=lms`);
       return response.data.result;
     } catch (error) {
-      console.log('fetchExternalConfig catch ', tenantId);
       return {};
     }
   }
@@ -151,7 +146,7 @@ export class ConfigurationService  {
       const lmsConfigPath = path.join(process.cwd(), this.configService.get('LMS_CONFIG_PATH') || 'src/lms-config.json');
       this.lmsConfigJson = JSON.parse(fs.readFileSync(lmsConfigPath, 'utf8'));
     } catch (error) {
-      console.error('Error loading LMS configuration:', error);
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.CONFIG_URL_MISSING);
     }
   }
 
