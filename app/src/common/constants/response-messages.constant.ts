@@ -115,6 +115,7 @@ export const RESPONSE_MESSAGES = {
     FILE_DELETION_NOT_IMPLEMENTED: 'File deletion not implemented for storage provider:',
     CONFIG_NOT_FOUND: 'LMS Configuration not found',
     CONFIG_FAILED: 'Failed to get LMS Configuration',
+    LMS_CONFIG_LOAD_FAILED: 'Failed to load LMS Configuration',
     
     // Course Cloning Specific Errors
     COURSE_CLONE_FAILED: 'Failed to clone course',

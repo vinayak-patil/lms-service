@@ -1461,8 +1461,9 @@ export class CoursesService {
         this.logger.log(`Successfully ${operationType} course structure for course ${courseId} with ${modules.length} modules and ${requestLessonIds.length} lessons`);
         return { success: true, message: RESPONSE_MESSAGES.COURSE_STRUCTURE_UPDATED };
       });
-
      
+      // Handle cache operations after successful transaction
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return result;
     } catch (error) {

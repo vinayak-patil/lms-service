@@ -13,7 +13,7 @@ import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { CloudStorageModule } from '@vinayak-patil/cloud-storage';
-
+import { ConfigurationModule } from './configuration/configuration.module';
 @Module({
   imports: [
     // Configuration
@@ -33,6 +33,7 @@ import { CloudStorageModule } from '@vinayak-patil/cloud-storage';
     CacheModule,
     DatabaseModule,
     CommonModule,
+    ConfigurationModule,
     CoursesModule,
     ModulesModule,
     LessonsModule,
