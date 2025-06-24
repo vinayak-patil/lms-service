@@ -1,15 +1,12 @@
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage, StorageEngine } from 'multer';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import { HttpStatus } from '@nestjs/common';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
-import { TenantConfigValue } from 'src/configuration/interfaces/tenant-config.interface';
 import { TenantContext } from '../tenant/tenant.context';
+import { CacheService } from '../../cache/cache.service';
 
 interface Config {
   path: string;
@@ -41,8 +38,8 @@ export class FileUploadService {
 
   constructor(
     private readonly configurationService: ConfigurationService,
-    private readonly configService: ConfigService,
     private readonly tenantContext: TenantContext,
+    private readonly cacheService: CacheService,
   ) {
     // Set base upload directory relative to the application root
     this.baseUploadDir = path.join(process.cwd(), 'uploads');
@@ -70,12 +67,12 @@ export class FileUploadService {
 
   async uploadFile(file: Express.Multer.File, metadata: UploadMetadata): Promise<string> {
     const tenantId = this.tenantContext.getTenantId() || '';
-    const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {}, IsConfigsSync: 0 };
+    const cachedConfig = await this.cacheService.getTenantConfig(tenantId);
 
     let entityConfig: Config = {} as Config;
     // If config is synced, return entity config directly
-    if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
-      entityConfig = this.configurationService.getEntityConfigs(metadata.type, tenantConfig);
+    if (cachedConfig && cachedConfig.IsConfigsSync == 1) {
+      entityConfig = this.configurationService.getEntityConfigs(metadata.type, cachedConfig);
     }
 
     if(entityConfig){      
@@ -103,10 +100,10 @@ export class FileUploadService {
 
   async deleteFile(filePath: string, metadata: UploadMetadata): Promise<void> {
     const tenantId = this.tenantContext.getTenantId() || '';
-    const tenantConfig = this.configService.get<TenantConfigValue>(tenantId) || { config: {}, IsConfigsSync: 0 };
+    const cachedConfig = await this.cacheService.getTenantConfig(tenantId);
 
-    if (tenantConfig.config && tenantConfig.IsConfigsSync == 1) {
-      const entityConfig = this.configurationService.getEntityConfigs(metadata.type, tenantConfig);
+    if (cachedConfig && cachedConfig.IsConfigsSync == 1) {
+      const entityConfig = this.configurationService.getEntityConfigs(metadata.type, cachedConfig);
       const storageProvider = entityConfig.storageConfig.cloudStorageProvider;
 
       if (storageProvider === 'local') {
