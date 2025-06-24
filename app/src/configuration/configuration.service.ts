@@ -60,7 +60,6 @@ export class ConfigurationService  {
    * Sync tenant configuration and update cache
    */
   async syncTenantConfig(tenantId: string): Promise<any> {
-    
       // Fetch configuration from external service
       const externalConfig = await this.fetchExternalConfig(tenantId);
 
@@ -80,11 +79,6 @@ export class ConfigurationService  {
       // Update cache (primary storage)
       await this.cacheService.setTenantConfig(tenantId, tenantConfig);
       return  tenantConfig;
-
-    // } catch (error) {
-    //   console.log('syncTenantConfig catch ', tenantId);
-    //   return this.loadLocalConfig(tenantId);
-    // }
   }
 
   /**
@@ -146,7 +140,7 @@ export class ConfigurationService  {
       const lmsConfigPath = path.join(process.cwd(), this.configService.get('LMS_CONFIG_PATH') || 'src/lms-config.json');
       this.lmsConfigJson = JSON.parse(fs.readFileSync(lmsConfigPath, 'utf8'));
     } catch (error) {
-      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.CONFIG_URL_MISSING);
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.LMS_CONFIG_LOAD_FAILED);
     }
   }
 
