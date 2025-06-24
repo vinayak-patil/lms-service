@@ -12,6 +12,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { HealthModule } from './health/health.module';
 import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
+import { CloudStorageModule } from '@vinayak-patil/cloud-storage';
 
 @Module({
   imports: [
@@ -20,11 +21,18 @@ import { TrackingModule } from './tracking/tracking.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    CloudStorageModule.register({
+      provider: process.env.CLOUD_STORAGE_PROVIDER as 'aws' | 'azure' | 'gcp',
+      region: process.env.CLOUD_STORAGE_REGION,
+      credentials: {
+        accessKeyId: process.env.CLOUD_STORAGE_ACCESS_KEY_ID,
+        secretAccessKey: process.env.CLOUD_STORAGE_SECRET_ACCESS_KEY,
+      },
+      bucket: process.env.CLOUD_STORAGE_BUCKET_NAME,
+    }),
     CacheModule,
     DatabaseModule,
-    // Common module
-    CommonModule,    
-    // Feature modules
+    CommonModule,
     CoursesModule,
     ModulesModule,
     LessonsModule,

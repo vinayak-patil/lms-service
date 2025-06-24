@@ -2,32 +2,36 @@ import {
   Injectable,
   NotFoundException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull } from 'typeorm';
+<<<<<<< HEAD
+import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, In } from 'typeorm';
+=======
+import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, Like } from 'typeorm';
+>>>>>>> 673445b6e68315bf70d072dd1ea84d7020008b1b
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { CourseTrack, TrackingStatus } from '../tracking/entities/course-track.entity';
 import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { ModuleTrack } from '../tracking/entities/module-track.entity';
+import { Media } from '../media/entities/media.entity';
+import { AssociatedFile } from '../media/entities/associated-file.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
+import { API_IDS } from '../common/constants/api-ids.constant';
 import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { SearchCourseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
+import { CourseStructureDto } from '../courses/dto/course-structure.dto';
+import { CacheConfigService } from '../cache/cache-config.service';
 
 @Injectable()
 export class CoursesService {
   private readonly logger = new Logger(CoursesService.name);
-  private readonly cache_ttl_default: number;
-  private readonly cache_ttl_user: number;
-  private readonly cache_prefix_course: string;
-  private readonly cache_prefix_module: string;
-  private readonly cache_prefix_lesson: string;
-  private readonly cache_enabled: boolean;
 
   constructor(
     @InjectRepository(Course)
@@ -42,16 +46,13 @@ export class CoursesService {
     private readonly lessonTrackRepository: Repository<LessonTrack>,
     @InjectRepository(ModuleTrack)
     private readonly moduleTrackRepository: Repository<ModuleTrack>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(AssociatedFile)
+    private readonly associatedFileRepository: Repository<AssociatedFile>,
     private readonly cacheService: CacheService,
-    private readonly configService: ConfigService,
-  ) {
-    this.cache_enabled = this.configService.get('CACHE_ENABLED') === true;
-    this.cache_ttl_default = parseInt(this.configService.get('CACHE_TTL_DEFAULT') || '3600', 10);
-    this.cache_ttl_user = this.configService.get('CACHE_USER_TTL') || 600;
-    this.cache_prefix_course = this.configService.get('CACHE_COURSE_PREFIX') || 'course';
-    this.cache_prefix_module = this.configService.get('CACHE_MODULE_PREFIX') || 'module';
-    this.cache_prefix_lesson = this.configService.get('CACHE_LESSON_PREFIX') || 'lesson';
-  }
+    private readonly cacheConfig: CacheConfigService,
+  ) {}
 
   /**
    * Create a new course
@@ -60,7 +61,7 @@ export class CoursesService {
     createCourseDto: CreateCourseDto,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
   ): Promise<Course> {
     this.logger.log(`Creating course: ${JSON.stringify(createCourseDto)}`);
 
@@ -122,19 +123,11 @@ export class CoursesService {
     const savedCourse = await this.courseRepository.save(course);
     const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
     
-    if (this.cache_enabled) {
-      // Invalidate and set new cache values
-      const entityCacheKey = `${this.cache_prefix_course}:${result.courseId}:${tenantId}:${organisationId}`;
-      const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-      const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${result.courseId}:${tenantId}:${organisationId}`;
-
-      // Invalidate existing caches
-      await Promise.all([
-        this.cacheService.del(searchCacheKey),
-        this.cacheService.del(hierarchyCacheKey),
-        this.cacheService.set(entityCacheKey, result, this.cache_ttl_default),
-         ]);
-       }
+    // Cache the new course and invalidate related caches
+    await Promise.all([
+      this.cacheService.setCourse(result),
+      this.cacheService.invalidateCourse(result.courseId, tenantId, organisationId),
+    ]);
     
     return result;
   }
@@ -146,26 +139,40 @@ export class CoursesService {
     filters: Omit<SearchCourseDto, keyof PaginationDto>,
     paginationDto: PaginationDto,
     tenantId: string,
-    organisationId?: string,
-  ): Promise<{ items: Course[]; total: number }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const cacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-      if (this.cache_enabled) {
-        // Try to get from cache first
-        const cachedResult = await this.cacheService.get<{ items: Course[]; total: number }>(cacheKey);
-        if (cachedResult) {
-          return cachedResult;
-        }
-      }
+    organisationId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ courses: Course[]; total: number }> {
+    // Generate cache key with all filter parameters
+    const cacheKey = this.cacheConfig.getCourseSearchKey(
+      tenantId,
+      organisationId,
+      filters,
+      paginationDto.page,
+      paginationDto.limit
+    );
+    
+    // Check cache first
+    const cachedResult = await this.cacheService.get<{ courses: Course[]; total: number }>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
 
     const skip = (page - 1) * limit;
 
     const whereClause: any = { 
       tenantId,
-      ...(organisationId && { organisationId }), // Add organisationId for data isolation if it exists
+      organisationId,
       status: filters?.status || Not(CourseStatus.ARCHIVED),
     };
+
+    // Add cohort filter if provided, cohortid will be at params in json format
+    if (filters?.cohortId) {
+      whereClause.params = {
+        ...whereClause.params,
+        cohortId: filters.cohortId
+      };
+    }
 
     // Add boolean filters if provided
     if (filters?.featured !== undefined) {
@@ -200,9 +207,11 @@ export class CoursesService {
       }
     }
 
+    let result: { courses: Course[]; total: number };
+
     // If there's a search query, search in title and description
     if (filters?.query) {
-      return this.courseRepository.findAndCount({
+      result = await this.courseRepository.findAndCount({
         where: [
           { 
             title: ILike(`%${filters.query}%`),
@@ -220,21 +229,19 @@ export class CoursesService {
         order: { createdAt: 'DESC' },
         take: limit,
         skip,
-      }).then(([items, total]) => ({ items, total }));
+      }).then(([items, total]) => ({ courses: items, total }));
+    } else {
+      // If no search query, just use filters
+      result = await this.courseRepository.findAndCount({
+        where: whereClause,
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip,
+      }).then(([items, total]) => ({ courses: items, total }));
     }
 
-    // If no search query, just use filters
-    const result = await this.courseRepository.findAndCount({
-      where: whereClause,
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip,
-    }).then(([items, total]) => ({ items, total }));
-
-    // Cache the result
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, result,  this.cache_ttl_default);
-    }
+    // Set in cache with TTL
+    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
 
     return result;
   }
@@ -248,16 +255,13 @@ export class CoursesService {
    */
   async findOne(
     courseId: string, 
-    tenantId?: string, 
-    organisationId?: string
+    tenantId: string, 
+    organisationId: string
   ): Promise<Course> {
-    const cacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-    
-    if (this.cache_enabled) {
-      const cachedCourse = await this.cacheService.get<Course>(cacheKey);
-      if (cachedCourse) {
-        return cachedCourse;
-      }
+    // Standardized cache handling for findOne
+    const cachedCourse = await this.cacheService.getCourse(courseId, tenantId, organisationId);
+    if (cachedCourse) {
+      return cachedCourse;
     }
 
     const whereClause: FindOptionsWhere<Course> = { courseId };
@@ -279,11 +283,8 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
-    // Cache the course if caching is enabled
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, course, this.cache_ttl_default);
-    }
-
+    // Cache the course
+    await this.cacheService.setCourse(course);
     return course;
   }
 
@@ -293,39 +294,30 @@ export class CoursesService {
    * @param tenantId The tenant ID for data isolation
    * @param organisationId The organization ID for data isolation
    */
-  async findCourseHierarchy(
-    courseId: string,
-    tenantId?: string,
-    organisationId?: string
-  ): Promise<any> {
-    const cacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-    
-    if (this.cache_enabled) {
-      const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
-      if (cachedHierarchy) {
-        return cachedHierarchy;
-      }
+  async findCourseHierarchy(courseId: string, tenantId: string, organisationId: string): Promise<any> {
+    // Check cache first
+    const cacheKey = this.cacheConfig.getCourseHierarchyKey(
+      courseId,
+      tenantId,
+      organisationId
+    );
+    const cachedHierarchy = await this.cacheService.get<any>(cacheKey);
+    if (cachedHierarchy) {
+      return cachedHierarchy;
     }
 
-    // Find the course with tenant/org filtering
+    // If not in cache, get from database
     const course = await this.findOne(courseId, tenantId, organisationId);
     
     // For data isolation, ensure we filter modules by tenantId as well
     const moduleWhereClause: any = { 
       courseId,
       parentId: IsNull(),
+      tenantId,
+      organisationId,
       status: Not(ModuleStatus.ARCHIVED as any),
     };
-    
-    // Apply tenant and organization filters if they exist
-    if (tenantId) {
-      moduleWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      moduleWhereClause.organisationId = organisationId;
-    }
-    
+
     // Fetch all modules related to this course with proper isolation
     const modules = await this.moduleRepository.find({
       where: moduleWhereClause,
@@ -344,7 +336,7 @@ export class CoursesService {
             ...(organisationId && { organisationId }),
           },
           relations: ['media'],
-          order: { idealTime: 'ASC' },
+          order: { ordering: 'ASC' },
         });
 
         // Fetch all submodules for this module
@@ -368,7 +360,7 @@ export class CoursesService {
                 ...(organisationId && { organisationId }),
               },
               relations: ['media'],
-              order: { idealTime: 'ASC' },
+              order: { ordering: 'ASC' },
             });
 
             return {
@@ -390,12 +382,9 @@ export class CoursesService {
       ...course,
       modules: enrichedModules,
     };
-
-    // Cache the result if caching is enabled
-    if (this.cache_enabled) {
-      await this.cacheService.set(cacheKey, result, this.cache_ttl_default);
-    }
-
+   
+    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
+    
     return result;
   }
 
@@ -409,8 +398,8 @@ export class CoursesService {
   async findCourseHierarchyWithTracking(
     courseId: string, 
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<any> {
     
     // Get the basic course hierarchy first with proper filtering
@@ -706,7 +695,7 @@ export class CoursesService {
     updateCourseDto: any,
     userId: string,
     tenantId: string,
-    organisationId?: string,
+    organisationId: string,
     image?: Express.Multer.File,
   ): Promise<Course> {
     // Find the course with tenant/org filtering
@@ -769,24 +758,11 @@ export class CoursesService {
     
     const savedCourse = await this.courseRepository.save(updatedCourse);
     
-    if (this.cache_enabled) { 
-      // Invalidate and set new cache values
-      const entityCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-      const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-      const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-      const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
-      const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-      
-      // Invalidate existing caches
-      await Promise.all([
-        this.cacheService.del(entityCacheKey),
-        this.cacheService.del(searchCacheKey),
-        this.cacheService.del(hierarchyCacheKey),
-        this.cacheService.del(moduleCacheKey),
-        this.cacheService.del(lessonCacheKey)
-      ]);
-    }
-    
+    // Cache the new course and invalidate related caches
+    await Promise.all([
+      this.cacheService.setCourse(savedCourse),
+      this.cacheService.invalidateCourse(courseId, tenantId, organisationId),
+    ]);
     return savedCourse;
   }
 
@@ -799,8 +775,8 @@ export class CoursesService {
   async remove(
     courseId: string,
     userId: string,
-    tenantId?: string,
-    organisationId?: string
+    tenantId: string,
+    organisationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const course = await this.findOne(courseId, tenantId, organisationId);
@@ -809,23 +785,8 @@ export class CoursesService {
       course.updatedAt = new Date();
       const savedCourse = await this.courseRepository.save(course);
 
-      // Invalidate and set new cache values
-      if (this.cache_enabled) {
-        const courseCacheKey = `${this.cache_prefix_course}:${courseId}:${tenantId}:${organisationId}`;
-        const moduleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
-        const lessonCacheKey = `${this.cache_prefix_lesson}:course:${courseId}:${tenantId}:${organisationId}`;
-        const hierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-        const searchCacheKey = `${this.cache_prefix_course}:search:${tenantId}:${organisationId}`;
-
-        // Invalidate existing caches
-        await Promise.all([
-          this.cacheService.del(courseCacheKey),
-          this.cacheService.del(moduleCacheKey),
-          this.cacheService.del(lessonCacheKey),
-          this.cacheService.del(hierarchyCacheKey),
-          this.cacheService.del(searchCacheKey)
-        ]);
-      }
+       // Cache the new course and invalidate related caches
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return { 
         success: true, 
@@ -867,4 +828,667 @@ export class CoursesService {
     });
   }
 
+  /**
+   * Clone a course with all its modules, lessons, and media
+   */
+  async cloneCourse(
+    courseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+  ): Promise<Course> {
+    this.logger.log(`Cloneing course: ${courseId}`);
+
+    try {
+      // Use a database transaction to ensure data consistency
+      const result = await this.courseRepository.manager.transaction(async (transactionalEntityManager) => {
+        // Find the original course
+        const originalCourse = await transactionalEntityManager.findOne(Course, {
+          where: { 
+            courseId,
+            tenantId,
+            organisationId,
+          },
+        });
+
+        if (!originalCourse) {
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
+        }
+
+        // Generate title and alias for the copied course
+        const newTitle = `${originalCourse.title} (Copy)`;
+        const newAlias = originalCourse.alias + '-copy';
+
+        // Create the new course
+        const newCourseData = {
+          ...originalCourse,
+          title: newTitle,
+          alias: newAlias,
+          status: CourseStatus.UNPUBLISHED,
+          createdBy: userId,
+          updatedBy: userId,
+          // Remove properties that should not be copied
+          courseId: undefined,
+        };
+
+        this.logger.log(`Creating new course with title: ${newTitle}`);
+
+        const newCourse = transactionalEntityManager.create(Course, newCourseData);
+        const savedCourse = await transactionalEntityManager.save(Course, newCourse);
+        const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
+
+
+        // Clone modules and their content
+        await this.cloneModulesWithTransaction(
+          originalCourse.courseId,
+          result.courseId, 
+          userId, 
+          tenantId, 
+          organisationId,
+          transactionalEntityManager
+        );
+
+        this.logger.log(`Course copied successfully: ${result.courseId}`);
+        return result;
+      });
+
+      // Handle cache operations after successful transaction
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Error cloning course ${courseId}: ${error.message}`, error.stack);
+      
+        throw error;
+  }
+  }
+
+  /**
+   * Clone modules for a course using transaction
+   */
+  private async cloneModulesWithTransaction(
+    originalCourseId: string,
+    newCourseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+  ): Promise<void> {
+    try {
+      // Get only top-level modules (parentId is null or undefined)
+      const modules = await transactionalEntityManager.find(Module, {
+        where: {
+          courseId: originalCourseId,
+          parentId: IsNull(), // Explicitly check for null parentId
+          status: Not(ModuleStatus.ARCHIVED),
+          tenantId,
+          organisationId,
+        },
+        order: { ordering: 'ASC' },
+      });
+
+      if (!modules || modules.length === 0) {
+        this.logger.warn(`No top-level modules found for course ${originalCourseId}`);
+        return;
+      }
+
+      // Clone each module
+      for (const module of modules) {
+        try {
+          await this.cloneModuleWithTransaction(module, newCourseId, userId, tenantId, organisationId, transactionalEntityManager);
+        } catch (error) {
+          this.logger.error(`Error cloning module ${module.moduleId}: ${error.message}`);
+          throw new Error(`${RESPONSE_MESSAGES.ERROR.MODULE_COPY_FAILED}: ${module.title}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error in cloneModulesWithTransaction: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clone a single module with its lessons using transaction
+   */
+  private async cloneModuleWithTransaction(
+    originalModule: Module,
+    newCourseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+  ): Promise<Module | null> {
+    try {
+      // Create new module data
+      const newModuleData = {
+        ...originalModule,
+        courseId: newCourseId,
+        parentId: undefined,
+        createdBy: userId,
+        updatedBy: userId,
+        // Remove properties that should not be copied
+        moduleId: undefined,
+      };
+
+      const newModule = transactionalEntityManager.create(Module, newModuleData);
+      const savedModule = await transactionalEntityManager.save(Module, newModule);
+
+      if (!savedModule) {
+        throw new Error(`${RESPONSE_MESSAGES.ERROR.MODULE_SAVE_FAILED}: ${originalModule.title}`);
+      }
+
+      // Clone lessons for this module
+      await this.cloneLessonsWithTransaction(originalModule.moduleId, savedModule.moduleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
+
+      // Clone submodules if any
+      const submodules = await transactionalEntityManager.find(Module, {
+        where: {
+          parentId: originalModule.moduleId,
+          status: Not(ModuleStatus.ARCHIVED),
+          tenantId,
+          organisationId,
+        },
+        order: { ordering: 'ASC' },
+      });
+       if (!submodules || submodules.length === 0) {
+        this.logger.warn(`No submodules found for module ${originalModule.moduleId}`);
+        return null;
+      }
+
+
+      for (const submodule of submodules) {
+        try {
+          await this.cloneSubmoduleWithTransaction(submodule, savedModule.moduleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
+        } catch (error) {
+          this.logger.error(`Error cloning submodule ${submodule.moduleId}: ${error.message}`);
+          throw new Error(`${RESPONSE_MESSAGES.ERROR.SUBMODULE_COPY_FAILED}: ${submodule.title}`);
+        }
+      }
+
+      return savedModule;
+    } catch (error) {
+      this.logger.error(`Error in cloneModuleWithTransaction for module ${originalModule.moduleId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clone a submodule using transaction
+   */
+  private async cloneSubmoduleWithTransaction(
+    originalSubmodule: Module,
+    newParentId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+    newCourseId: string,
+  ): Promise<Module> {
+  try {
+    // Create new submodule data
+    const newSubmoduleData = {
+      ...originalSubmodule,
+      courseId: newCourseId,
+      parentId: newParentId,
+      createdBy: userId,
+      updatedBy: userId,
+      // Remove properties that should not be copied
+      moduleId: undefined,
+    };
+
+    const newSubmodule = transactionalEntityManager.create(Module, newSubmoduleData);
+    const savedSubmodule = await transactionalEntityManager.save(Module, newSubmodule);
+
+    // Clone lessons for this submodule
+    await this.cloneLessonsWithTransaction(originalSubmodule.moduleId, savedSubmodule.moduleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
+
+    return savedSubmodule;
+    } catch (error) {
+      this.logger.error(`Error in cloneSubmoduleWithTransaction for submodule ${originalSubmodule.moduleId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clone lessons for a module using transaction
+   */
+  private async cloneLessonsWithTransaction(
+    originalModuleId: string,
+    newModuleId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+    newCourseId: string,
+  ): Promise<void> {
+    try {
+      // Get all lessons for the original module
+      const lessons = await transactionalEntityManager.find(Lesson, {
+        where: {
+          moduleId: originalModuleId,
+          status: Not(LessonStatus.ARCHIVED),
+          tenantId,
+          organisationId,
+        },
+        relations: ['media', 'associatedFiles.media'],
+      });
+
+      if (!lessons || lessons.length === 0) {
+        this.logger.warn(`No lessons found for module ${originalModuleId}`);
+        return;
+      }
+
+      // Clone each lesson
+      for (const lesson of lessons) {
+        try {
+          await this.cloneLessonWithTransaction(lesson, newModuleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
+        } catch (error) {
+          this.logger.error(`Error cloning lesson ${lesson.lessonId}: ${error.message}`);
+          throw new Error(`${RESPONSE_MESSAGES.ERROR.LESSON_COPY_FAILED}: ${lesson.title}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error in cloneLessonsWithTransaction for module ${originalModuleId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clone a single lesson with its media using transaction
+   */
+  private async cloneLessonWithTransaction(
+    originalLesson: Lesson,
+    newModuleId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+    newCourseId: string,
+  ): Promise<Lesson> {
+    try {
+      let newMediaId: string | undefined;
+
+      // Clone media if lesson has media
+      if (originalLesson.mediaId) {
+        const originalMedia = await transactionalEntityManager.findOne(Media, {
+          where: { mediaId: originalLesson.mediaId },
+        });
+
+        if (originalMedia) {
+          const newMediaData = {
+            ...originalMedia,
+            createdBy: userId,
+            updatedBy: userId,
+            // Remove properties that should not be copied
+            mediaId: undefined,
+            // Don't set createdAt/updatedAt - let TypeORM handle them automatically
+          };
+
+          const newMedia = transactionalEntityManager.create(Media, newMediaData);
+          const savedMedia = await transactionalEntityManager.save(Media, newMedia);
+          
+          if (!savedMedia) {
+            throw new Error(`${RESPONSE_MESSAGES.ERROR.MEDIA_SAVE_FAILED}: ${originalLesson.title}`);
+          }
+          
+          newMediaId = savedMedia.mediaId;
+        }
+      }
+     
+
+      this.logger.log(`Final newMediaId value: ${newMediaId}`);
+
+      // Create new lesson data
+      const newLessonData = {
+        // Copy all properties from original lesson except the ones we want to override
+        title: originalLesson.title,
+        alias: originalLesson.alias + '-copy',
+        format: originalLesson.format,
+        image: originalLesson.image,
+        description: originalLesson.description,
+        status: originalLesson.status,
+        startDatetime: originalLesson.startDatetime,
+        endDatetime: originalLesson.endDatetime,
+        storage: originalLesson.storage,
+        noOfAttempts: originalLesson.noOfAttempts,
+        attemptsGrade: originalLesson.attemptsGrade,
+        eligibilityCriteria: originalLesson.eligibilityCriteria,
+        idealTime: originalLesson.idealTime,
+        resume: originalLesson.resume,
+        totalMarks: originalLesson.totalMarks,
+        passingMarks: originalLesson.passingMarks,
+        params: originalLesson.params || {},
+        sampleLesson: originalLesson.sampleLesson,
+        considerForPassing: originalLesson.considerForPassing,
+        tenantId,
+        organisationId,
+        // Override with new values
+        mediaId: newMediaId || null, //Use null if no new media was created
+        courseId: newCourseId,
+        moduleId: newModuleId,
+        createdBy: userId,
+        updatedBy: userId,
+      };
+
+
+      const newLesson = transactionalEntityManager.create(Lesson, newLessonData);
+      const savedLesson = await transactionalEntityManager.save(Lesson, newLesson);
+
+      if (!savedLesson) {
+        throw new Error(`${RESPONSE_MESSAGES.ERROR.LESSON_SAVE_FAILED}: ${originalLesson.title}`);
+      }
+
+
+      // Clone associated files if lesson has them
+      if (originalLesson.associatedFiles && originalLesson.associatedFiles.length > 0) {
+        try {
+          await this.cloneAssociatedFilesWithTransaction(originalLesson.lessonId, savedLesson.lessonId, userId, tenantId, organisationId, transactionalEntityManager);
+        } catch (error) {
+          this.logger.error(`Error cloning associated files for lesson ${originalLesson.lessonId}: ${error.message}`);
+          // Don't throw here as the lesson was already saved
+        }
+      }
+
+      return savedLesson;
+    } catch (error) {
+      this.logger.error(`Error in cloneLessonWithTransaction for lesson ${originalLesson.lessonId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clone associated files for a lesson using transaction
+   */
+  private async cloneAssociatedFilesWithTransaction(
+    originalLessonId: string,
+    newLessonId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string,
+    transactionalEntityManager: any,
+  ): Promise<void> {
+    try {
+      const associatedFiles = await transactionalEntityManager.find(AssociatedFile, {
+        where: {
+          lessonId: originalLessonId,
+          tenantId,
+          organisationId,
+        },
+        relations: ['media'],
+      });
+
+      if (!associatedFiles || associatedFiles.length === 0) {
+        this.logger.warn(`No associated files found for lesson ${originalLessonId}`);
+        return;
+      }
+
+      for (const associatedFile of associatedFiles) {
+        try {
+          let newMediaId: string | undefined;
+
+          // Clone media if it exists
+          if (associatedFile.media) {
+            const originalMedia = associatedFile.media;
+            const newMediaData = {
+              ...originalMedia,
+              createdBy: userId,
+              updatedBy: userId,
+              // Remove properties that should not be copied
+              mediaId: undefined,
+            };
+
+            const newMedia = transactionalEntityManager.create(Media, newMediaData);
+            const savedMedia = await transactionalEntityManager.save(Media, newMedia);
+            
+            if (!savedMedia) {
+              throw new Error(RESPONSE_MESSAGES.ERROR.MEDIA_SAVE_FAILED);
+            }
+            
+            newMediaId = savedMedia.mediaId;
+            this.logger.log(`Cloned associated file media from ${originalMedia.mediaId} to ${newMediaId}`);
+
+            // Create new associated file record
+            const newAssociatedFileData = {
+              lessonId: newLessonId,
+              mediaId: newMediaId,
+              tenantId,
+              organisationId,
+              createdBy: userId,
+              updatedBy: userId,
+            };
+
+            const newAssociatedFile = transactionalEntityManager.create(AssociatedFile, newAssociatedFileData);
+            const savedAssociatedFile = await transactionalEntityManager.save(AssociatedFile, newAssociatedFile);
+            
+            if (!savedAssociatedFile) {
+              throw new Error(RESPONSE_MESSAGES.ERROR.ASSOCIATED_FILE_SAVE_FAILED);
+            }
+          }
+        } catch (error) {
+          this.logger.error(`Error cloning associated file ${associatedFile.associatedFileId}: ${error.message}`);
+          // Continue with other files even if one fails
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error in cloneAssociatedFilesWithTransaction for lesson ${originalLessonId}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update the entire course structure including module and lesson ordering
+   * and moving lessons between modules
+   */
+  async updateCourseStructure(
+    courseId: string,
+    courseStructureDto: CourseStructureDto,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(`Updating course structure for course ${courseId}: ${JSON.stringify(courseStructureDto)}`);
+
+    try {
+      // Use Repository Manager transaction approach
+      const result = await this.courseRepository.manager.transaction(async (transactionalEntityManager) => {
+        // Validate that course exists
+        const course = await transactionalEntityManager.findOne(Course, {
+          where: {
+            courseId,
+            status: Not(CourseStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+        });
+
+        if (!course) {
+          throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
+        }
+
+        // Check if any users have started tracking this course
+        const courseTrackingCount = await transactionalEntityManager.count(CourseTrack, {
+          where: {
+            courseId,
+            tenantId,
+            organisationId,
+          },
+        });
+
+        const hasCourseTracking = courseTrackingCount > 0;
+
+        // Extract all module IDs and lesson IDs from the request
+        const requestModuleIds = courseStructureDto.modules.map(m => m.moduleId);
+        const requestLessonIds = courseStructureDto.modules
+          .flatMap(m => m.lessons || [])
+          .map(l => l.lessonId);
+
+        // Get all existing modules and lessons for this course
+        const existingModules = await transactionalEntityManager.find(Module, {
+          where: {
+            courseId,
+            status: Not(ModuleStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+          select: ['moduleId'],
+        });
+
+        const existingLessons = await transactionalEntityManager.find(Lesson, {
+          where: {
+            courseId,
+            status: Not(LessonStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+          select: ['lessonId'],
+        });
+
+        const existingModuleIds = existingModules.map(m => m.moduleId);
+        const existingLessonIds = existingLessons.map(l => l.lessonId);
+
+        // Validate that request contains all existing modules
+        const missingModuleIds = existingModuleIds.filter(id => !requestModuleIds.includes(id));
+        if (missingModuleIds.length > 0) {
+          throw new BadRequestException(
+            RESPONSE_MESSAGES.ERROR.MISSING_MODULES_IN_STRUCTURE(missingModuleIds.length, missingModuleIds.join(', '))
+          );
+        }
+
+        // Validate that request contains all existing lessons
+        const missingLessonIds = existingLessonIds.filter(id => !requestLessonIds.includes(id));
+        if (missingLessonIds.length > 0) {
+          throw new BadRequestException(
+            RESPONSE_MESSAGES.ERROR.MISSING_LESSONS_IN_STRUCTURE(missingLessonIds.length, missingLessonIds.join(', '))
+          );
+        }
+
+        // Validate that all modules in request exist and belong to the course
+        const modules = await transactionalEntityManager.find(Module, {
+          where: {
+            moduleId: In(requestModuleIds),
+            courseId,
+            status: Not(ModuleStatus.ARCHIVED),
+            tenantId,
+            organisationId,
+          },
+        });
+
+        if (modules.length !== requestModuleIds.length) {
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.SOME_MODULES_NOT_FOUND);
+        }
+
+        // Validate that all lessons in request exist
+        if (requestLessonIds.length > 0) {
+          const lessons = await transactionalEntityManager.find(Lesson, {
+            where: {
+              lessonId: In(requestLessonIds),
+              courseId,
+              tenantId,
+              organisationId,
+            },
+          });
+
+          if (lessons.length !== requestLessonIds.length) {
+            throw new BadRequestException(RESPONSE_MESSAGES.ERROR.LESSONS_NOT_FOUND_IN_STRUCTURE);
+          }
+
+          // If course tracking has started, validate that lessons are not being moved between modules
+          if (hasCourseTracking) {
+            const currentLessons = await transactionalEntityManager.find(Lesson, {
+              where: {
+                courseId,
+                tenantId,
+                organisationId,
+              },
+              select: ['lessonId', 'moduleId'],
+            });
+
+            // Create a map of current lesson module assignments
+            const currentLessonModuleMap = new Map(
+              currentLessons.map(lesson => [lesson.lessonId, lesson.moduleId])
+            );
+
+            // Check if any lesson is being moved to a different module
+            const lessonMovementDetected = courseStructureDto.modules
+              .filter(m => m.lessons && m.lessons.length > 0)
+              .some(moduleStructure => 
+                moduleStructure.lessons!.some(lessonStructure => {
+                  const currentModuleId = currentLessonModuleMap.get(lessonStructure.lessonId);
+                  return currentModuleId && currentModuleId !== moduleStructure.moduleId;
+                })
+              );
+
+            if (lessonMovementDetected) {
+              throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_TRACKING_STARTED_LESSON_MOVEMENT_NOT_ALLOWED);
+            }
+
+            this.logger.log(`Course tracking detected for course ${courseId}. Allowing only reordering within modules.`);
+          }
+        }
+
+        // Update module ordering
+        const moduleUpdatePromises = courseStructureDto.modules.map(moduleStructure => {
+          return transactionalEntityManager.update(Module, 
+            { moduleId: moduleStructure.moduleId }, 
+            {
+              ordering: moduleStructure.order,
+              updatedBy: userId,
+              updatedAt: new Date()
+            }
+          );
+        });
+
+        await Promise.all(moduleUpdatePromises);
+
+        // Update lesson ordering and module assignments
+        const lessonUpdatePromises = courseStructureDto.modules
+          .filter(m => m.lessons && m.lessons.length > 0)
+          .flatMap(moduleStructure => 
+            moduleStructure.lessons!.map(lessonStructure => {
+              return transactionalEntityManager.update(Lesson, 
+                { lessonId: lessonStructure.lessonId }, 
+                {
+                  moduleId: moduleStructure.moduleId,
+                  ordering: lessonStructure.order,
+                  updatedBy: userId,
+                  updatedAt: new Date()
+                }
+              );
+            })
+          );
+
+        if (lessonUpdatePromises.length > 0) {
+          await Promise.all(lessonUpdatePromises);
+        }
+
+        const operationType = hasCourseTracking ? 'reordering' : 'restructuring';
+        this.logger.log(`Successfully ${operationType} course structure for course ${courseId} with ${modules.length} modules and ${requestLessonIds.length} lessons`);
+        return { success: true, message: RESPONSE_MESSAGES.COURSE_STRUCTURE_UPDATED };
+      });
+
+      // Handle cache invalidation after successful transaction
+      if (this.cache_enabled) {
+        const courseModuleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
+        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
+        
+        await Promise.all([
+          this.cacheService.del(courseModuleCacheKey),
+          this.cacheService.del(courseHierarchyCacheKey)
+        ]);
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Error updating course structure for course ${courseId}: ${error.message}`, error.stack);
+      
+      // Re-throw the error with appropriate context
+      if (error instanceof BadRequestException) {
+        throw error;
+      } else if (error instanceof NotFoundException) {
+        throw error;
+      } else {
+        throw new BadRequestException(`${RESPONSE_MESSAGES.ERROR.INVALID_STRUCTURE_DATA}: ${error.message}`);
+      }
+    }
+  }
 }

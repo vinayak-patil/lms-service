@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ConfigDto } from './dto/configuration.dto';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
@@ -67,7 +66,7 @@ export class ConfigurationService {
     }
   }
 
-  async syncExternalConfig(tenantId: string): Promise<any> {
+  async syncTenantConfig(tenantId: string): Promise<any> {
     try {
       // Fetch configuration from external service
       const externalConfig = await this.fetchExternalConfig(tenantId);
@@ -82,10 +81,7 @@ export class ConfigurationService {
       
       // Create or update tenant configuration with external data
       tenantConfig = {
-        config: this.deepMerge(
-          tenantConfig.config || {},
-          externalConfig
-        ),
+        config: externalConfig,
         lastSynced: new Date().toISOString(),
         IsConfigsSync: 1
       };
@@ -142,10 +138,7 @@ export class ConfigurationService {
         throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.CONFIG_URL_MISSING);
       }
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${externalConfigUrl}/${tenantId}?context=lms`)
-      );
-
+      const response = await axios.get(`${externalConfigUrl}/${tenantId}?context=lms`);
       return response.data.result;
     } catch (error) {
       throw new InternalServerErrorException(`${error.message}`);
@@ -159,24 +152,6 @@ export class ConfigurationService {
     } catch (error) {
       console.error('Error loading LMS configuration:', error);
     }
-  }
-
-  private deepMerge(target: any, source: any): any {
-    const output = { ...target };
-    if (this.isObject(target) && this.isObject(source)) {
-      Object.keys(source).forEach(key => {
-        if (this.isObject(source[key])) {
-          if (!(key in target)) {
-            Object.assign(output, { [key]: source[key] });
-          } else {
-            output[key] = this.deepMerge(target[key], source[key]);
-          }
-        } else {
-          Object.assign(output, { [key]: source[key] });
-        }
-      });
-    }
-    return output;
   }
 
   private isObject(item: any): boolean {

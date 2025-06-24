@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   UploadedFile,
   InternalServerErrorException,
+  Put,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -35,6 +36,7 @@ import { ApiId } from '../common/decorators/api-id.decorator';
 import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { FileUploadService } from '../common/utils/local-storage.service';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
+import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 
 
 @ApiTags('Courses')
@@ -72,15 +74,13 @@ export class CoursesController {
     } catch (error) {
   throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
     }
-
-      const course = await this.coursesService.create(
-        createCourseDto,
-        query.userId,
-        tenantOrg.tenantId,
-        tenantOrg.organisationId,
-      );
-
-      return course;
+    const course = await this.coursesService.create(
+      createCourseDto,
+      query.userId, 
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
+    );
+    return course;
   }
 
   @Get('search')
@@ -302,5 +302,75 @@ export class CoursesController {
       tenantOrg.organisationId
     );
     return result;
+  }
+
+  @Post('/clone/:courseId')
+  @ApiId(API_IDS.COPY_COURSE)
+  @ApiOperation({ 
+    summary: 'Copy a course with all its modules, lessons, and media',
+    description: 'Creates a deep copy of the course including all modules, lessons, and associated media files'
+  })
+  @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID to copy' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Course copied successfully', 
+    type: Course 
+  })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async cloneCourse(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
+  ) {
+    const copiedCourse = await this.coursesService.cloneCourse(
+      courseId,
+      query.userId,
+      tenantOrg.tenantId,
+      tenantOrg.organisationId,
+    );
+    return copiedCourse;
+  }
+
+  @Put(':courseId/structure')
+  @ApiId(API_IDS.UPDATE_COURSE_STRUCTURE)
+  @ApiOperation({ 
+    summary: 'Update course structure',
+    description: 'Update the entire course structure including module and lesson ordering, and moving lessons between modules'
+  })
+  @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID' })
+  @ApiBody({ type: CourseStructureDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Course structure updated successfully',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid structure data or validation error' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateCourseStructure(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Body() courseStructureDto: CourseStructureDto,
+    @Query() query: CommonQueryDto,
+    @TenantOrg() tenantOrg: { tenantId: string; organisationId: string }
+  ) {
+    try {
+      const result = await this.coursesService.updateCourseStructure(
+        courseId,
+        courseStructureDto,
+        query.userId,
+        tenantOrg.tenantId,
+        tenantOrg.organisationId
+      );
+      
+      return result;
+    } catch (error) {
+      // Re-throw the error to let the global exception filter handle it
+      throw error;
+    }
   }
 }

@@ -10,7 +10,6 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
   Query,
   Patch,
   InternalServerErrorException,
@@ -26,7 +25,6 @@ import {
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { API_IDS } from '../common/constants/api-ids.constant';
 import { Module } from './entities/module.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
