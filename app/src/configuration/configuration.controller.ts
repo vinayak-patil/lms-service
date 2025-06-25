@@ -9,7 +9,7 @@ import { response } from 'express';
 export class ConfigController {
   constructor(private readonly configurationService: ConfigurationService) {}
 
-  @Get(':entityType')
+  @Get()
   @ApiOperation({ summary: 'Get LMS configuration' })
   @ApiResponse({ 
     status: 200, 
@@ -17,11 +17,9 @@ export class ConfigController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async getConfig(
-    @Param('entityType') entityType: string,
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     return this.configurationService.getConfig(
-      entityType,
       tenantOrg.tenantId,
     );
   }

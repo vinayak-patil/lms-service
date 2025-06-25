@@ -9,6 +9,7 @@ export class CacheConfigService {
   readonly LESSON_PREFIX = 'lesson:';
   readonly ENROLLMENT_PREFIX = 'enrollment:';
   readonly USER_PROGRESS_PREFIX = 'user_progress:';
+  readonly CONFIG_PREFIX = 'tenant_config:';
 
   // Default TTL values (in seconds)
   COURSE_TTL = 3600; // 1 hour
@@ -24,6 +25,11 @@ export class CacheConfigService {
     this.LESSON_TTL = parseInt(this.configService.get('CACHE_LESSON_TTL') || '1800', 10);
     this.ENROLLMENT_TTL = parseInt(this.configService.get('CACHE_ENROLLMENT_TTL') || '1800', 10);
     this.USER_PROGRESS_TTL = parseInt(this.configService.get('CACHE_USER_PROGRESS_TTL') || '300', 10);
+  }
+
+  // Configuration-related methods
+  getTenantConfigKey(tenantId: string): string {
+    return `${this.CONFIG_PREFIX}${tenantId}`;
   }
 
   // Course-related methods

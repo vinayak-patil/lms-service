@@ -5,11 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-<<<<<<< HEAD
 import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, In } from 'typeorm';
-=======
-import { Repository, FindOptionsWhere, Not, Equal, ILike, IsNull, Like } from 'typeorm';
->>>>>>> 673445b6e68315bf70d072dd1ea84d7020008b1b
 import { Course, CourseStatus } from './entities/course.entity';
 import { Module, ModuleStatus } from '../modules/entities/module.entity';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
@@ -1465,17 +1461,9 @@ export class CoursesService {
         this.logger.log(`Successfully ${operationType} course structure for course ${courseId} with ${modules.length} modules and ${requestLessonIds.length} lessons`);
         return { success: true, message: RESPONSE_MESSAGES.COURSE_STRUCTURE_UPDATED };
       });
-
-      // Handle cache invalidation after successful transaction
-      if (this.cache_enabled) {
-        const courseModuleCacheKey = `${this.cache_prefix_module}:course:${courseId}:${tenantId}:${organisationId}`;
-        const courseHierarchyCacheKey = `${this.cache_prefix_course}:hierarchy:${courseId}:${tenantId}:${organisationId}`;
-        
-        await Promise.all([
-          this.cacheService.del(courseModuleCacheKey),
-          this.cacheService.del(courseHierarchyCacheKey)
-        ]);
-      }
+     
+      // Handle cache operations after successful transaction
+      await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
 
       return result;
     } catch (error) {
