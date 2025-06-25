@@ -49,18 +49,30 @@ export class FileUploadService {
     }
   }
 
-  async validateFile(file: Express.Multer.File, metadata: UploadMetadata, entityConfig: Config): Promise<void> {
+  async validateFile(file: Express.Multer.File, metadata: UploadMetadata, entityConfig: any): Promise<void> {
     // Validate file size
-    if (file.size > (entityConfig.maxFileSize * 1024 * 1024)) {
+    if(entityConfig.maxFileSize){
+      if (file.size > (entityConfig.maxFileSize * 1024 * 1024)) {
+        throw new FileValidationError(
+          `${RESPONSE_MESSAGES.ERROR.FILE_TOO_LARGE}: ${entityConfig.maxFileSize}MB`
+        );
+      }
+    }else{
       throw new FileValidationError(
-        `${RESPONSE_MESSAGES.ERROR.FILE_TOO_LARGE}: ${entityConfig.maxFileSize}MB`
+        `${RESPONSE_MESSAGES.ERROR.MAX_FILE_SIZE_NOT_FOUND}`
       );
     }
 
     // Validate mime type
-    if (!entityConfig.allowedMimeTypes.includes(file.mimetype)) {
+    if(entityConfig.allowedMimeTypes){
+      if (!entityConfig.allowedMimeTypes.includes(file.mimetype)) {
+        throw new FileValidationError(
+          `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${entityConfig.allowedMimeTypes.join(', ')}`
+        );
+      }
+    }else{
       throw new FileValidationError(
-        `${RESPONSE_MESSAGES.ERROR.INVALID_FILE_TYPE}: ${entityConfig.allowedMimeTypes.join(', ')}`
+        `${RESPONSE_MESSAGES.ERROR.ALLOWED_MIME_TYPES_NOT_FOUND}`
       );
     }
   }
@@ -69,18 +81,18 @@ export class FileUploadService {
     const tenantId = this.tenantContext.getTenantId() || '';
     const cachedConfig = await this.cacheService.getTenantConfig(tenantId);
 
-    let entityConfig: Config = {} as Config;
+    
+    let entityConfig:any
     // If config is synced, return entity config directly
     if (cachedConfig && cachedConfig.IsConfigsSync == 1) {
       entityConfig = this.configurationService.getEntityConfigs(metadata.type, cachedConfig);
     }
-
     if(entityConfig){      
 
         await this.validateFile(file, metadata, entityConfig);
 
         const uploadDir = path.join(process.cwd(), entityConfig.path);
-
+        
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
         }
