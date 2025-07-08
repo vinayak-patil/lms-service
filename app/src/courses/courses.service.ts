@@ -19,7 +19,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { API_IDS } from '../common/constants/api-ids.constant';
 import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { SearchCourseDto, SearchCourseResponseDto } from './dto/search-course.dto';
+import { SearchCourseDto, SearchCourseResponseDto, SortBy, SortOrder } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
@@ -132,22 +132,22 @@ export class CoursesService {
    * Search courses with filters and keyword search
    */
   async search(
-    filters: Omit<SearchCourseDto, keyof PaginationDto>,
+    filters: SearchCourseDto,
     tenantId: string,
     organisationId: string,
-    page: number = 1,
-    limit: number = 10,
   ): Promise<SearchCourseResponseDto> {
     // Validate and sanitize inputs
-    page = Math.max(1, page);
-    limit = Math.min(100, Math.max(1, limit));
+    const offset = Math.max(0, filters.offset || 0);
+    const limit = Math.min(100, Math.max(1, filters.limit || 10));
+    const sortBy = filters.sortBy || SortBy.CREATED_AT;
+    const orderBy = filters.orderBy || SortOrder.DESC;
 
     // Generate consistent cache key
     const cacheKey = this.cacheConfig.getCourseSearchKey(
       tenantId,
       organisationId,
       filters,
-      page,
+      offset,
       limit
     );
     
@@ -156,8 +156,6 @@ export class CoursesService {
     if (cachedResult) {
       return cachedResult;
     }
-
-    const skip = (page - 1) * limit;
 
     // Build base where clause
     const whereClause: any = { 
@@ -169,12 +167,16 @@ export class CoursesService {
     // Apply filters
     this.applyFilters(filters, whereClause);
 
+    // Build order clause
+    const orderClause: any = {};
+    orderClause[sortBy] = orderBy;
+
     // Fetch courses
     const [courses, total] = await this.courseRepository.findAndCount({
       where: this.buildSearchConditions(filters, whereClause),
-      order: { createdAt: 'DESC', courseId: 'ASC' },
+      order: orderClause,
       take: limit,
-      skip,
+      skip: offset,
     });
 
     // Batch fetch module counts
@@ -183,18 +185,11 @@ export class CoursesService {
       tenantId
     );
 
-    // Calculate pagination metadata
-    const totalElements = total;
-    const totalPages = Math.ceil(totalElements / limit);
-    const currentPage = page;
-    const size = limit;
-
     const result: SearchCourseResponseDto = { 
       courses: coursesWithModuleCounts, 
-      totalElements,
-      totalPages,
-      currentPage,
-      size
+      totalElements: total,
+      offset,
+      limit
     };
 
     // Cache result
