@@ -184,7 +184,8 @@ export const VALIDATION_MESSAGES = {
     ADMIN_APPROVAL: 'Whether admin approval is required for enrollment.',
     AUTO_ENROLL: 'Whether users are automatically enrolled.',
     CERTIFICATE_TERM: 'Certificate term configuration.',
-    CERTIFICATE_ID: 'Certificate ID.',
+    REWARD_TYPE: 'Type of reward for course completion (certificate or badge).',
+    TEMPLATE_ID: 'Template ID for the reward.',
     PARAMS: 'Additional parameters for the course.',
   },
   MODULE: {
