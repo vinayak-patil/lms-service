@@ -1,8 +1,9 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsBoolean, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsBoolean, IsString, IsEnum, IsUUID, IsDateString, IsNumber } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { CourseStatus } from '../entities/course.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { Course } from '../entities/course.entity';
 
 export class SearchCourseDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Search keyword to match in title, description, or short description' })
@@ -68,4 +69,25 @@ export class SearchCourseDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   createdBy?: string;
+}
+
+export class SearchCourseResponseDto {
+  @ApiProperty({ description: 'List of courses matching the search criteria', type: [Course] })
+  courses: Course[];
+
+  @ApiProperty({ description: 'Total number of courses matching the criteria', example: 1 })
+  @IsNumber()
+  totalElements: number;
+
+  @ApiProperty({ description: 'Total number of pages', example: 1 })
+  @IsNumber()
+  totalPages: number;
+
+  @ApiProperty({ description: 'Current page number', example: 1 })
+  @IsNumber()
+  currentPage: number;
+
+  @ApiProperty({ description: 'Number of items per page', example: 10 })
+  @IsNumber()
+  size: number;
 } 

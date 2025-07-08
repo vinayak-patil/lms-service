@@ -19,7 +19,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { API_IDS } from '../common/constants/api-ids.constant';
 import { HelperUtil } from '../common/utils/helper.util';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { SearchCourseDto } from './dto/search-course.dto';
+import { SearchCourseDto, SearchCourseResponseDto } from './dto/search-course.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
@@ -133,57 +133,106 @@ export class CoursesService {
    */
   async search(
     filters: Omit<SearchCourseDto, keyof PaginationDto>,
-    paginationDto: PaginationDto,
     tenantId: string,
     organisationId: string,
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ courses: Course[]; total: number }> {
-    // Generate cache key with all filter parameters
+  ): Promise<SearchCourseResponseDto> {
+    // Validate and sanitize inputs
+    page = Math.max(1, page);
+    limit = Math.min(100, Math.max(1, limit));
+
+    // Generate consistent cache key
     const cacheKey = this.cacheConfig.getCourseSearchKey(
       tenantId,
       organisationId,
       filters,
-      paginationDto.page,
-      paginationDto.limit
+      page,
+      limit
     );
     
-    // Check cache first
-    const cachedResult = await this.cacheService.get<{ courses: Course[]; total: number }>(cacheKey);
+    // Check cache
+    const cachedResult = await this.cacheService.get<SearchCourseResponseDto>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
 
     const skip = (page - 1) * limit;
 
+    // Build base where clause
     const whereClause: any = { 
       tenantId,
       organisationId,
       status: filters?.status || Not(CourseStatus.ARCHIVED),
     };
 
-    // Add cohort filter if provided, cohortid will be at params in json format
+    // Apply filters
+    this.applyFilters(filters, whereClause);
+
+    // Fetch courses
+    const [courses, total] = await this.courseRepository.findAndCount({
+      where: this.buildSearchConditions(filters, whereClause),
+      order: { createdAt: 'DESC', courseId: 'ASC' },
+      take: limit,
+      skip,
+    });
+
+    // Batch fetch module counts
+    const coursesWithModuleCounts = await this.enrichCoursesWithModuleCounts(
+      courses,
+      tenantId
+    );
+
+    // Calculate pagination metadata
+    const totalElements = total;
+    const totalPages = Math.ceil(totalElements / limit);
+    const currentPage = page;
+    const size = limit;
+
+    const result: SearchCourseResponseDto = { 
+      courses: coursesWithModuleCounts, 
+      totalElements,
+      totalPages,
+      currentPage,
+      size
+    };
+
+    // Cache result
+    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
+
+    return result;
+  }
+
+  private applyFilters(filters: any, whereClause: any): void {
+    // Cohort filter
     if (filters?.cohortId) {
       whereClause.params = {
-        ...whereClause.params,
+        ...(whereClause.params || {}),
         cohortId: filters.cohortId
       };
     }
 
-    // Add boolean filters if provided
-    if (filters?.featured !== undefined) {
-      whereClause.featured = filters.featured;
-    }
-    if (filters?.free !== undefined) {
-      whereClause.free = filters.free;
-    }
+    // Boolean filters
+    const booleanFilters = ['featured', 'free'];
+    booleanFilters.forEach(filter => {
+      if (filters?.[filter] !== undefined) {
+        whereClause[filter] = filters[filter];
+      }
+    });
+
+    // Creator filter
     if (filters?.createdBy) {
       whereClause.createdBy = filters.createdBy;
     }
 
-    // Add date range filters for start date
+    // Date range filters
+    this.applyDateFilters(filters, whereClause);
+  }
+
+  private applyDateFilters(filters: any, whereClause: any): void {
+    // Start date range
     if (filters?.startDateFrom || filters?.startDateTo) {
-      whereClause.startDatetime = {};
+      whereClause.startDatetime = whereClause.startDatetime || {};
       if (filters.startDateFrom) {
         whereClause.startDatetime.gte = filters.startDateFrom;
       }
@@ -192,9 +241,9 @@ export class CoursesService {
       }
     }
 
-    // Add date range filters for end date
+    // End date range
     if (filters?.endDateFrom || filters?.endDateTo) {
-      whereClause.endDatetime = {};
+      whereClause.endDatetime = whereClause.endDatetime || {};
       if (filters.endDateFrom) {
         whereClause.endDatetime.gte = filters.endDateFrom;
       }
@@ -202,44 +251,48 @@ export class CoursesService {
         whereClause.endDatetime.lte = filters.endDateTo;
       }
     }
+  }
 
-    let result: { courses: Course[]; total: number };
+  private buildSearchConditions(
+    filters: any,
+    baseWhere: any
+  ): any[] | any {
+    if (!filters?.query) return baseWhere;
 
-    // If there's a search query, search in title and description
-    if (filters?.query) {
-      result = await this.courseRepository.findAndCount({
-        where: [
-          { 
-            title: ILike(`%${filters.query}%`),
-            ...whereClause
-          },
-          { 
-            description: ILike(`%${filters.query}%`),
-            ...whereClause
-          },
-          {
-            shortDescription: ILike(`%${filters.query}%`),
-            ...whereClause
-          }
-        ],
-        order: { createdAt: 'DESC' },
-        take: limit,
-        skip,
-      }).then(([items, total]) => ({ courses: items, total }));
-    } else {
-      // If no search query, just use filters
-      result = await this.courseRepository.findAndCount({
-        where: whereClause,
-        order: { createdAt: 'DESC' },
-        take: limit,
-        skip,
-      }).then(([items, total]) => ({ courses: items, total }));
-    }
+    return [
+      { title: ILike(`%${filters.query}%`), ...baseWhere },
+      { description: ILike(`%${filters.query}%`), ...baseWhere },
+      { shortDescription: ILike(`%${filters.query}%`), ...baseWhere }
+    ];
+  }
 
-    // Set in cache with TTL
-    await this.cacheService.set(cacheKey, result, this.cacheConfig.COURSE_TTL);
+  private async enrichCoursesWithModuleCounts(
+    courses: Course[],
+    tenantId: string
+  ): Promise<Course[]> {
+    if (courses.length === 0) return [];
 
-    return result;
+    const courseIds = courses.map(c => c.courseId);
+    const moduleCounts = await this.moduleRepository
+      .createQueryBuilder('module')
+      .select('module.courseId', 'courseId')
+      .addSelect('COUNT(*)', 'count')
+      .where({
+        courseId: In(courseIds),
+        tenantId,
+        status: Not(ModuleStatus.ARCHIVED)
+      })
+      .groupBy('module.courseId')
+      .getRawMany();
+
+    const countMap = new Map(
+      moduleCounts.map(mc => [mc.courseId, parseInt(mc.count)])
+    );
+
+    return courses.map(course => ({
+      ...course,
+      moduleCount: countMap.get(course.courseId) || 0
+    }));
   }
 
   /**

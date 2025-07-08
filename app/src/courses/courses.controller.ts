@@ -100,15 +100,13 @@ export class CoursesController {
     @TenantOrg() tenantOrg: { tenantId: string; organisationId: string },
   ) {
     const { page, limit, ...filters } = searchDto;
-    const paginationDto = new PaginationDto();
-    paginationDto.page = page;
-    paginationDto.limit = limit;
     
     return this.coursesService.search(
       filters,
-      paginationDto,
       tenantOrg.tenantId,
-      tenantOrg.organisationId
+      tenantOrg.organisationId,
+      page,
+      limit
     );
   }
 
