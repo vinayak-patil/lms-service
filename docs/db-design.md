@@ -14,7 +14,8 @@
 | featured | BOOLEAN | Whether the course is featured (default: FALSE) |
 | free | BOOLEAN | Whether the course is free (default: FALSE) |
 | certificateTerm | JSONB | Certificate term |
-| certificateId | UUID | Certificate ID |
+| rewardType | VARCHAR(50) | Type of reward for course completion (certificate, badge) |
+| templateId | UUID | Template ID for the reward |
 | startDatetime | TIMESTAMPTZ | Course start date and time |
 | endDatetime | TIMESTAMPTZ | Course end date and time |
 | adminApproval | BOOLEAN | Whether admin approval is required (default: FALSE) |
