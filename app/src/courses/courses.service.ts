@@ -108,7 +108,8 @@ export class CoursesService {
       adminApproval: createCourseDto.adminApproval !== undefined ? createCourseDto.adminApproval : false,
       autoEnroll: createCourseDto.autoEnroll !== undefined ? createCourseDto.autoEnroll : false,
       certificateTerm: createCourseDto.certificateTerm ? { term: createCourseDto.certificateTerm } : undefined,
-      certificateId: createCourseDto.certificateId,
+      rewardType: createCourseDto.rewardType,
+      templateId: createCourseDto.templateId,
       tenantId,
       organisationId,
       createdBy: userId,
@@ -742,9 +743,12 @@ export class CoursesService {
       }
     }
 
-    // Handle certificateId - handle boolean values
-    if (typeof updateCourseDto.certificateId === 'boolean') {
-      updateCourseDto.certificateId = updateCourseDto.certificateId ? HelperUtil.generateUuid() : null;
+    // Handle rewardType and templateId - handle boolean values for backward compatibility
+    if (typeof updateCourseDto.rewardType === 'boolean') {
+      updateCourseDto.rewardType = updateCourseDto.rewardType ? 'certificate' : null;
+    }
+    if (typeof updateCourseDto.templateId === 'boolean') {
+      updateCourseDto.templateId = updateCourseDto.templateId ? HelperUtil.generateUuid() : null;
     }
     
     const updatedCourse = this.courseRepository.merge(course, {
