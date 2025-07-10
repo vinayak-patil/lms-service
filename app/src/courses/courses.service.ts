@@ -24,6 +24,7 @@ import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 import { CacheConfigService } from '../cache/cache-config.service';
+import { trace } from 'console';
 
 @Injectable()
 export class CoursesService {
@@ -486,36 +487,38 @@ export class CoursesService {
     }
     const moduleIds = modules.map(m => m.moduleId);
 
-    // Always fetch lessons for tracking calculation, but exclude from response when filterType = 'module'
+    // Only fetch lessons when needed (not for module-only filter)
     let lessons: any[] = [];
     let lessonsByModule = new Map();
     
-    // Build lesson where clause
-    const lessonWhere: any = {
-      courseId,
-      tenantId,
-      organisationId,
-      status: LessonStatus.PUBLISHED
-    };
-    if (filterType === 'lesson' && moduleId) {
-      lessonWhere.moduleId = moduleId;
-    } else {
-      lessonWhere.moduleId = In(moduleIds);
-    }
-    lessons = await this.lessonRepository.find({
-      where: lessonWhere,
-      order: { ordering: 'ASC', createdAt: 'ASC' },
-      relations: ['media']
-    });
-    // Group lessons by module
-    lessons.forEach(lesson => {
-      if (!lessonsByModule.has(lesson.moduleId)) {
-        lessonsByModule.set(lesson.moduleId, []);
+    if (filterType !== 'module') {
+      // Build lesson where clause
+      const lessonWhere: any = {
+        courseId,
+        tenantId,
+        organisationId,
+        status: LessonStatus.PUBLISHED
+      };
+      if (filterType === 'lesson' && moduleId) {
+        lessonWhere.moduleId = moduleId;
+      } else {
+        lessonWhere.moduleId = In(moduleIds);
       }
-      lessonsByModule.get(lesson.moduleId).push(lesson);
-    });
+      lessons = await this.lessonRepository.find({
+        where: lessonWhere,
+        order: { ordering: 'ASC', createdAt: 'ASC' },
+        relations: ['media']
+      });
+      // Group lessons by module
+      lessons.forEach(lesson => {
+        if (!lessonsByModule.has(lesson.moduleId)) {
+          lessonsByModule.set(lesson.moduleId, []);
+        }
+        lessonsByModule.get(lesson.moduleId).push(lesson);
+      });
+    }
 
-    // Tracking - always fetch lesson tracks when we have lessons
+    // Tracking - fetch lesson tracks only when lessons are fetched
     const courseTracking = await this.courseTrackRepository.findOne({
       where: { courseId, userId, tenantId, organisationId }
     });
@@ -525,7 +528,7 @@ export class CoursesService {
     let totalTimeSpent = 0;
     let lastAccessedLesson: any = null;
     
-    if (lessons.length > 0) {
+    if (filterType !== 'module' && lessons.length > 0) {
       lessonTracks = await this.lessonTrackRepository.find({
         where: { userId, courseId, tenantId, organisationId },
         order: { updatedAt: 'DESC', attempt: 'DESC' }
@@ -612,7 +615,6 @@ export class CoursesService {
       return {
         ...module,
         lessons: lessonsWithTracking, // Will be empty array when filterType === 'module'
-        submodules: [],
         tracking: moduleTrack ? {
           status: moduleTrack.status,
           progress: moduleTrack.progress,
@@ -627,12 +629,7 @@ export class CoursesService {
       };
     });
     // Course-level tracking
-    const totalLessonsCount = lessons.length;
-    const completedLessonsCount = filterType !== 'module' ? lessons.filter(l => {
-      const track = lessonTrackMap.get(l.lessonId);
-      return track && track.status === TrackingStatus.COMPLETED;
-    }).length : 0;
-    const courseProgress = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
+    const courseProgress = courseTracking?.completedLessons && courseTracking?.noOfLessons > 0 ? Math.round((courseTracking?.completedLessons / courseTracking?.noOfLessons) * 100) : 0;
     if (filterType === 'lesson' && moduleId) {
       const targetModule = modulesWithTracking[0];
       return {
@@ -648,8 +645,8 @@ export class CoursesService {
       tracking: courseTracking ? {
         status: courseTracking.status,
         progress: courseProgress,
-        completedLessons: courseTracking.completedLessons || completedLessonsCount,
-        totalLessons: courseTracking.noOfLessons || totalLessonsCount,
+        completedLessons: courseTracking.completedLessons,
+        totalLessons: courseTracking.noOfLessons,
         lastAccessed: courseTracking.lastAccessedDate,
         timeSpent: totalTimeSpent,
         startDatetime: courseTracking.startDatetime,
@@ -658,7 +655,7 @@ export class CoursesService {
         status: 'NOT_STARTED',
         progress: 0,
         completedLessons: 0,
-        totalLessons: totalLessonsCount,
+        totalLessons: lessons.length,
         lastAccessed: null,
         timeSpent: 0,
         startDatetime: null,

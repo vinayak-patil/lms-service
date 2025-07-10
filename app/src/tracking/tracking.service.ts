@@ -98,6 +98,11 @@ export class TrackingService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_LESSON_NOT_FOUND);
     }
 
+    const canResume = lesson.resume ?? true;
+    if (!canResume) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.RESUME_NOT_ALLOWED);
+    }
+
     //check if course is completed ,then throw error
     const courseTrack = await this.courseTrackRepository.findOne({
       where: {
