@@ -509,7 +509,10 @@ export class TrackingService {
         userId,
         tenantId,
         organisationId,
-        status: ModuleTrackStatus.INCOMPLETE
+        status: ModuleTrackStatus.INCOMPLETE,
+        completedLessons: 0,
+        totalLessons: 0,
+        progress: 0,
       });
     }
 
@@ -537,10 +540,17 @@ export class TrackingService {
     // Get unique completed lesson IDs
     const uniqueCompletedLessonIds = [...new Set(completedLessonTracks.map(track => track.lessonId))];
 
+    // Calculate total time spent in module from lesson tracks
+    const totalTimeSpent = completedLessonTracks.reduce((total, track) => total + (track.timeSpent || 0), 0);
+
+    // Update module tracking data
+    moduleTrack.completedLessons = uniqueCompletedLessonIds.length;
+    moduleTrack.totalLessons = moduleLessons.length;
+    moduleTrack.progress = moduleLessons.length > 0 ? Math.round((uniqueCompletedLessonIds.length / moduleLessons.length) * 100) : 0;
+
     // Update module status based on completion
-    if (uniqueCompletedLessonIds.length === moduleLessons.length) {
+    if (uniqueCompletedLessonIds.length === moduleLessons.length && moduleLessons.length > 0) {
       moduleTrack.status = ModuleTrackStatus.COMPLETED;
-      
     } else {
       moduleTrack.status = ModuleTrackStatus.INCOMPLETE;
     }

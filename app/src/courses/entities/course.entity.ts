@@ -10,7 +10,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Module } from '../../modules/entities/module.entity';
 import { UserEnrollment } from '../../enrollments/entities/user-enrollment.entity';
-import { LessonTrack } from 'src/tracking/entities/lesson-track.entity';
+import { LessonTrack } from '../../tracking/entities/lesson-track.entity';
 
 export enum CourseStatus {
   PUBLISHED = 'published',

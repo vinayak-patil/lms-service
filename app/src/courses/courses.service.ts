@@ -439,186 +439,151 @@ export class CoursesService {
    * @param userId The user ID for tracking data
    * @param tenantId The tenant ID for data isolation
    * @param organisationId The organization ID for data isolation
+   * @param filterType Optional filter type ('module' or 'lesson')
+   * @param moduleId Required moduleId when filterType is 'lesson'
    */
   async findCourseHierarchyWithTracking(
     courseId: string, 
     userId: string,
     tenantId: string,
-    organisationId: string
+    organisationId: string,
+    filterType?: string,
+    moduleId?: string
   ): Promise<any> {
-    
-    // Get the basic course hierarchy first with proper filtering
-    const courseHierarchy = await this.findCourseHierarchy(courseId, tenantId, organisationId);
-    
-    // Find course tracking data for this user with tenant/org filtering
-    const trackingWhereClause: any = { 
-      courseId, 
-      userId,
-    };
-    
-    // Apply tenant and organization filters if they exist
-    if (tenantId) {
-      trackingWhereClause.tenantId = tenantId;
-    }
-    
-    if (organisationId) {
-      trackingWhereClause.organisationId = organisationId;
-    }
-    
-    let courseTracking = await this.courseTrackRepository.findOne({
-      where: trackingWhereClause
-    });
-
-    // If there's no course tracking yet, return with default "not started" status
-    if (!courseTracking) {
-      return {
-        ...courseHierarchy,
-        tracking: {
-          status: 'NOT_STARTED',
-          progress: 0,
-          completedLessons: 0,
-          totalLessons: courseHierarchy.modules.reduce((total, module) => total + module.lessons.length, 0),
-          lastAccessed: null,
-          timeSpent: 0,
-          startDatetime: null,
-          endDatetime: null,
-          noOfLessons: courseHierarchy.modules.reduce((total, module) => total + module.lessons.length, 0)
-        },
-        lastAccessedLesson: null
-      };
+    if (filterType === 'lesson' && !moduleId) {
+      throw new BadRequestException('Module ID is required when type is "lesson"');
     }
 
-    // Get all lesson tracks for this user and course with tenant/org filtering
-    const lessonTrackWhereClause: any = {
-      userId,
-      courseId,
-      tenantId,
-      organisationId
-    };
-        
-    const lessonTracks = await this.lessonTrackRepository.find({
-      where: lessonTrackWhereClause,
-      order: { updatedAt: 'DESC', attempt: 'DESC' }, // Order by last access time
-    });
-
-    // Get all module tracks for this user and course with tenant/org filtering
-    const moduleTrackWhereClause: any = {
-      userId,
-      tenantId,
-      organisationId
-    };
-
-    const moduleTracks = await this.moduleTrackRepository.find({
-      where: moduleTrackWhereClause,
-    });
-
-    // Create a map of lesson IDs to their last attempt tracking data
-    const lessonTrackMap = new Map();
-    lessonTracks.forEach(track => {
-      // Only store the last attempt for each lesson
-      if (!lessonTrackMap.has(track.lessonId)) {
-        lessonTrackMap.set(track.lessonId, track);
+    // Fetch course
+    const course = await this.courseRepository.findOne({
+      where: {
+        courseId,
+        tenantId,
+        organisationId,
+        status: CourseStatus.PUBLISHED
       }
     });
+    if (!course) {
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
+    }
 
-    // Create a map of module IDs to their tracking data
+    // Build module where clause
+    const moduleWhere: any = {
+      courseId,
+      tenantId,
+      organisationId,
+      status: ModuleStatus.PUBLISHED
+    };
+    if (filterType === 'lesson' && moduleId) {
+      moduleWhere.moduleId = moduleId;
+    }
+    const modules = await this.moduleRepository.find({
+      where: moduleWhere,
+      order: { ordering: 'ASC', createdAt: 'ASC' }
+    });
+    if (filterType === 'lesson' && modules.length === 0) {
+      throw new BadRequestException(`Module with ID ${moduleId} not found in this course`);
+    }
+    const moduleIds = modules.map(m => m.moduleId);
+
+    // Always fetch lessons for tracking calculation, but exclude from response when filterType = 'module'
+    let lessons: any[] = [];
+    let lessonsByModule = new Map();
+    
+    // Build lesson where clause
+    const lessonWhere: any = {
+      courseId,
+      tenantId,
+      organisationId,
+      status: LessonStatus.PUBLISHED
+    };
+    if (filterType === 'lesson' && moduleId) {
+      lessonWhere.moduleId = moduleId;
+    } else {
+      lessonWhere.moduleId = In(moduleIds);
+    }
+    lessons = await this.lessonRepository.find({
+      where: lessonWhere,
+      order: { ordering: 'ASC', createdAt: 'ASC' },
+      relations: ['media']
+    });
+    // Group lessons by module
+    lessons.forEach(lesson => {
+      if (!lessonsByModule.has(lesson.moduleId)) {
+        lessonsByModule.set(lesson.moduleId, []);
+      }
+      lessonsByModule.get(lesson.moduleId).push(lesson);
+    });
+
+    // Tracking - always fetch lesson tracks when we have lessons
+    const courseTracking = await this.courseTrackRepository.findOne({
+      where: { courseId, userId, tenantId, organisationId }
+    });
+    
+    let lessonTracks: any[] = [];
+    let lessonTrackMap = new Map();
+    let totalTimeSpent = 0;
+    let lastAccessedLesson: any = null;
+    
+    if (lessons.length > 0) {
+      lessonTracks = await this.lessonTrackRepository.find({
+        where: { userId, courseId, tenantId, organisationId },
+        order: { updatedAt: 'DESC', attempt: 'DESC' }
+      });
+      
+      lessonTracks.forEach(track => {
+        if (!lessonTrackMap.has(track.lessonId)) {
+          lessonTrackMap.set(track.lessonId, track);
+        }
+      });
+      
+      totalTimeSpent = lessonTracks.reduce((sum, track) => sum + (track.timeSpent || 0), 0);
+      
+      if (courseTracking && courseTracking.status !== TrackingStatus.COMPLETED && lessonTracks.length > 0) {
+        const lastTrack = lessonTracks[0];
+        lastAccessedLesson = {
+          lessonId: lastTrack.lessonId,
+          attempt: {
+            attemptId: lastTrack.lessonTrackId,
+            attemptNumber: lastTrack.attempt,
+            status: lastTrack.status,
+            startDatetime: lastTrack.startDatetime,
+            endDatetime: lastTrack.endDatetime,
+            score: lastTrack.score,
+            progress: lastTrack.status === TrackingStatus.COMPLETED ? 100 : 
+                     (lastTrack.status === TrackingStatus.STARTED ? 0 : 
+                     Math.min(Math.round((lastTrack.currentPosition || 0) * 100), 99)),
+            timeSpent: lastTrack.timeSpent || 0,
+            lastAccessed: lastTrack.updatedAt,
+            totalContent: lastTrack.totalContent || 0,
+            currentPosition: lastTrack.currentPosition || 0
+          }
+        };
+      }
+    }
+    
+    const moduleTracks = await this.moduleTrackRepository.find({
+      where: { userId, tenantId, organisationId }
+    });
     const moduleTrackMap = new Map();
     moduleTracks.forEach(track => {
       moduleTrackMap.set(track.moduleId, track);
     });
-
-    // Calculate total time spent across all lesson tracks
-    const totalTimeSpent = lessonTracks.reduce((sum, track) => sum + (track.timeSpent || 0), 0);
-
-    let lastAccessedLesson: any = null;
-    //if coursetracking is completed, then lastaccessedlesson should be null
-    if (courseTracking.status === TrackingStatus.COMPLETED) {
-      lastAccessedLesson = null;
-    }else{
-      // Get the last accessed lesson details
-      lastAccessedLesson = lessonTracks.length > 0 ? {
-      lessonId: lessonTracks[0].lessonId,
-      attempt: {
-        attemptId: lessonTracks[0].lessonTrackId,
-        attemptNumber: lessonTracks[0].attempt,
-        status: lessonTracks[0].status,
-        startDatetime: lessonTracks[0].startDatetime,
-        endDatetime: lessonTracks[0].endDatetime,
-        score: lessonTracks[0].score,
-        progress: lessonTracks[0].status === TrackingStatus.COMPLETED ? 100 : 
-                 (lessonTracks[0].status === TrackingStatus.STARTED ? 0 : 
-                 Math.min(Math.round((lessonTracks[0].currentPosition || 0) * 100), 99)),
-        timeSpent: lessonTracks[0].timeSpent || 0,
-        lastAccessed: lessonTracks[0].updatedAt,
-        totalContent: lessonTracks[0].totalContent || 0,
-          currentPosition: lessonTracks[0].currentPosition || 0
-        }
-      } : null;
-    }
-
-    // Process modules to add tracking data
-    const modulesWithTracking = courseHierarchy.modules.map(module => {
-      // Process lessons in this module
-      const lessonsWithTracking = module.lessons.map(lesson => {
-        const lessonTrack = lessonTrackMap.get(lesson.lessonId);
-        return {
-          ...lesson,
-          tracking: lessonTrack ? {
-            status: lessonTrack.status,
-            progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 : 
-                     (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
-                      Math.min(Math.round(((lessonTrack.totalContent > 0 ? lessonTrack.currentPosition/lessonTrack.totalContent : 0)) * 100), 99)),
-                      lastAccessed: lessonTrack.updatedAt,
-            timeSpent: lessonTrack.timeSpent || 0,
-            score: lessonTrack.score,
-            attempt: {
-              attemptId: lessonTrack.lessonTrackId,
-              attemptNumber: lessonTrack.attempt,
-              startDatetime: lessonTrack.startDatetime,
-              endDatetime: lessonTrack.endDatetime,
-              totalContent: lessonTrack.totalContent || 0,
-              currentPosition: lessonTrack.currentPosition || 0
-            }
-          } : {
-            status: 'NOT_STARTED',
-            progress: 0,
-            lastAccessed: null,
-            timeSpent: 0,
-            score: null,
-            attempt: null
-          }
-        };
-      });
-
-      // Get module tracking data
-      const moduleTrack = moduleTrackMap.get(module.moduleId);
-
-      // Calculate module progress from lesson progress
-      const completedLessons = lessonsWithTracking.filter(
-        l => l.tracking?.status === TrackingStatus.COMPLETED
-      ).length;
-
-      const incompleteLessons = lessonsWithTracking.filter(
-        l => l.tracking?.status === TrackingStatus.INCOMPLETE
-      ).length;
+    // Build modules with tracking
+    const modulesWithTracking = modules.map(module => {
+      let lessonsWithTracking: any[] = [];
       
-      const totalLessons = lessonsWithTracking.length;
-      
-      const moduleProgress = totalLessons > 0 
-        ? Math.round((completedLessons / totalLessons) * 100) 
-        : 0;
-
-      // Process submodules similarly
-      const submodulesWithTracking = module.submodules.map(submodule => {
-        const submoduleLessonsWithTracking = submodule.lessons.map(lesson => {
+      if (filterType !== 'module') {
+        const moduleLessons = lessonsByModule.get(module.moduleId) || [];
+        lessonsWithTracking = moduleLessons.map(lesson => {
           const lessonTrack = lessonTrackMap.get(lesson.lessonId);
           return {
             ...lesson,
             tracking: lessonTrack ? {
               status: lessonTrack.status,
               progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 : 
-                        (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
-                        Math.min(Math.round((lessonTrack.currentPosition || 0) * 100), 99)),
+                       (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
+                        Math.min(Math.round(((lessonTrack.totalContent > 0 ? lessonTrack.currentPosition/lessonTrack.totalContent : 0)) * 100), 99)),
               lastAccessed: lessonTrack.updatedAt,
               timeSpent: lessonTrack.timeSpent || 0,
               score: lessonTrack.score,
@@ -640,73 +605,64 @@ export class CoursesService {
             }
           };
         });
-
-        // Get submodule tracking data
-        const submoduleTrack = moduleTrackMap.get(submodule.moduleId);
-
-        // Calculate submodule progress from lesson progress
-        const subCompletedLessons = submoduleLessonsWithTracking.filter(
-          l => l.tracking?.status === TrackingStatus.COMPLETED
-        ).length;
-        
-        const subTotalLessons = submoduleLessonsWithTracking.length;
-        
-        const submoduleProgress = subTotalLessons > 0 
-          ? Math.round((subCompletedLessons / subTotalLessons) * 100) 
-          : 0;
-
-        return {
-          ...submodule,
-          lessons: submoduleLessonsWithTracking,
-          tracking: submoduleTrack ? {
-            status: submoduleTrack.status,
-            progress: submoduleProgress,
-            completedLessons: subCompletedLessons,
-            totalLessons: subTotalLessons,
-            lastAccessed: null // Module track doesn't have lastAccessed field
-          } : {
-            status: 'NOT_STARTED',
-            progress: 0,
-            completedLessons: 0,
-            totalLessons: subTotalLessons,
-            lastAccessed: null
-          }
-        };
-      });
-
+      }
+      
+      const moduleTrack = moduleTrackMap.get(module.moduleId);
+      
       return {
         ...module,
-        lessons: lessonsWithTracking,
-        submodules: submodulesWithTracking,
+        lessons: lessonsWithTracking, // Will be empty array when filterType === 'module'
+        submodules: [],
         tracking: moduleTrack ? {
           status: moduleTrack.status,
-          progress: moduleProgress,
-          completedLessons: completedLessons,
-          totalLessons: totalLessons,
-          lastAccessed: null // Module track doesn't have lastAccessed field
+          progress: moduleTrack.progress,
+          completedLessons: moduleTrack.completedLessons,
+          totalLessons: moduleTrack.totalLessons,
         } : {
           status: 'NOT_STARTED',
           progress: 0,
           completedLessons: 0,
-          totalLessons: totalLessons,
-          lastAccessed: null
+          totalLessons: (lessonsByModule.get(module.moduleId) || []).length,
         }
       };
     });
-
-    // Return the complete hierarchy with tracking information
+    // Course-level tracking
+    const totalLessonsCount = lessons.length;
+    const completedLessonsCount = filterType !== 'module' ? lessons.filter(l => {
+      const track = lessonTrackMap.get(l.lessonId);
+      return track && track.status === TrackingStatus.COMPLETED;
+    }).length : 0;
+    const courseProgress = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
+    if (filterType === 'lesson' && moduleId) {
+      const targetModule = modulesWithTracking[0];
+      return {
+        ...targetModule,
+        courseId: course.courseId,
+        tenantId: course.tenantId,
+        organisationId: course.organisationId
+      };
+    }
     const result = {
-      ...courseHierarchy,
+      ...course,
       modules: modulesWithTracking,
-      tracking: {
+      tracking: courseTracking ? {
         status: courseTracking.status,
-        progress: courseTracking.completedLessons / (courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId)) * 100,
-        completedLessons: courseTracking.completedLessons,
-        totalLessons: courseTracking.noOfLessons || await this.countTotalLessons(courseId, tenantId, organisationId),
+        progress: courseProgress,
+        completedLessons: courseTracking.completedLessons || completedLessonsCount,
+        totalLessons: courseTracking.noOfLessons || totalLessonsCount,
         lastAccessed: courseTracking.lastAccessedDate,
         timeSpent: totalTimeSpent,
         startDatetime: courseTracking.startDatetime,
         endDatetime: courseTracking.endDatetime,
+      } : {
+        status: 'NOT_STARTED',
+        progress: 0,
+        completedLessons: 0,
+        totalLessons: totalLessonsCount,
+        lastAccessed: null,
+        timeSpent: 0,
+        startDatetime: null,
+        endDatetime: null,
       },
       lastAccessedLesson
     };
