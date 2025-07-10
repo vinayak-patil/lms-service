@@ -125,7 +125,14 @@ export class TrackingService {
     // If there's an incomplete attempt, return it
     const incompleteAttempt = existingTracks.find(track => track.status !== TrackingStatus.COMPLETED);
     if (incompleteAttempt) {
-      return incompleteAttempt;
+      const lessonTrackWithRelations = await this.lessonTrackRepository.findOne({
+        where: { lessonTrackId: incompleteAttempt.lessonTrackId },
+        relations: ['lesson', 'lesson.media'],
+      });
+      if (!lessonTrackWithRelations) {
+        throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
+      }
+      return lessonTrackWithRelations;
     }
 
     // Check max attempts
@@ -151,7 +158,17 @@ export class TrackingService {
     });
     //update course tracking and module tracking as here new attempt is started
     await this.updateCourseAndModuleTracking(lessonTrack, tenantId, organisationId);
-    return this.lessonTrackRepository.save(lessonTrack);
+    const savedLessonTrack = await this.lessonTrackRepository.save(lessonTrack);
+    const lessonTrackWithRelations = await this.lessonTrackRepository.findOne({
+      where: { lessonTrackId: savedLessonTrack.lessonTrackId },
+      relations: ['lesson', 'lesson.media'],
+    });
+
+    if (!lessonTrackWithRelations) {
+      throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
+    }
+
+    return lessonTrackWithRelations;
   }
 
   /**
@@ -330,6 +347,7 @@ export class TrackingService {
         tenantId,
         organisationId
       } as FindOptionsWhere<LessonTrack>,
+      relations: ['lesson', 'lesson.media'],
     });
 
     if (!attempt) {
