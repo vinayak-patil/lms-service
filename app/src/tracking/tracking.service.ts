@@ -540,9 +540,6 @@ export class TrackingService {
     // Get unique completed lesson IDs
     const uniqueCompletedLessonIds = [...new Set(completedLessonTracks.map(track => track.lessonId))];
 
-    // Calculate total time spent in module from lesson tracks
-    const totalTimeSpent = completedLessonTracks.reduce((total, track) => total + (track.timeSpent || 0), 0);
-
     // Update module tracking data
     moduleTrack.completedLessons = uniqueCompletedLessonIds.length;
     moduleTrack.totalLessons = moduleLessons.length;
