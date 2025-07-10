@@ -18,7 +18,7 @@ import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 import { LessonStatus, LessonSubFormat } from '../entities/lesson.entity';
 import { LessonFormat, AttemptsGradeMethod } from '../entities/lesson.entity';
-import { HelperUtil } from 'src/common/utils/helper.util';
+import { HelperUtil } from '../../common/utils/helper.util';
 
 
 export class CreateLessonDto {

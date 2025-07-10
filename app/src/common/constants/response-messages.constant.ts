@@ -87,7 +87,7 @@ export const RESPONSE_MESSAGES = {
     CONFIG_URL_MISSING: 'Configuration URL is missing',
     CONFIG_UPDATE_FAILED: 'Failed to update configuration',
     EXTERNAL_CONFIG_NOT_FOUND: 'External configuration not found',
-    MAX_ATTEMPTS_REACHED: 'Max attempts reached',
+    MAX_ATTEMPTS_REACHED: 'Maximum number of attempts for this lesson has been reached. You cannot start a new attempt.',
     NO_EXISTING_ATTEMPT: 'No existing attempt found',
     RESUME_NOT_ALLOWED: 'Resume not allowed',
     CANNOT_START_COMPLETED: 'Cannot start completed course',
