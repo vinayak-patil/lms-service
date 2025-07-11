@@ -142,6 +142,16 @@ export class CreateCourseDto {
   templateId?: string;
 
   @ApiPropertyOptional({ 
+    description: VALIDATION_MESSAGES.COURSE.ELIGIBILITY_CRITERIA,
+    example: {
+      eligibilityCriteria: '123e4567-e89b-12d3-a456-426614174000'
+    }
+  })
+  @IsOptional() 
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Eligibility criteria') })
+  eligibilityCriteria?: Record<string, any>;
+
+  @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.PARAMS,
     example: {
       difficulty: 'intermediate',
