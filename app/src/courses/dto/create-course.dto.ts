@@ -28,7 +28,6 @@ export class CreateCourseDto {
     example: '2024-01-01T00:00:00Z',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Start date') })
   @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start date') })
   startDatetime: string;
 
@@ -37,7 +36,6 @@ export class CreateCourseDto {
     example: '2024-12-31T23:59:59Z',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('End date') })
   @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End date') })
   @ValidateIf((o) => o.startDatetime)
   @Validate(HelperUtil.validateDatetimeConstraints, {
@@ -50,7 +48,6 @@ export class CreateCourseDto {
     example: 'A brief intro to web development',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Short description') })
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Short description') })
   shortDescription: string;
 
