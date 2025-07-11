@@ -1,3 +1,4 @@
+import path from 'path';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
 export class HelperUtil {

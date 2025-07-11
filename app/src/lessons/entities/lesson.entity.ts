@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 import { Media } from '../../media/entities/media.entity';
 import { LessonTrack } from '../../tracking/entities/lesson-track.entity';
-import { AssociatedFile } from 'src/media/entities/associated-file.entity';
+import { AssociatedFile } from '../../media/entities/associated-file.entity';
 import { Course } from '../../courses/entities/course.entity';
 import { Module } from '../../modules/entities/module.entity';
 

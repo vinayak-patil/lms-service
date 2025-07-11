@@ -87,7 +87,7 @@ export const RESPONSE_MESSAGES = {
     CONFIG_URL_MISSING: 'Configuration URL is missing',
     CONFIG_UPDATE_FAILED: 'Failed to update configuration',
     EXTERNAL_CONFIG_NOT_FOUND: 'External configuration not found',
-    MAX_ATTEMPTS_REACHED: 'Max attempts reached',
+    MAX_ATTEMPTS_REACHED: 'Maximum number of attempts for this lesson has been reached. You cannot start a new attempt.',
     NO_EXISTING_ATTEMPT: 'No existing attempt found',
     RESUME_NOT_ALLOWED: 'Resume not allowed',
     CANNOT_START_COMPLETED: 'Cannot start completed course',
@@ -186,7 +186,8 @@ export const VALIDATION_MESSAGES = {
     ADMIN_APPROVAL: 'Whether admin approval is required for enrollment.',
     AUTO_ENROLL: 'Whether users are automatically enrolled.',
     CERTIFICATE_TERM: 'Certificate term configuration.',
-    CERTIFICATE_ID: 'Certificate ID.',
+    REWARD_TYPE: 'Type of reward for course completion (certificate or badge).',
+    TEMPLATE_ID: 'Template ID for the reward.',
     PARAMS: 'Additional parameters for the course.',
   },
   MODULE: {

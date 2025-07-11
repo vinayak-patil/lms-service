@@ -8,8 +8,8 @@ import { CoursesController } from './courses.controller';
 import { CoursesService } from './courses.service';
 import { CommonModule } from '../common/common.module';
 import { CacheModule } from '../cache/cache.module';
-import { Lesson } from 'src/lessons/entities/lesson.entity';
-import { ModuleTrack } from 'src/tracking/entities/module-track.entity';
+import { Lesson } from '../lessons/entities/lesson.entity';
+import { ModuleTrack } from '../tracking/entities/module-track.entity';
 import { Media } from '../media/entities/media.entity';
 import { AssociatedFile } from '../media/entities/associated-file.entity';
 
