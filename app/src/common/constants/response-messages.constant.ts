@@ -141,6 +141,7 @@ export const RESPONSE_MESSAGES = {
     SOME_MODULES_NOT_FOUND: 'Some modules not found or do not belong to the specified course',
     MAX_FILE_SIZE_NOT_FOUND: 'Max file size not found in configuration',
     ALLOWED_MIME_TYPES_NOT_FOUND: 'Allowed mime types not found in configuration',
+    INVALID_FILE_PATH: 'Invalid file path. File does not belong to the tenant directory.',
   },
 };
 

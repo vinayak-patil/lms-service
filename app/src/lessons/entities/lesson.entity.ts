@@ -65,7 +65,7 @@ export class Lesson {
   @Index()
   title: string;
 
-  @Column({ type: 'text'})
+  @Column({ type: 'text', nullable: false, default: '' })
   alias: string;
 
   @Column({

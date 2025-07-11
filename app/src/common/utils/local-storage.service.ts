@@ -3,6 +3,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import { HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ConfigurationService } from '../../configuration/configuration.service';
 import { RESPONSE_MESSAGES } from '../../common/constants/response-messages.constant';
 import { TenantContext } from '../tenant/tenant.context';
@@ -40,9 +41,18 @@ export class FileUploadService {
     private readonly configurationService: ConfigurationService,
     private readonly tenantContext: TenantContext,
     private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
   ) {
-    // Set base upload directory relative to the application root
-    this.baseUploadDir = path.join(process.cwd(), 'uploads');
+    // Get base upload directory from configuration or use a reliable fallback
+    const configuredBaseDir = this.configService.get<string>('UPLOADS_BASE_PATH');
+    if (configuredBaseDir) {
+      this.baseUploadDir = configuredBaseDir;
+    } else {
+      // Use path relative to the current module's directory as fallback
+      // This is more reliable than process.cwd() in production environments
+      this.baseUploadDir = path.join(path.dirname(__dirname), '..', 'uploads');
+    }
+    
     // Ensure base upload directory exists
     if (!fs.existsSync(this.baseUploadDir)) {
       fs.mkdirSync(this.baseUploadDir, { recursive: true });
@@ -91,7 +101,7 @@ export class FileUploadService {
 
         await this.validateFile(file, metadata, entityConfig);
 
-        const uploadDir = path.join(process.cwd(), entityConfig.path);
+        const uploadDir = path.join(this.baseUploadDir, entityConfig.path);
         
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
@@ -119,7 +129,16 @@ export class FileUploadService {
       const storageProvider = entityConfig.storageConfig.cloudStorageProvider;
 
       if (storageProvider === 'local') {
-        const fullPath = path.join(process.cwd(), filePath);
+        // Validate that the file path belongs to the tenant
+        const normalizedFilePath = path.normalize(filePath);
+        const expectedBasePath = path.normalize(entityConfig.path);
+        
+        // Check if the normalized file path starts with the expected base path
+        if (!normalizedFilePath.startsWith(expectedBasePath)) {
+          throw new BadRequestException(RESPONSE_MESSAGES.ERROR.INVALID_FILE_PATH);
+        }
+
+        const fullPath = path.join(this.baseUploadDir, filePath);
         if (fs.existsSync(fullPath)) {
           await fs.promises.unlink(fullPath);
         }

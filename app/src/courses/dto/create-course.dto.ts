@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsUUID, IsObject, IsDateString, MinLength, MaxLength, Matches, ValidateIf, Validate } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CourseStatus } from '../entities/course.entity';
+import { CourseStatus, RewardType } from '../entities/course.entity';
 import { HelperUtil } from '../../common/utils/helper.util';
 import { VALIDATION_MESSAGES } from '../../common/constants/response-messages.constant';
 
@@ -28,7 +28,6 @@ export class CreateCourseDto {
     example: '2024-01-01T00:00:00Z',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Start date') })
   @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start date') })
   startDatetime: string;
 
@@ -37,7 +36,6 @@ export class CreateCourseDto {
     example: '2024-12-31T23:59:59Z',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('End date') })
   @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End date') })
   @ValidateIf((o) => o.startDatetime)
   @Validate(HelperUtil.validateDatetimeConstraints, {
@@ -50,7 +48,6 @@ export class CreateCourseDto {
     example: 'A brief intro to web development',
     required: true
   })
-  @IsNotEmpty({ message: VALIDATION_MESSAGES.COMMON.REQUIRED('Short description') })
   @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Short description') })
   shortDescription: string;
 
@@ -130,12 +127,21 @@ export class CreateCourseDto {
   certificateTerm?: Record<string, any>;
 
   @ApiPropertyOptional({ 
-    description: VALIDATION_MESSAGES.COURSE.CERTIFICATE_ID,
+    description: VALIDATION_MESSAGES.COURSE.REWARD_TYPE,
+    enum: RewardType,
+    example: RewardType.CERTIFICATE
+  })
+  @IsOptional()
+  @IsEnum(RewardType, { message: VALIDATION_MESSAGES.COMMON.ENUM('Reward type') })
+  rewardType?: RewardType;
+
+  @ApiPropertyOptional({ 
+    description: VALIDATION_MESSAGES.COURSE.TEMPLATE_ID,
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsOptional()
-  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Certificate ID') })
-  certificateId?: string;
+  @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Template ID') })
+  templateId?: string;
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.PARAMS,

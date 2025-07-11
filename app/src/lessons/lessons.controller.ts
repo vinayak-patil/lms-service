@@ -13,6 +13,7 @@ import {
   Patch,
   HttpStatus,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -40,6 +41,8 @@ import { ParseEnumPipe } from '@nestjs/common';
 @ApiTags('Lessons')
 @Controller('lessons')
 export class LessonsController {
+  private readonly logger = new Logger(LessonsController.name);
+
   constructor(
     private readonly lessonsService: LessonsService,
     private readonly fileUploadService: FileUploadService,
@@ -70,7 +73,12 @@ export class LessonsController {
         createLessonDto.image = await this.fileUploadService.uploadFile(file, { type: 'lesson' });
       }
     } catch (error) {
-  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during lesson creation: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
     }
 
     const lesson = await this.lessonsService.create(
@@ -164,11 +172,16 @@ export class LessonsController {
       if (file) {
         // Upload file and get the path
         updateLessonDto.image = await this.fileUploadService.uploadFile(file, { 
-        type: 'lesson',
-      });
-    }
+          type: 'lesson',
+        });
+      }
     } catch (error) {
-  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during lesson update: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
     }
 
     const lesson = await this.lessonsService.update(

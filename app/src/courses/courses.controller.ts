@@ -14,6 +14,7 @@ import {
   UploadedFile,
   InternalServerErrorException,
   Put,
+  Logger,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -42,6 +43,8 @@ import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
+  private readonly logger = new Logger(CoursesController.name);
+
   constructor(
     private readonly coursesService: CoursesService,
     private readonly fileUploadService: FileUploadService,
@@ -72,7 +75,12 @@ export class CoursesController {
         createCourseDto.image = await this.fileUploadService.uploadFile(file, { type: 'course' });
       }
     } catch (error) {
-  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during course creation: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
     }
     const course = await this.coursesService.create(
       createCourseDto,
@@ -261,7 +269,12 @@ export class CoursesController {
         });
       }
     } catch (error) {
-  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during course update: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
     }
 
     const course = await this.coursesService.update(

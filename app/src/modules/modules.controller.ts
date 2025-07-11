@@ -13,6 +13,7 @@ import {
   Query,
   Patch,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -37,6 +38,8 @@ import { RESPONSE_MESSAGES } from 'src/common/constants/response-messages.consta
 @ApiTags('Modules')
 @Controller('modules')
 export class ModulesController {
+  private readonly logger = new Logger(ModulesController.name);
+
   constructor(
     private readonly modulesService: ModulesService,
     private readonly fileUploadService: FileUploadService,
@@ -65,9 +68,14 @@ export class ModulesController {
         // Upload file and get the path
         createModuleDto.image = await this.fileUploadService.uploadFile(file, { type: 'module' });
       }
-      } catch (error) {
-    throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
-      }
+    } catch (error) {
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during module creation: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
+    }
 
     const module = await this.modulesService.create(
       createModuleDto,
@@ -167,11 +175,16 @@ export class ModulesController {
       if (file) {
         // Upload file and get the path
         updateModuleDto.image = await this.fileUploadService.uploadFile(file, { 
-        type: 'module',
-      });
-    }
+          type: 'module',
+        });
+      }
     } catch (error) {
-  throw new InternalServerErrorException(`${RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE}: ${error.message}`);
+      // Log the detailed error internally for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error uploading file during module update: ${errorMessage}`, errorStack);
+      // Throw a generic error to prevent sensitive information leakage
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.ERROR.FAILED_TO_UPLOAD_FILE);
     }
 
     const module = await this.modulesService.update(
