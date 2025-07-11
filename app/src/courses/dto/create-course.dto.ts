@@ -28,7 +28,6 @@ export class CreateCourseDto {
     example: '2024-01-01T00:00:00Z',
     required: true
   })
-  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('Start date') })
   startDatetime: string;
 
   @ApiProperty({ 
@@ -36,7 +35,6 @@ export class CreateCourseDto {
     example: '2024-12-31T23:59:59Z',
     required: true
   })
-  @IsDateString({}, { message: VALIDATION_MESSAGES.COMMON.DATE('End date') })
   @ValidateIf((o) => o.startDatetime)
   @Validate(HelperUtil.validateDatetimeConstraints, {
     message: 'Invalid datetime constraints. Start date must be in the future, end date must follow start date, and duration must be between 1 day and 1 year.'
@@ -142,6 +140,16 @@ export class CreateCourseDto {
   @IsOptional()
   @IsUUID('4', { message: VALIDATION_MESSAGES.COMMON.UUID('Template ID') })
   templateId?: string;
+
+  @ApiPropertyOptional({ 
+    description: VALIDATION_MESSAGES.COURSE.ELIGIBILITY_CRITERIA,
+    example: {
+      eligibilityCriteria: '123e4567-e89b-12d3-a456-426614174000'
+    }
+  })
+  @IsOptional() 
+  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Eligibility criteria') })
+  eligibilityCriteria?: Record<string, any>;
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.PARAMS,

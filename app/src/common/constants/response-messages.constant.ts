@@ -186,6 +186,7 @@ export const VALIDATION_MESSAGES = {
     CERTIFICATE_TERM: 'Certificate term configuration.',
     REWARD_TYPE: 'Type of reward for course completion (certificate or badge).',
     TEMPLATE_ID: 'Template ID for the reward.',
+    ELIGIBILITY_CRITERIA: 'Eligibility criteria for the course.',
     PARAMS: 'Additional parameters for the course.',
   },
   MODULE: {
