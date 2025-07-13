@@ -168,6 +168,7 @@ export const VALIDATION_MESSAGES = {
     PATTERN: (field: string, pattern: string) => `${field} must match pattern: ${pattern}.`,
     NESTED: (field: string) => `Invalid ${field} object structure.`,
     CONDITIONAL: (field: string, condition: string) => `${field} is required when ${condition}.`,
+    URL: (field: string) => `${field} must be a valid URL.`,
     DATETIME_CONSTRAINTS: 'Invalid datetime constraints. Start date must be in the future, end date must follow start date, and duration must be between 1 day and 1 year.',
   },
   COURSE: {

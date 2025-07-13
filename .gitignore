@@ -43,6 +43,7 @@
 
 # Uploads
 /app/uploads
+.cursorrules
 
 # Temp files
 /app/tmp
