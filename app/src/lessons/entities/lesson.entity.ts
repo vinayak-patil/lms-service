@@ -20,6 +20,7 @@ export enum LessonFormat {
   DOCUMENT = 'document',
   QUIZ = 'test',
   EVENT = 'event',
+  TEXT_AND_MEDIA = 'text_and_media',
 }
 export enum LessonSubFormat {
   YOUTUBE = 'youtube.url',
@@ -27,6 +28,7 @@ export enum LessonSubFormat {
   QUIZ = 'quiz',
   EVENT = 'event',
   VIDEO = 'video.url',
+  EXTERNAL_URL = 'external.url',
 }
 
 export enum LessonStatus {
