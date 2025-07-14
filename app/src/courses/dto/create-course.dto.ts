@@ -146,8 +146,9 @@ export class CreateCourseDto {
     example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43c1-b456-426614174000']
   })
   @IsOptional() 
-  @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Eligibility criteria') })
-  eligibilityCriteria?: Record<string, any>;
+  @IsArray({ message: VALIDATION_MESSAGES.COMMON.ARRAY('Eligibility criteria') })
+  @IsString({ each: true, message: VALIDATION_MESSAGES.COMMON.STRING('Course ID') })
+  eligibilityCriteria?: string[];
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.PARAMS,
