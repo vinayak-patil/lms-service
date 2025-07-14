@@ -752,32 +752,8 @@ export class CoursesService {
     tenantId: string,
     organisationId: string
   ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
-    // Handle both array and object formats for backward compatibility
-    let eligibilityArray: string[] = [];
-    
-    if (course.eligibilityCriteria) {
-      if (Array.isArray(course.eligibilityCriteria)) {
-        // Direct array format: ["uuid1", "uuid2"]
-        eligibilityArray = course.eligibilityCriteria;
-      } else if (typeof course.eligibilityCriteria === 'object' && course.eligibilityCriteria !== null) {
-        // Object format: { courseIds: ["uuid1", "uuid2"] } or similar
-        if (Array.isArray(course.eligibilityCriteria.courseIds)) {
-          eligibilityArray = course.eligibilityCriteria.courseIds;
-        } else if (Array.isArray(course.eligibilityCriteria.courses)) {
-          eligibilityArray = course.eligibilityCriteria.courses;
-        } else {
-          // Try to find any array property
-          const values = Object.values(course.eligibilityCriteria);
-          const arrayValue = values.find(val => Array.isArray(val));
-          if (arrayValue) {
-            eligibilityArray = arrayValue;
-          }
-        }
-      }
-    }
-
-    // If no eligibility criteria, user is eligible
-    if (eligibilityArray.length === 0) {
+    // If no eligibility criteria or not an array, user is eligible
+    if (!course.eligibilityCriteria || !Array.isArray(course.eligibilityCriteria) || course.eligibilityCriteria.length === 0) {
       return {
         isEligible: true,
         requiredCourses: []
@@ -789,7 +765,7 @@ export class CoursesService {
     let allCompleted = true;
 
     // Check each required course ID from the array
-    for (const requiredCourseId of eligibilityArray) {
+    for (const requiredCourseId of course.eligibilityCriteria) {
       // Validate that the courseId is a string
       if (typeof requiredCourseId !== 'string') {
         this.logger.warn(`Invalid course ID in eligibility criteria: ${requiredCourseId}`);
