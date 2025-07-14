@@ -14,6 +14,7 @@ import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { ModuleTrack } from '../tracking/entities/module-track.entity';
 import { Media } from '../media/entities/media.entity';
 import { AssociatedFile } from '../media/entities/associated-file.entity';
+import { UserEnrollment, EnrollmentStatus } from '../enrollments/entities/user-enrollment.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { API_IDS } from '../common/constants/api-ids.constant';
@@ -47,6 +48,8 @@ export class CoursesService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(AssociatedFile)
     private readonly associatedFileRepository: Repository<AssociatedFile>,
+    @InjectRepository(UserEnrollment)
+    private readonly userEnrollmentRepository: Repository<UserEnrollment>,
     private readonly cacheService: CacheService,
     private readonly cacheConfig: CacheConfigService,
   ) {}
@@ -452,7 +455,7 @@ export class CoursesService {
     moduleId?: string
   ): Promise<any> {
     if (filterType === 'lesson' && !moduleId) {
-      throw new BadRequestException('Module ID is required when type is "lesson"');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_ID_REQUIRED);
     }
 
     // Fetch course
@@ -468,7 +471,13 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
-    // Check course eligibility FIRST - before fetching modules and lessons
+    // Check enrollment FIRST - before any other checks
+    const isEnrolled = await this.isUserEnrolled(courseId, userId, tenantId, organisationId);
+    if (!isEnrolled) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.USER_NOT_ENROLLED);
+    }
+
+    // Check course eligibility - after enrollment check
     const eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
     
     // If user is not eligible, return early with just course info and eligibility
@@ -510,7 +519,7 @@ export class CoursesService {
       order: { ordering: 'ASC', createdAt: 'ASC' }
     });
     if (filterType === 'lesson' && modules.length === 0) {
-      throw new BadRequestException(`Module with ID ${moduleId} not found in this course`);
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND_IN_COURSE(moduleId!));
     }
     const moduleIds = modules.map(m => m.moduleId);
 
@@ -736,6 +745,33 @@ export class CoursesService {
     });
     
     return courseTrack?.status === TrackingStatus.COMPLETED;
+  }
+
+  /**
+   * Check if user is enrolled in the course
+   * @param courseId The course ID to check
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<boolean> True if user is enrolled, false otherwise
+   */
+  private async isUserEnrolled(
+    courseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<boolean> {
+    const enrollment = await this.userEnrollmentRepository.findOne({
+      where: {
+        courseId,
+        userId,
+        tenantId,
+        organisationId,
+        status: EnrollmentStatus.PUBLISHED
+      }
+    });
+    
+    return !!enrollment;
   }
 
   /**

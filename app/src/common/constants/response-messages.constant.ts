@@ -58,6 +58,8 @@ export const RESPONSE_MESSAGES = {
   ERROR: {
     COURSE_NOT_FOUND: 'Course not found',
     MODULE_NOT_FOUND: 'Module not found',
+    MODULE_ID_REQUIRED: 'Module ID is required when type is "lesson"',
+    MODULE_NOT_FOUND_IN_COURSE: (moduleId: string) => `Module with ID ${moduleId} not found in this course`,
     LESSON_NOT_FOUND: 'Lesson not found',
     COURSE_LESSON_NOT_FOUND: 'Lesson not found in course',
     MEDIA_NOT_FOUND: 'Media not found',
@@ -68,6 +70,7 @@ export const RESPONSE_MESSAGES = {
     MODULE_ALREADY_EXISTS: 'Module with this title already exists',
     LESSON_ALREADY_EXISTS: 'Lesson with this title already exists',
     USER_ALREADY_ENROLLED: 'User is already enrolled in this course',
+    USER_NOT_ENROLLED: 'User is not enrolled in this course',
     ENROLLMENT_ALREADY_CANCELLED: 'Enrollment is already cancelled',
     COURSE_ALREADY_COMPLETED: 'Course is already marked as completed',
     LESSON_ALREADY_COMPLETED: 'Lesson is already marked as completed',
