@@ -82,12 +82,12 @@ export class Course {
   templateId: string;
 
   @ApiProperty({ 
-    description: 'Eligibility criteria for the course - array of prerequisite course IDs', 
+    description: 'Prerequisites for the course - array of prerequisite course IDs', 
     example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43c1-b456-426614174000'],
     required: false 
   })
   @Column({ type: 'jsonb', nullable: true })
-  eligibilityCriteria: Record<string, any>;
+  prerequisites: Record<string, any>;
 
   @ApiProperty({ description: 'Course start date and time', example: '2023-01-01T00:00:00Z', required: false })
   @Column({ type: 'timestamptz', nullable: true })

@@ -20,7 +20,7 @@ export class RequiredCourseDto {
   completed: boolean;
 }
 
-export class CourseEligibilityDto {
+export class CoursePrerequisitesDto {
   @ApiProperty({ 
     description: 'List of required prerequisite courses',
     type: [RequiredCourseDto]

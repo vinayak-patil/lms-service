@@ -752,8 +752,8 @@ export class CoursesService {
     tenantId: string,
     organisationId: string
   ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
-    // If no eligibility criteria or not an array, user is eligible
-    if (!course.eligibilityCriteria || !Array.isArray(course.eligibilityCriteria) || course.eligibilityCriteria.length === 0) {
+    // If no prerequisites or not an array, user is eligible
+    if (!course.prerequisites || !Array.isArray(course.prerequisites) || course.prerequisites.length === 0) {
       return {
         isEligible: true,
         requiredCourses: []
@@ -765,10 +765,10 @@ export class CoursesService {
     let allCompleted = true;
 
     // Check each required course ID from the array
-    for (const requiredCourseId of course.eligibilityCriteria) {
+    for (const requiredCourseId of course.prerequisites) {
       // Validate that the courseId is a string
       if (typeof requiredCourseId !== 'string') {
-        this.logger.warn(`Invalid course ID in eligibility criteria: ${requiredCourseId}`);
+        this.logger.warn(`Invalid course ID in prerequisites: ${requiredCourseId}`);
         requiredCourses.push({
           courseId: String(requiredCourseId),
           title: 'Invalid Course ID',
