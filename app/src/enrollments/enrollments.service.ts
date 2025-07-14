@@ -22,6 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import { Lesson, LessonStatus } from '../lessons/entities/lesson.entity';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { CacheConfigService } from '../cache/cache-config.service';
+import { EventService } from '../events/event.service';
 
 
 @Injectable()
@@ -42,6 +43,7 @@ export class EnrollmentsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly cacheConfig: CacheConfigService,
+    private readonly eventService: EventService,
   ) {}
 
   /**
@@ -189,6 +191,20 @@ export class EnrollmentsService {
         this.cacheService.invalidateEnrollment(savedEnrollment.userId, savedEnrollment.courseId, tenantId, organisationId),
         this.cacheService.set(enrollmentKey, savedEnrollment, this.cacheConfig.ENROLLMENT_TTL),
       ]);
+
+      // Emit enrollment created event
+      this.eventService.emitEnrollmentCreated({
+        enrollmentId: savedEnrollment.enrollmentId,
+        courseId: savedEnrollment.courseId,
+        userId: savedEnrollment.userId,
+        status: savedEnrollment.status,
+        metadata: {
+          enrolledBy: savedEnrollment.enrolledBy,
+          enrolledAt: savedEnrollment.enrolledAt,
+          endTime: savedEnrollment.endTime,
+          unlimitedPlan: savedEnrollment.unlimitedPlan,
+        }
+      }, tenantId, organisationId, userId);
       
       return completeEnrollment;
     } catch (error) {

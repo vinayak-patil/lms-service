@@ -16,6 +16,7 @@ import { UpdateLessonTrackingDto } from './dto/update-lesson-tracking.dto';
 import { LessonStatusDto } from './dto/lesson-status.dto';
 import { ConfigService } from '@nestjs/config';
 import { ModuleTrack, ModuleTrackStatus } from './entities/module-track.entity';
+import { EventService } from '../events/event.service';
 
 @Injectable()
 export class TrackingService {
@@ -35,6 +36,7 @@ export class TrackingService {
     @InjectRepository(ModuleTrack)
     private readonly moduleTrackRepository: Repository<ModuleTrack>,
     private readonly configService: ConfigService,
+    private readonly eventService: EventService,
   ) {}
 
 
@@ -172,6 +174,20 @@ export class TrackingService {
     if (!lessonTrackWithRelations) {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.ATTEMPT_NOT_FOUND);
     }
+
+    // Emit lesson attempted event
+    this.eventService.emitLessonAttempted({
+      lessonId: lessonTrackWithRelations.lessonId,
+      courseId: lessonTrackWithRelations.courseId,
+      userId: userId,
+      attemptId: lessonTrackWithRelations.lessonTrackId,
+      attemptNumber: lessonTrackWithRelations.attempt,
+      metadata: {
+        lessonTitle: lessonTrackWithRelations.lesson?.title,
+        maxAttempts: lesson.noOfAttempts,
+        format: lessonTrackWithRelations.lesson?.format,
+      }
+    }, tenantId, organisationId, userId);
 
     return lessonTrackWithRelations;
   }
@@ -403,6 +419,36 @@ export class TrackingService {
 
     const savedAttempt = await this.lessonTrackRepository.save(attempt);
 
+    // Emit progress update event
+    this.eventService.emitLessonProgressUpdated({
+      lessonId: savedAttempt.lessonId,
+      courseId: savedAttempt.courseId,
+      userId: userId,
+      attemptId: savedAttempt.lessonTrackId,
+      progress: savedAttempt.currentPosition,
+      totalContent: savedAttempt.totalContent,
+      score: savedAttempt.score,
+      timeSpent: savedAttempt.timeSpent,
+      status: savedAttempt.status,
+    }, tenantId, organisationId, userId);
+
+    // Emit lesson completed event if lesson is completed
+    if (savedAttempt.status === TrackingStatus.COMPLETED) {
+      this.eventService.emitLessonCompleted({
+        lessonId: savedAttempt.lessonId,
+        courseId: savedAttempt.courseId,
+        userId: userId,
+        attemptId: savedAttempt.lessonTrackId,
+        score: savedAttempt.score,
+        progress: 100,
+        metadata: {
+          timeSpent: savedAttempt.timeSpent,
+          totalContent: savedAttempt.totalContent,
+          attemptNumber: savedAttempt.attempt,
+        }
+      }, tenantId, organisationId, userId);
+    }
+
     // Update course and module tracking if lesson is completed
     if (savedAttempt.courseId) {
       await this.updateCourseAndModuleTracking(savedAttempt, tenantId, organisationId);
@@ -460,11 +506,40 @@ export class TrackingService {
         courseTrack.status = TrackingStatus.COMPLETED;
         courseTrack.endDatetime = new Date();
         
+        // Emit course completed event
+        this.eventService.emitCourseCompleted({
+          courseId: courseTrack.courseId,
+          userId: courseTrack.userId,
+          totalLessons: courseTrack.noOfLessons,
+          completedLessons: courseTrack.completedLessons,
+          finalScore: 0, // Course completion score would need to be calculated
+          metadata: {
+            startDate: courseTrack.startDatetime,
+            endDate: courseTrack.endDatetime,
+          }
+        }, tenantId, organisationId, courseTrack.userId);
+        
       } else {
         courseTrack.status = TrackingStatus.INCOMPLETE;
       }
     }
     await this.courseTrackRepository.save(courseTrack);
+
+    // Emit course tracking updated event
+    this.eventService.emitTrackingUpdated({
+      trackingId: courseTrack.courseTrackId,
+      type: 'course',
+      userId: courseTrack.userId,
+      status: courseTrack.status,
+      progress: courseTrack.noOfLessons > 0 ? Math.round((courseTrack.completedLessons / courseTrack.noOfLessons) * 100) : 0,
+      metadata: {
+        courseId: courseTrack.courseId,
+        completedLessons: courseTrack.completedLessons,
+        totalLessons: courseTrack.noOfLessons,
+        isCourseCompleted: courseTrack.status === TrackingStatus.COMPLETED,
+        lastAccessedDate: courseTrack.lastAccessedDate
+      }
+    }, tenantId, organisationId, courseTrack.userId);
 
     // Find and update module tracking if applicable
     const lesson = await this.lessonRepository.findOne({
@@ -558,6 +633,22 @@ export class TrackingService {
     }
 
     await this.moduleTrackRepository.save(moduleTrack);
+
+    // Emit module tracking updated event
+    this.eventService.emitTrackingUpdated({
+      trackingId: moduleTrack.moduleTrackId,
+      type: 'module',
+      userId: userId,
+      status: moduleTrack.status,
+      progress: moduleTrack.progress,
+      metadata: {
+        moduleId: moduleId,
+        moduleTitle: module.title,
+        completedLessons: moduleTrack.completedLessons,
+        totalLessons: moduleTrack.totalLessons,
+        isModuleCompleted: moduleTrack.status === ModuleTrackStatus.COMPLETED
+      }
+    }, tenantId, organisationId, userId);
 
     } catch (error) {
       throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_TRACKING_ERROR);

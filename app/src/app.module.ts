@@ -14,6 +14,7 @@ import { CacheModule } from './cache/cache.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { CloudStorageModule } from '@vinayak-patil/cloud-storage';
 import { ConfigurationModule } from './configuration/configuration.module';
+import { PluginsModule } from './plugins/plugins.module';
 @Module({
   imports: [
     // Configuration
@@ -34,6 +35,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     DatabaseModule,
     CommonModule,
     ConfigurationModule,
+    PluginsModule,
     CoursesModule,
     ModulesModule,
     LessonsModule,

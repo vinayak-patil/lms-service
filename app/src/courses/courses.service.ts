@@ -24,6 +24,7 @@ import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 import { CacheConfigService } from '../cache/cache-config.service';
+import { EventService } from '../events/event.service';
 import { trace } from 'console';
 
 @Injectable()
@@ -49,6 +50,7 @@ export class CoursesService {
     private readonly associatedFileRepository: Repository<AssociatedFile>,
     private readonly cacheService: CacheService,
     private readonly cacheConfig: CacheConfigService,
+    private readonly eventService: EventService,
   ) {}
 
   /**
@@ -126,6 +128,21 @@ export class CoursesService {
       this.cacheService.setCourse(result),
       this.cacheService.invalidateCourse(result.courseId, tenantId, organisationId),
     ]);
+
+    // Emit course created event
+    this.eventService.emitCourseCreated({
+      courseId: result.courseId,
+      title: result.title,
+      status: result.status,
+      userId: userId,
+      metadata: {
+        description: result.description,
+        featured: result.featured,
+        free: result.free,
+        adminApproval: result.adminApproval,
+        autoEnroll: result.autoEnroll,
+      }
+    }, tenantId, organisationId, userId);
     
     return result;
   }
@@ -764,6 +781,22 @@ export class CoursesService {
       this.cacheService.setCourse(savedCourse),
       this.cacheService.invalidateCourse(courseId, tenantId, organisationId),
     ]);
+
+    // Emit course updated event
+    this.eventService.emitCourseUpdated({
+      courseId: savedCourse.courseId,
+      title: savedCourse.title,
+      status: savedCourse.status,
+      userId: userId,
+      metadata: {
+        description: savedCourse.description,
+        featured: savedCourse.featured,
+        free: savedCourse.free,
+        adminApproval: savedCourse.adminApproval,
+        autoEnroll: savedCourse.autoEnroll,
+      }
+    }, tenantId, organisationId, userId);
+
     return savedCourse;
   }
 
@@ -788,6 +821,19 @@ export class CoursesService {
 
        // Cache the new course and invalidate related caches
       await this.cacheService.invalidateCourse(courseId, tenantId, organisationId);
+
+      // Emit course deleted event
+      this.eventService.emitCourseDeleted({
+        courseId: savedCourse.courseId,
+        title: savedCourse.title,
+        status: savedCourse.status,
+        userId: userId,
+        metadata: {
+          description: savedCourse.description,
+          featured: savedCourse.featured,
+          free: savedCourse.free,
+        }
+      }, tenantId, organisationId, userId);
 
       return { 
         success: true, 
@@ -877,6 +923,23 @@ export class CoursesService {
         const newCourse = transactionalEntityManager.create(Course, newCourseData);
         const savedCourse = await transactionalEntityManager.save(Course, newCourse);
         const result = Array.isArray(savedCourse) ? savedCourse[0] : savedCourse;
+
+        // Emit course created event for the cloned course
+        this.eventService.emitCourseCreated({
+          courseId: result.courseId,
+          title: result.title,
+          status: result.status,
+          userId: userId,
+          metadata: {
+            description: result.description,
+            featured: result.featured,
+            free: result.free,
+            adminApproval: result.adminApproval,
+            autoEnroll: result.autoEnroll,
+            clonedFrom: courseId,
+            isClone: true
+          }
+        }, tenantId, organisationId, userId);
 
 
         // Clone modules and their content
@@ -978,6 +1041,20 @@ export class CoursesService {
         throw new Error(`${RESPONSE_MESSAGES.ERROR.MODULE_SAVE_FAILED}: ${originalModule.title}`);
       }
 
+      // Emit module created event for the cloned module
+      this.eventService.emitModuleCreated({
+        moduleId: savedModule.moduleId,
+        courseId: newCourseId,
+        title: savedModule.title,
+        status: savedModule.status,
+        userId: userId,
+        metadata: {
+          clonedFrom: originalModule.moduleId,
+          isClone: true,
+          parentId: savedModule.parentId
+        }
+      }, tenantId, organisationId, userId);
+
       // Clone lessons for this module
       await this.cloneLessonsWithTransaction(originalModule.moduleId, savedModule.moduleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
 
@@ -1039,6 +1116,21 @@ export class CoursesService {
 
     const newSubmodule = transactionalEntityManager.create(Module, newSubmoduleData);
     const savedSubmodule = await transactionalEntityManager.save(Module, newSubmodule);
+
+    // Emit module created event for the cloned submodule
+    this.eventService.emitModuleCreated({
+      moduleId: savedSubmodule.moduleId,
+      courseId: newCourseId,
+      title: savedSubmodule.title,
+      status: savedSubmodule.status,
+      userId: userId,
+      metadata: {
+        clonedFrom: originalSubmodule.moduleId,
+        isClone: true,
+        isSubmodule: true,
+        parentId: newParentId
+      }
+    }, tenantId, organisationId, userId);
 
     // Clone lessons for this submodule
     await this.cloneLessonsWithTransaction(originalSubmodule.moduleId, savedSubmodule.moduleId, userId, tenantId, organisationId, transactionalEntityManager, newCourseId);
@@ -1133,6 +1225,19 @@ export class CoursesService {
           }
           
           newMediaId = savedMedia.mediaId;
+
+          // Emit media uploaded event for the cloned media
+          this.eventService.emitMediaUploaded({
+            mediaId: savedMedia.mediaId,
+            lessonId: originalLesson.lessonId,
+            format: savedMedia.format,
+            path: savedMedia.path,
+            metadata: {
+              clonedFrom: originalMedia.mediaId,
+              isClone: true,
+              originalLessonId: originalLesson.lessonId
+            }
+          }, tenantId, organisationId, userId);
         }
       }
      
@@ -1178,6 +1283,21 @@ export class CoursesService {
       if (!savedLesson) {
         throw new Error(`${RESPONSE_MESSAGES.ERROR.LESSON_SAVE_FAILED}: ${originalLesson.title}`);
       }
+
+      // Emit lesson created event for the cloned lesson
+      this.eventService.emitLessonCreated({
+        lessonId: savedLesson.lessonId,
+        courseId: newCourseId,
+        moduleId: newModuleId,
+        title: savedLesson.title,
+        format: savedLesson.format,
+        userId: userId,
+        metadata: {
+          clonedFrom: originalLesson.lessonId,
+          isClone: true,
+          mediaId: newMediaId
+        }
+      }, tenantId, organisationId, userId);
 
 
       // Clone associated files if lesson has them
@@ -1247,6 +1367,20 @@ export class CoursesService {
             
             newMediaId = savedMedia.mediaId;
             this.logger.log(`Cloned associated file media from ${originalMedia.mediaId} to ${newMediaId}`);
+
+            // Emit media uploaded event for the cloned associated file media
+            this.eventService.emitMediaUploaded({
+              mediaId: savedMedia.mediaId,
+              lessonId: newLessonId,
+              format: savedMedia.format,
+              path: savedMedia.path,
+              metadata: {
+                clonedFrom: originalMedia.mediaId,
+                isClone: true,
+                isAssociatedFile: true,
+                originalLessonId: originalLessonId
+              }
+            }, tenantId, organisationId, userId);
 
             // Create new associated file record
             const newAssociatedFileData = {

@@ -20,6 +20,7 @@ import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constan
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CacheConfigService } from '../cache/cache-config.service';
+import { EventService } from '../events/event.service';
 
 @Injectable()
 export class LessonsService {
@@ -37,7 +38,8 @@ export class LessonsService {
     private readonly lessonTrackRepository: Repository<LessonTrack>,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
-    private readonly cacheConfig: CacheConfigService
+    private readonly cacheConfig: CacheConfigService,
+    private readonly eventService: EventService
   ) {}
   
 
@@ -164,6 +166,23 @@ export class LessonsService {
         this.cacheService.set(lessonKey, savedLesson, this.cacheConfig.LESSON_TTL),
         this.cacheService.invalidateLesson(savedLesson.lessonId, savedLesson.moduleId, savedLesson.courseId, tenantId, organisationId),
       ]);
+
+      // Emit lesson created event
+      this.eventService.emitLessonCreated({
+        lessonId: savedLesson.lessonId,
+        courseId: savedLesson.courseId,
+        moduleId: savedLesson.moduleId,
+        title: savedLesson.title,
+        format: savedLesson.format,
+        userId: userId,
+        metadata: {
+          description: savedLesson.description,
+          status: savedLesson.status,
+          sampleLesson: savedLesson.sampleLesson,
+          considerForPassing: savedLesson.considerForPassing,
+        }
+      }, tenantId, organisationId, userId);
+
       return savedLesson;
     } catch (error) {
       this.logger.error(`Error creating lesson: ${error.message}`, error.stack);
@@ -521,6 +540,23 @@ export class LessonsService {
         this.cacheService.invalidateLesson(lessonId, lesson.moduleId, lesson.courseId, tenantId, organisationId),
       ]);
 
+      // Emit lesson updated event
+      this.eventService.emitLessonUpdated({
+        lessonId: savedLesson.lessonId,
+        courseId: savedLesson.courseId,
+        moduleId: savedLesson.moduleId,
+        title: savedLesson.title,
+        format: savedLesson.format,
+        userId: userId,
+        metadata: {
+          description: savedLesson.description,
+          status: savedLesson.status,
+          sampleLesson: savedLesson.sampleLesson,
+          considerForPassing: savedLesson.considerForPassing,
+          updatedFields: Object.keys(updateLessonDto)
+        }
+      }, tenantId, organisationId, userId);
+
       return savedLesson;
     } catch (error) {
       this.logger.error(`Error updating lesson: ${error.message}`);
@@ -557,7 +593,7 @@ export class LessonsService {
       // Soft delete by updating status
       lesson.status = LessonStatus.ARCHIVED;
       lesson.updatedBy = userId;
-      await this.lessonRepository.save(lesson);
+      const savedLesson = await this.lessonRepository.save(lesson);
 
       // Invalidate all related caches
       const lessonKey = this.cacheConfig.getLessonKey(lessonId, tenantId, organisationId);
@@ -565,6 +601,21 @@ export class LessonsService {
         this.cacheService.del(lessonKey),
         this.cacheService.invalidateLesson(lessonId, lesson.moduleId, lesson.courseId, tenantId, organisationId),
       ]);
+
+      // Emit lesson deleted event
+      this.eventService.emitLessonDeleted({
+        lessonId: savedLesson.lessonId,
+        courseId: savedLesson.courseId,
+        moduleId: savedLesson.moduleId,
+        title: savedLesson.title,
+        format: savedLesson.format,
+        userId: userId,
+        metadata: {
+          description: savedLesson.description,
+          status: savedLesson.status,
+          archivedAt: savedLesson.updatedAt
+        }
+      }, tenantId, organisationId, userId);
 
       return {
         success: true,

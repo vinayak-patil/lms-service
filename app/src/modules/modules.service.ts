@@ -18,6 +18,7 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CacheConfigService } from '../cache/cache-config.service';
+import { EventService } from '../events/event.service';
 
 @Injectable()
 export class ModulesService {
@@ -37,6 +38,7 @@ export class ModulesService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly cacheConfig: CacheConfigService,
+    private readonly eventService: EventService,
   ) {
   }
 
@@ -141,6 +143,21 @@ export class ModulesService {
       this.cacheService.setModule(savedModule),
       this.cacheService.invalidateModule(savedModule.moduleId, savedModule.courseId, savedModule.tenantId, savedModule.organisationId),
     ]);
+
+    // Emit module created event
+    this.eventService.emitModuleCreated({
+      moduleId: savedModule.moduleId,
+      courseId: savedModule.courseId,
+      title: savedModule.title,
+      status: savedModule.status,
+      userId: userId,
+      metadata: {
+        description: savedModule.description,
+        parentId: savedModule.parentId,
+        ordering: savedModule.ordering,
+        isSubmodule: !!savedModule.parentId
+      }
+    }, tenantId, organisationId, userId);
 
     return savedModule;
   }
@@ -299,6 +316,22 @@ export class ModulesService {
       this.cacheService.invalidateModule(moduleId, module.courseId, tenantId, organisationId),
     ]);
 
+    // Emit module updated event
+    this.eventService.emitModuleUpdated({
+      moduleId: savedModule.moduleId,
+      courseId: savedModule.courseId,
+      title: savedModule.title,
+      status: savedModule.status,
+      userId: userId,
+      metadata: {
+        description: savedModule.description,
+        parentId: savedModule.parentId,
+        ordering: savedModule.ordering,
+        isSubmodule: !!savedModule.parentId,
+        updatedFields: Object.keys(updateModuleDto)
+      }
+    }, tenantId, organisationId, userId);
+
     return savedModule;
   }
 
@@ -328,6 +361,22 @@ export class ModulesService {
       this.cacheService.del(moduleKey),
       this.cacheService.invalidateModule(moduleId, module.courseId, tenantId, organisationId),
     ]);
+
+    // Emit module deleted event
+    this.eventService.emitModuleDeleted({
+      moduleId: savedModule.moduleId,
+      courseId: savedModule.courseId,
+      title: savedModule.title,
+      status: savedModule.status,
+      userId: userId,
+      metadata: {
+        description: savedModule.description,
+        parentId: savedModule.parentId,
+        ordering: savedModule.ordering,
+        isSubmodule: !!savedModule.parentId,
+        archivedAt: savedModule.updatedAt
+      }
+    }, tenantId, organisationId, userId);
 
     return {
       success: true,
