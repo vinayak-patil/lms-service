@@ -81,7 +81,11 @@ export class Course {
   @Column({ type: 'uuid', nullable: true })
   templateId: string;
 
-  @ApiProperty({ description: 'Eligibility criteria for the course', example: '123e4567-e89b-12d3-a456-426614174000', required: false })
+  @ApiProperty({ 
+    description: 'Eligibility criteria for the course - array of prerequisite course IDs', 
+    example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43c1-b456-426614174000'],
+    required: false 
+  })
   @Column({ type: 'jsonb', nullable: true })
   eligibilityCriteria: Record<string, any>;
 

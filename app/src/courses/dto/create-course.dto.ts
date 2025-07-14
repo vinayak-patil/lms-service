@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsUUID, IsObject, IsDateString, MinLength, MaxLength, Matches, ValidateIf, Validate } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsUUID, IsObject, IsDateString, MinLength, MaxLength, Matches, ValidateIf, Validate, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CourseStatus, RewardType } from '../entities/course.entity';
@@ -143,9 +143,7 @@ export class CreateCourseDto {
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.ELIGIBILITY_CRITERIA,
-    example: {
-      eligibilityCriteria: '123e4567-e89b-12d3-a456-426614174000'
-    }
+    example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43c1-b456-426614174000']
   })
   @IsOptional() 
   @IsObject({ message: VALIDATION_MESSAGES.COMMON.OBJECT('Eligibility criteria') })

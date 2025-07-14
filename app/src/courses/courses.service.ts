@@ -468,6 +468,33 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
+    // Check course eligibility FIRST - before fetching modules and lessons
+    const eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
+    
+    // If user is not eligible, return early with just course info and eligibility
+    if (!eligibility.isEligible) {
+      return {
+        ...course,
+        modules: [],
+        tracking: {
+          status: 'NOT_ELIGIBLE',
+          progress: 0,
+          completedLessons: 0,
+          totalLessons: 0,
+          lastAccessed: null,
+          timeSpent: 0,
+          startDatetime: null,
+          endDatetime: null,
+        },
+        lastAccessedLesson: null,
+        eligibility: {
+          requiredCourses: eligibility.requiredCourses,
+          isEligible: eligibility.isEligible
+        }
+      };
+    }
+
+    // User is eligible - proceed with fetching modules and lessons
     // Build module where clause
     const moduleWhere: any = {
       courseId,
@@ -630,6 +657,7 @@ export class CoursesService {
     });
     // Course-level tracking
     const courseProgress = courseTracking?.completedLessons && courseTracking?.noOfLessons > 0 ? Math.round((courseTracking?.completedLessons / courseTracking?.noOfLessons) * 100) : 0;
+    
     if (filterType === 'lesson' && moduleId) {
       const targetModule = modulesWithTracking[0];
       return {
@@ -639,6 +667,7 @@ export class CoursesService {
         organisationId: course.organisationId
       };
     }
+    
     const result = {
       ...course,
       modules: modulesWithTracking,
@@ -661,7 +690,11 @@ export class CoursesService {
         startDatetime: null,
         endDatetime: null,
       },
-      lastAccessedLesson
+      lastAccessedLesson,
+      eligibility: {
+        requiredCourses: eligibility.requiredCourses,
+        isEligible: eligibility.isEligible
+      }
     };
     return result;
   }
@@ -677,6 +710,132 @@ export class CoursesService {
     if (dates.length === 0) return null;
     
     return new Date(Math.max(...dates.map(date => date instanceof Date ? date.getTime() : new Date(date).getTime())));
+  }
+
+  /**
+   * Check if a user has completed a specific course
+   * @param courseId The course ID to check
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<boolean> True if course is completed, false otherwise
+   */
+  private async isCourseCompleted(
+    courseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<boolean> {
+    const courseTrack = await this.courseTrackRepository.findOne({
+      where: { 
+        courseId, 
+        userId, 
+        tenantId, 
+        organisationId 
+      }
+    });
+    
+    return courseTrack?.status === TrackingStatus.COMPLETED;
+  }
+
+  /**
+   * Check course eligibility based on prerequisite courses
+   * @param course The course to check eligibility for
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<{isEligible: boolean, requiredCourses: any[]}>
+   */
+  private async checkCourseEligibility(
+    course: Course,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
+    // If no eligibility criteria, user is eligible
+    if (!course.eligibilityCriteria || !Array.isArray(course.eligibilityCriteria) || course.eligibilityCriteria.length === 0) {
+      return {
+        isEligible: true,
+        requiredCourses: []
+      };
+    }
+
+    const currentCourseCohortId = course.params?.cohortId;
+    const requiredCourses: any[] = [];
+    let allCompleted = true;
+
+    // Check each required course ID from the JSON array
+    for (const requiredCourseId of course.eligibilityCriteria) {
+      // Validate that the courseId is a string
+      if (typeof requiredCourseId !== 'string') {
+        this.logger.warn(`Invalid course ID in eligibility criteria: ${requiredCourseId}`);
+        requiredCourses.push({
+          courseId: String(requiredCourseId),
+          title: 'Invalid Course ID',
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Fetch the required course details
+      const requiredCourse = await this.courseRepository.findOne({
+        where: {
+          courseId: requiredCourseId,
+          tenantId,
+          organisationId,
+          status: CourseStatus.PUBLISHED
+        },
+        select: ['courseId', 'title', 'params']
+      });
+
+      if (!requiredCourse) {
+        // If required course doesn't exist, consider it as not completed
+        requiredCourses.push({
+          courseId: requiredCourseId,
+          title: 'Unknown Course',
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Validate that the required course belongs to the same cohort
+      const requiredCourseCohortId = requiredCourse.params?.cohortId;
+      if (currentCourseCohortId && requiredCourseCohortId && currentCourseCohortId !== requiredCourseCohortId) {
+        // If cohort mismatch, consider it as not completed
+        requiredCourses.push({
+          courseId: requiredCourseId,
+          title: requiredCourse.title,
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Check if the user has completed this course
+      const isCompleted = await this.isCourseCompleted(
+        requiredCourseId,
+        userId,
+        tenantId,
+        organisationId
+      );
+
+      requiredCourses.push({
+        courseId: requiredCourseId,
+        title: requiredCourse.title,
+        completed: isCompleted
+      });
+
+      if (!isCompleted) {
+        allCompleted = false;
+      }
+    }
+
+    return {
+      isEligible: allCompleted,
+      requiredCourses
+    };
   }
 
   /**
