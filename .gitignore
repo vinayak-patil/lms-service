@@ -44,7 +44,7 @@
 # Uploads
 /app/uploads
 .cursorrules
-./cursor
+.cursor/
 
 # Temp files
 /app/tmp
