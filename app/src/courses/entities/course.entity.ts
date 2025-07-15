@@ -86,7 +86,7 @@ export class Course {
     example: '123e4567-e89b-12d3-a456-426614174000,987fcdeb-51a2-43c1-b456-426614174000',
     required: false 
   })
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   prerequisites: string;
 
   @ApiProperty({ description: 'Course start date and time', example: '2023-01-01T00:00:00Z', required: false })
