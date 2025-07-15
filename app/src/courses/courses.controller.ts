@@ -159,7 +159,7 @@ export class CoursesController {
     return courseHierarchy;
   }
 
-  @Get(':courseId/tracking/:userId')
+  @Get(':courseId/hierarchy/tracking/:userId')
   @ApiId(API_IDS.GET_COURSE_HIERARCHY_WITH_TRACKING)
   @ApiOperation({ 
     summary: 'Get course user tracking information',
