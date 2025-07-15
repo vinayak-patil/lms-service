@@ -159,16 +159,16 @@ export class CoursesController {
     return courseHierarchy;
   }
 
-  @Get(':courseId/hierarchy/tracking/:userId')
+  @Get(':courseId/tracking/:userId')
   @ApiId(API_IDS.GET_COURSE_HIERARCHY_WITH_TRACKING)
   @ApiOperation({ 
-    summary: 'Get course hierarchy with user tracking information',
-    description: 'Get course hierarchy with tracking and eligibility information. User must be enrolled in the course. Use query parameters to filter: type=module (exclude lessons), type=lesson&moduleId=uuid (single module with lessons), or no type for complete hierarchy'
+    summary: 'Get course user tracking information',
+    description: 'Get course tracking and eligibility information. User must be enrolled in the course. Use query parameters to filter: includeModules, includeLessons, moduleId.'
   })
   @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Course hierarchy with tracking and eligibility retrieved successfully',
+    description: 'Course tracking and eligibility retrieved successfully',
     schema: {
       properties: {
         courseId: { type: 'string', format: 'uuid' },
@@ -202,7 +202,8 @@ export class CoursesController {
       userId,
       tenantOrg.tenantId,
       tenantOrg.organisationId,
-      filterDto.type,
+      filterDto.includeModules,
+      filterDto.includeLessons,
       filterDto.moduleId
     );
     return courseHierarchyWithTracking;

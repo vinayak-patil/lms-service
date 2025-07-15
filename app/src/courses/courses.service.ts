@@ -25,7 +25,6 @@ import { CacheService } from '../cache/cache.service';
 import { ConfigService } from '@nestjs/config';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 import { CacheConfigService } from '../cache/cache-config.service';
-import { trace } from 'console';
 
 @Injectable()
 export class CoursesService {
@@ -448,52 +447,47 @@ export class CoursesService {
    * @param moduleId Required moduleId when filterType is 'lesson'
    */
   async findCourseHierarchyWithTracking(
-    courseId: string, 
+    courseId: string,
     userId: string,
     tenantId: string,
     organisationId: string,
-    filterType?: string,
+    includeModules: boolean = false,
+    includeLessons: boolean = false,
     moduleId?: string
   ): Promise<any> {
-    if (filterType === 'lesson' && !moduleId) {
-      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_ID_REQUIRED);
-    }
+    // If includeLessons is true and moduleId is provided, only fetch that module and its lessons
+    // If includeLessons is true and no moduleId, fetch all modules and all lessons
+    // If includeModules is true and includeLessons is false, fetch only modules (no lessons)
+    // If neither is set, return only course-level info
 
-    // Fetch course
-    const course = await this.courseRepository.findOne({
-      where: {
-        courseId,
-        tenantId,
-        organisationId,
-        status: CourseStatus.PUBLISHED
-      }
-    });
+    // Batch load all required data efficiently using Promise.all
+    const [course, isEnrolled, isCourseCompleted] = await Promise.all([
+      this.courseRepository.findOne({
+        where: {
+          courseId,
+          tenantId,
+          organisationId,
+          status: CourseStatus.PUBLISHED
+        }
+      }),
+      this.isUserEnrolled(courseId, userId, tenantId, organisationId),
+      this.isCourseCompleted(courseId, userId, tenantId, organisationId)
+    ]);
+
     if (!course) {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
-
-    // Check enrollment FIRST - before any other checks
-    const isEnrolled = await this.isUserEnrolled(courseId, userId, tenantId, organisationId);
     if (!isEnrolled) {
       throw new BadRequestException(RESPONSE_MESSAGES.ERROR.USER_NOT_ENROLLED);
     }
 
-    // if course is completed, then no need to check eligibility
-    const isCourseCompleted = await this.isCourseCompleted(courseId, userId, tenantId, organisationId);
-    let eligibility: {isEligible: boolean, requiredCourses: any[]};
-    
+    // Determine eligibility
+    let eligibility: { isEligible: boolean, requiredCourses: any[] };
     if (isCourseCompleted) {
-      // User has completed the course, so they are eligible regardless of prerequisites
-      eligibility = {
-        isEligible: true,
-        requiredCourses: []
-      };
+      eligibility = { isEligible: true, requiredCourses: [] };
     } else {
-      // Check course eligibility - after enrollment check
       eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
     }
-    
-    // If user is not eligible, return early with just course info and eligibility
     if (!eligibility.isEligible) {
       return {
         ...course,
@@ -516,7 +510,23 @@ export class CoursesService {
       };
     }
 
-    // User is eligible - proceed with fetching modules and lessons
+    // If neither modules nor lessons are requested, return only course-level info
+    if (!includeModules && !includeLessons) {
+      const courseTracking = await this.courseTrackRepository.findOne({
+        where: { courseId, userId, tenantId, organisationId }
+      });
+      return {
+        ...course,
+        modules: [],
+        tracking: courseTracking || null,
+        lastAccessedLesson: null,
+        eligibility: {
+          requiredCourses: eligibility.requiredCourses,
+          isEligible: eligibility.isEligible
+        }
+      };
+    }
+
     // Build module where clause
     const moduleWhere: any = {
       courseId,
@@ -524,31 +534,31 @@ export class CoursesService {
       organisationId,
       status: ModuleStatus.PUBLISHED
     };
-    if (filterType === 'lesson' && moduleId) {
+    if (includeLessons && moduleId) {
       moduleWhere.moduleId = moduleId;
     }
-    const modules = await this.moduleRepository.find({
-      where: moduleWhere,
-      order: { ordering: 'ASC', createdAt: 'ASC' }
-    });
-    if (filterType === 'lesson' && modules.length === 0) {
+    const modules = includeModules || includeLessons
+      ? await this.moduleRepository.find({
+          where: moduleWhere,
+          order: { ordering: 'ASC', createdAt: 'ASC' }
+        })
+      : [];
+    if (includeLessons && moduleId && modules.length === 0) {
       throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND_IN_COURSE(moduleId!));
     }
     const moduleIds = modules.map(m => m.moduleId);
 
-    // Only fetch lessons when needed (not for module-only filter)
+    // Only fetch lessons when needed
     let lessons: any[] = [];
     let lessonsByModule = new Map();
-    
-    if (filterType !== 'module') {
-      // Build lesson where clause
+    if (includeLessons) {
       const lessonWhere: any = {
         courseId,
         tenantId,
         organisationId,
         status: LessonStatus.PUBLISHED
       };
-      if (filterType === 'lesson' && moduleId) {
+      if (moduleId) {
         lessonWhere.moduleId = moduleId;
       } else {
         lessonWhere.moduleId = In(moduleIds);
@@ -558,7 +568,6 @@ export class CoursesService {
         order: { ordering: 'ASC', createdAt: 'ASC' },
         relations: ['media']
       });
-      // Group lessons by module
       lessons.forEach(lesson => {
         if (!lessonsByModule.has(lesson.moduleId)) {
           lessonsByModule.set(lesson.moduleId, []);
@@ -571,26 +580,21 @@ export class CoursesService {
     const courseTracking = await this.courseTrackRepository.findOne({
       where: { courseId, userId, tenantId, organisationId }
     });
-    
     let lessonTracks: any[] = [];
     let lessonTrackMap = new Map();
     let totalTimeSpent = 0;
     let lastAccessedLesson: any = null;
-    
-    if (filterType !== 'module' && lessons.length > 0) {
+    if (includeLessons && lessons.length > 0) {
       lessonTracks = await this.lessonTrackRepository.find({
         where: { userId, courseId, tenantId, organisationId },
         order: { updatedAt: 'DESC', attempt: 'DESC' }
       });
-      
       lessonTracks.forEach(track => {
         if (!lessonTrackMap.has(track.lessonId)) {
           lessonTrackMap.set(track.lessonId, track);
         }
       });
-      
       totalTimeSpent = lessonTracks.reduce((sum, track) => sum + (track.timeSpent || 0), 0);
-      
       if (courseTracking && courseTracking.status !== TrackingStatus.COMPLETED && lessonTracks.length > 0) {
         const lastTrack = lessonTracks[0];
         lastAccessedLesson = {
@@ -602,9 +606,9 @@ export class CoursesService {
             startDatetime: lastTrack.startDatetime,
             endDatetime: lastTrack.endDatetime,
             score: lastTrack.score,
-            progress: lastTrack.status === TrackingStatus.COMPLETED ? 100 : 
-                     (lastTrack.status === TrackingStatus.STARTED ? 0 : 
-                     Math.min(Math.round((lastTrack.currentPosition || 0) * 100), 99)),
+            progress: lastTrack.status === TrackingStatus.COMPLETED ? 100 :
+              (lastTrack.status === TrackingStatus.STARTED ? 0 :
+                Math.min(Math.round((lastTrack.currentPosition || 0) * 100), 99)),
             timeSpent: lastTrack.timeSpent || 0,
             lastAccessed: lastTrack.updatedAt,
             totalContent: lastTrack.totalContent || 0,
@@ -613,19 +617,19 @@ export class CoursesService {
         };
       }
     }
-    
-    const moduleTracks = await this.moduleTrackRepository.find({
-      where: { userId, tenantId, organisationId }
-    });
+
+    const moduleTracks = (includeModules || includeLessons)
+      ? await this.moduleTrackRepository.find({ where: { userId, tenantId, organisationId } })
+      : [];
     const moduleTrackMap = new Map();
     moduleTracks.forEach(track => {
       moduleTrackMap.set(track.moduleId, track);
     });
+
     // Build modules with tracking
     const modulesWithTracking = modules.map(module => {
       let lessonsWithTracking: any[] = [];
-      
-      if (filterType !== 'module') {
+      if (includeLessons) {
         const moduleLessons = lessonsByModule.get(module.moduleId) || [];
         lessonsWithTracking = moduleLessons.map(lesson => {
           const lessonTrack = lessonTrackMap.get(lesson.lessonId);
@@ -633,9 +637,9 @@ export class CoursesService {
             ...lesson,
             tracking: lessonTrack ? {
               status: lessonTrack.status,
-              progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 : 
-                       (lessonTrack.status === TrackingStatus.STARTED ? 0 : 
-                        Math.min(Math.round(((lessonTrack.totalContent > 0 ? lessonTrack.currentPosition/lessonTrack.totalContent : 0)) * 100), 99)),
+              progress: lessonTrack.status === TrackingStatus.COMPLETED ? 100 :
+                (lessonTrack.status === TrackingStatus.STARTED ? 0 :
+                  Math.min(Math.round(((lessonTrack.totalContent > 0 ? lessonTrack.currentPosition / lessonTrack.totalContent : 0)) * 100), 99)),
               lastAccessed: lessonTrack.updatedAt,
               timeSpent: lessonTrack.timeSpent || 0,
               score: lessonTrack.score,
@@ -658,12 +662,10 @@ export class CoursesService {
           };
         });
       }
-      
       const moduleTrack = moduleTrackMap.get(module.moduleId);
-      
       return {
         ...module,
-        lessons: lessonsWithTracking, // Will be empty array when filterType === 'module'
+        lessons: lessonsWithTracking, // Will be empty array if not includeLessons
         tracking: moduleTrack ? {
           status: moduleTrack.status,
           progress: moduleTrack.progress,
@@ -677,10 +679,9 @@ export class CoursesService {
         }
       };
     });
-    // Course-level tracking
-    const courseProgress = courseTracking?.completedLessons && courseTracking?.noOfLessons > 0 ? Math.round((courseTracking?.completedLessons / courseTracking?.noOfLessons) * 100) : 0;
-    
-    if (filterType === 'lesson' && moduleId) {
+
+    // If includeLessons and moduleId, return only the target module with lessons
+    if (includeLessons && moduleId) {
       const targetModule = modulesWithTracking[0];
       return {
         ...targetModule,
@@ -689,8 +690,12 @@ export class CoursesService {
         organisationId: course.organisationId
       };
     }
-    
-    const result = {
+
+    // Otherwise, return the full structure as requested
+    const courseProgress = courseTracking?.completedLessons && courseTracking?.noOfLessons > 0
+      ? Math.round((courseTracking?.completedLessons / courseTracking?.noOfLessons) * 100)
+      : 0;
+    return {
       ...course,
       modules: modulesWithTracking,
       tracking: courseTracking ? {
@@ -718,7 +723,6 @@ export class CoursesService {
         isEligible: eligibility.isEligible
       }
     };
-    return result;
   }
 
   /**
