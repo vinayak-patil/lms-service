@@ -477,8 +477,20 @@ export class CoursesService {
       throw new BadRequestException(RESPONSE_MESSAGES.ERROR.USER_NOT_ENROLLED);
     }
 
-    // Check course eligibility - after enrollment check
-    const eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
+    // if course is completed, then no need to check eligibility
+    const isCourseCompleted = await this.isCourseCompleted(courseId, userId, tenantId, organisationId);
+    let eligibility: {isEligible: boolean, requiredCourses: any[]};
+    
+    if (isCourseCompleted) {
+      // User has completed the course, so they are eligible regardless of prerequisites
+      eligibility = {
+        isEligible: true,
+        requiredCourses: []
+      };
+    } else {
+      // Check course eligibility - after enrollment check
+      eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
+    }
     
     // If user is not eligible, return early with just course info and eligibility
     if (!eligibility.isEligible) {
