@@ -38,7 +38,6 @@ import { TenantOrg } from '../common/decorators/tenant-org.decorator';
 import { CourseStructureDto } from '../courses/dto/course-structure.dto';
 import { SearchCourseResponseDto } from './dto/search-course.dto';
 import { CourseHierarchyFilterDto } from './dto/course-hierarchy-filter.dto';
-import { CoursePrerequisitesDto } from './dto/course-prerequisites.dto';
 
 
 @ApiTags('Courses')
