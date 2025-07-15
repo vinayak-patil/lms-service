@@ -806,7 +806,7 @@ export class CoursesService {
     organisationId: string
   ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
     // If no prerequisites, user is eligible
-    if (!course.prerequisites || course.prerequisites.trim() === '') {
+    if (!course.prerequisites || course.prerequisites.length === 0) {
       return {
         isEligible: true,
         requiredCourses: []
@@ -817,11 +817,8 @@ export class CoursesService {
     const requiredCourses: any[] = [];
     let allCompleted = true;
 
-    // Split comma-separated course IDs and trim whitespace
-    const prerequisiteCourseIds = course.prerequisites.split(',').map(id => id.trim()).filter(id => id.length > 0);
-
-    // Check each required course ID from the comma-separated string
-    for (const requiredCourseId of prerequisiteCourseIds) {
+    // Check each required course ID from the array
+    for (const requiredCourseId of course.prerequisites) {
 
       // Fetch the required course details
       const requiredCourse = await this.courseRepository.findOne({
@@ -839,19 +836,6 @@ export class CoursesService {
         requiredCourses.push({
           courseId: requiredCourseId,
           title: 'Unknown Course',
-          completed: false
-        });
-        allCompleted = false;
-        continue;
-      }
-
-      // Validate that the required course belongs to the same cohort
-      const requiredCourseCohortId = requiredCourse.params?.cohortId;
-      if (currentCourseCohortId && requiredCourseCohortId && currentCourseCohortId !== requiredCourseCohortId) {
-        // If cohort mismatch, consider it as not completed
-        requiredCourses.push({
-          courseId: requiredCourseId,
-          title: requiredCourse.title,
           completed: false
         });
         allCompleted = false;
