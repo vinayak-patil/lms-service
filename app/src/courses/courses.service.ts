@@ -818,17 +818,6 @@ export class CoursesService {
 
     // Check each required course ID from the comma-separated string
     for (const requiredCourseId of prerequisiteCourseIds) {
-      // Validate that the courseId is a valid UUID format
-      if (!requiredCourseId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-        this.logger.warn(`Invalid course ID format in prerequisites: ${requiredCourseId}`);
-        requiredCourses.push({
-          courseId: requiredCourseId,
-          title: 'Invalid Course ID Format',
-          completed: false
-        });
-        allCompleted = false;
-        continue;
-      }
 
       // Fetch the required course details
       const requiredCourse = await this.courseRepository.findOne({
