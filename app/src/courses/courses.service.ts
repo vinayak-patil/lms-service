@@ -114,6 +114,7 @@ export class CoursesService {
       certificateTerm: createCourseDto.certificateTerm ? { term: createCourseDto.certificateTerm } : undefined,
       rewardType: createCourseDto.rewardType,
       templateId: createCourseDto.templateId,
+      prerequisites: createCourseDto.prerequisites,
       tenantId,
       organisationId,
       createdBy: userId,
@@ -800,8 +801,8 @@ export class CoursesService {
     tenantId: string,
     organisationId: string
   ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
-    // If no prerequisites or not an array, user is eligible
-    if (!course.prerequisites || !Array.isArray(course.prerequisites) || course.prerequisites.length === 0) {
+    // If no prerequisites, user is eligible
+    if (!course.prerequisites || course.prerequisites.trim() === '') {
       return {
         isEligible: true,
         requiredCourses: []
@@ -812,14 +813,17 @@ export class CoursesService {
     const requiredCourses: any[] = [];
     let allCompleted = true;
 
-    // Check each required course ID from the array
-    for (const requiredCourseId of course.prerequisites) {
-      // Validate that the courseId is a string
-      if (typeof requiredCourseId !== 'string') {
-        this.logger.warn(`Invalid course ID in prerequisites: ${requiredCourseId}`);
+    // Split comma-separated course IDs and trim whitespace
+    const prerequisiteCourseIds = course.prerequisites.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+    // Check each required course ID from the comma-separated string
+    for (const requiredCourseId of prerequisiteCourseIds) {
+      // Validate that the courseId is a valid UUID format
+      if (!requiredCourseId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        this.logger.warn(`Invalid course ID format in prerequisites: ${requiredCourseId}`);
         requiredCourses.push({
-          courseId: String(requiredCourseId),
-          title: 'Invalid Course ID',
+          courseId: requiredCourseId,
+          title: 'Invalid Course ID Format',
           completed: false
         });
         allCompleted = false;

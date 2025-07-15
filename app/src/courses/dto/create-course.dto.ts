@@ -142,13 +142,12 @@ export class CreateCourseDto {
   templateId?: string;
 
   @ApiPropertyOptional({ 
-    description: VALIDATION_MESSAGES.COURSE.ELIGIBILITY_CRITERIA,
-    example: ['123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43c1-b456-426614174000']
+    description: 'Prerequisites for the course - comma-separated prerequisite course IDs',
+    example: '123e4567-e89b-12d3-a456-426614174000,987fcdeb-51a2-43c1-b456-426614174000'
   })
   @IsOptional() 
-  @IsArray({ message: VALIDATION_MESSAGES.COMMON.ARRAY('Prerequisites') })
-  @IsString({ each: true, message: VALIDATION_MESSAGES.COMMON.STRING('Course ID') })
-  prerequisites?: string[];
+  @IsString({ message: VALIDATION_MESSAGES.COMMON.STRING('Prerequisites') })
+  prerequisites?: string;
 
   @ApiPropertyOptional({ 
     description: VALIDATION_MESSAGES.COURSE.PARAMS,
