@@ -163,13 +163,33 @@ export class CoursesController {
   @ApiId(API_IDS.GET_COURSE_HIERARCHY_WITH_TRACKING)
   @ApiOperation({ 
     summary: 'Get course hierarchy with user tracking information',
-    description: 'Get course hierarchy with tracking. Use query parameters to filter: type=module (exclude lessons), type=lesson&moduleId=uuid (single module with lessons), or no type for complete hierarchy'
+    description: 'Get course hierarchy with tracking and eligibility information. User must be enrolled in the course. Use query parameters to filter: type=module (exclude lessons), type=lesson&moduleId=uuid (single module with lessons), or no type for complete hierarchy'
   })
   @ApiParam({ name: 'courseId', type: 'string', format: 'uuid', description: 'Course ID' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Course hierarchy with tracking retrieved successfully'
+    description: 'Course hierarchy with tracking and eligibility retrieved successfully',
+    schema: {
+      properties: {
+        courseId: { type: 'string', format: 'uuid' },
+        title: { type: 'string' },
+        modules: { 
+          type: 'array',
+          items: {
+            properties: {
+              moduleId: { type: 'string', format: 'uuid' },
+              title: { type: 'string' },
+              lessons: { type: 'array', items: { $ref: '#/components/schemas/Lesson' } },
+              tracking: { $ref: '#/components/schemas/ModuleTracking' }
+            }
+          }
+        },
+        tracking: { $ref: '#/components/schemas/CourseTracking' },
+        eligibility: { $ref: '#/components/schemas/CoursePrerequisitesDto' }
+      }
+    }
   })
+  @ApiResponse({ status: 400, description: 'User is not enrolled in this course' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async getCourseHierarchyWithTracking(
     @Param('courseId', ParseUUIDPipe) courseId: string,

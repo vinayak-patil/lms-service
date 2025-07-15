@@ -14,6 +14,7 @@ import { LessonTrack } from '../tracking/entities/lesson-track.entity';
 import { ModuleTrack } from '../tracking/entities/module-track.entity';
 import { Media } from '../media/entities/media.entity';
 import { AssociatedFile } from '../media/entities/associated-file.entity';
+import { UserEnrollment, EnrollmentStatus } from '../enrollments/entities/user-enrollment.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { RESPONSE_MESSAGES } from '../common/constants/response-messages.constant';
 import { API_IDS } from '../common/constants/api-ids.constant';
@@ -47,6 +48,8 @@ export class CoursesService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(AssociatedFile)
     private readonly associatedFileRepository: Repository<AssociatedFile>,
+    @InjectRepository(UserEnrollment)
+    private readonly userEnrollmentRepository: Repository<UserEnrollment>,
     private readonly cacheService: CacheService,
     private readonly cacheConfig: CacheConfigService,
   ) {}
@@ -111,6 +114,7 @@ export class CoursesService {
       certificateTerm: createCourseDto.certificateTerm ? { term: createCourseDto.certificateTerm } : undefined,
       rewardType: createCourseDto.rewardType,
       templateId: createCourseDto.templateId,
+      prerequisites: createCourseDto.prerequisites,
       tenantId,
       organisationId,
       createdBy: userId,
@@ -452,7 +456,7 @@ export class CoursesService {
     moduleId?: string
   ): Promise<any> {
     if (filterType === 'lesson' && !moduleId) {
-      throw new BadRequestException('Module ID is required when type is "lesson"');
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_ID_REQUIRED);
     }
 
     // Fetch course
@@ -468,6 +472,51 @@ export class CoursesService {
       throw new NotFoundException(RESPONSE_MESSAGES.ERROR.COURSE_NOT_FOUND);
     }
 
+    // Check enrollment FIRST - before any other checks
+    const isEnrolled = await this.isUserEnrolled(courseId, userId, tenantId, organisationId);
+    if (!isEnrolled) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.USER_NOT_ENROLLED);
+    }
+
+    // if course is completed, then no need to check eligibility
+    const isCourseCompleted = await this.isCourseCompleted(courseId, userId, tenantId, organisationId);
+    let eligibility: {isEligible: boolean, requiredCourses: any[]};
+    
+    if (isCourseCompleted) {
+      // User has completed the course, so they are eligible regardless of prerequisites
+      eligibility = {
+        isEligible: true,
+        requiredCourses: []
+      };
+    } else {
+      // Check course eligibility - after enrollment check
+      eligibility = await this.checkCourseEligibility(course, userId, tenantId, organisationId);
+    }
+    
+    // If user is not eligible, return early with just course info and eligibility
+    if (!eligibility.isEligible) {
+      return {
+        ...course,
+        modules: [],
+        tracking: {
+          status: 'NOT_ELIGIBLE',
+          progress: 0,
+          completedLessons: 0,
+          totalLessons: 0,
+          lastAccessed: null,
+          timeSpent: 0,
+          startDatetime: null,
+          endDatetime: null,
+        },
+        lastAccessedLesson: null,
+        eligibility: {
+          requiredCourses: eligibility.requiredCourses,
+          isEligible: eligibility.isEligible
+        }
+      };
+    }
+
+    // User is eligible - proceed with fetching modules and lessons
     // Build module where clause
     const moduleWhere: any = {
       courseId,
@@ -483,7 +532,7 @@ export class CoursesService {
       order: { ordering: 'ASC', createdAt: 'ASC' }
     });
     if (filterType === 'lesson' && modules.length === 0) {
-      throw new BadRequestException(`Module with ID ${moduleId} not found in this course`);
+      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.MODULE_NOT_FOUND_IN_COURSE(moduleId!));
     }
     const moduleIds = modules.map(m => m.moduleId);
 
@@ -630,6 +679,7 @@ export class CoursesService {
     });
     // Course-level tracking
     const courseProgress = courseTracking?.completedLessons && courseTracking?.noOfLessons > 0 ? Math.round((courseTracking?.completedLessons / courseTracking?.noOfLessons) * 100) : 0;
+    
     if (filterType === 'lesson' && moduleId) {
       const targetModule = modulesWithTracking[0];
       return {
@@ -639,6 +689,7 @@ export class CoursesService {
         organisationId: course.organisationId
       };
     }
+    
     const result = {
       ...course,
       modules: modulesWithTracking,
@@ -661,7 +712,11 @@ export class CoursesService {
         startDatetime: null,
         endDatetime: null,
       },
-      lastAccessedLesson
+      lastAccessedLesson,
+      eligibility: {
+        requiredCourses: eligibility.requiredCourses,
+        isEligible: eligibility.isEligible
+      }
     };
     return result;
   }
@@ -677,6 +732,162 @@ export class CoursesService {
     if (dates.length === 0) return null;
     
     return new Date(Math.max(...dates.map(date => date instanceof Date ? date.getTime() : new Date(date).getTime())));
+  }
+
+  /**
+   * Check if a user has completed a specific course
+   * @param courseId The course ID to check
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<boolean> True if course is completed, false otherwise
+   */
+  private async isCourseCompleted(
+    courseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<boolean> {
+    const courseTrack = await this.courseTrackRepository.findOne({
+      where: { 
+        courseId, 
+        userId, 
+        tenantId, 
+        organisationId 
+      }
+    });
+    
+    return courseTrack?.status === TrackingStatus.COMPLETED;
+  }
+
+  /**
+   * Check if user is enrolled in the course
+   * @param courseId The course ID to check
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<boolean> True if user is enrolled, false otherwise
+   */
+  private async isUserEnrolled(
+    courseId: string,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<boolean> {
+    const enrollment = await this.userEnrollmentRepository.findOne({
+      where: {
+        courseId,
+        userId,
+        tenantId,
+        organisationId,
+        status: EnrollmentStatus.PUBLISHED
+      }
+    });
+    
+    return !!enrollment;
+  }
+
+  /**
+   * Check course eligibility based on prerequisite courses
+   * @param course The course to check eligibility for
+   * @param userId The user ID
+   * @param tenantId The tenant ID
+   * @param organisationId The organization ID
+   * @returns Promise<{isEligible: boolean, requiredCourses: any[]}>
+   */
+  private async checkCourseEligibility(
+    course: Course,
+    userId: string,
+    tenantId: string,
+    organisationId: string
+  ): Promise<{isEligible: boolean, requiredCourses: any[]}> {
+    // If no prerequisites, user is eligible
+    if (!course.prerequisites || course.prerequisites.trim() === '') {
+      return {
+        isEligible: true,
+        requiredCourses: []
+      };
+    }
+
+    const currentCourseCohortId = course.params?.cohortId;
+    const requiredCourses: any[] = [];
+    let allCompleted = true;
+
+    // Split comma-separated course IDs and trim whitespace
+    const prerequisiteCourseIds = course.prerequisites.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+    // Check each required course ID from the comma-separated string
+    for (const requiredCourseId of prerequisiteCourseIds) {
+      // Validate that the courseId is a valid UUID format
+      if (!requiredCourseId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        this.logger.warn(`Invalid course ID format in prerequisites: ${requiredCourseId}`);
+        requiredCourses.push({
+          courseId: requiredCourseId,
+          title: 'Invalid Course ID Format',
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Fetch the required course details
+      const requiredCourse = await this.courseRepository.findOne({
+        where: {
+          courseId: requiredCourseId,
+          tenantId,
+          organisationId,
+          status: CourseStatus.PUBLISHED
+        },
+        select: ['courseId', 'title', 'params']
+      });
+
+      if (!requiredCourse) {
+        // If required course doesn't exist, consider it as not completed
+        requiredCourses.push({
+          courseId: requiredCourseId,
+          title: 'Unknown Course',
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Validate that the required course belongs to the same cohort
+      const requiredCourseCohortId = requiredCourse.params?.cohortId;
+      if (currentCourseCohortId && requiredCourseCohortId && currentCourseCohortId !== requiredCourseCohortId) {
+        // If cohort mismatch, consider it as not completed
+        requiredCourses.push({
+          courseId: requiredCourseId,
+          title: requiredCourse.title,
+          completed: false
+        });
+        allCompleted = false;
+        continue;
+      }
+
+      // Check if the user has completed this course
+      const isCompleted = await this.isCourseCompleted(
+        requiredCourseId,
+        userId,
+        tenantId,
+        organisationId
+      );
+
+      requiredCourses.push({
+        courseId: requiredCourseId,
+        title: requiredCourse.title,
+        completed: isCompleted
+      });
+
+      if (!isCompleted) {
+        allCompleted = false;
+      }
+    }
+
+    return {
+      isEligible: allCompleted,
+      requiredCourses
+    };
   }
 
   /**
