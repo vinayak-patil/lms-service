@@ -26,6 +26,7 @@ import { OrderingService } from '../common/services/ordering.service';
 import { AssociatedFile } from '../media/entities/associated-file.entity';
 import { SearchLessonDto } from './dto/search-lesson.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { ProgressRecalculationService } from '../tracking/progress-recalculation.service';
 
 @Injectable()
 export class LessonsService {
@@ -46,9 +47,59 @@ export class LessonsService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly cacheConfig: CacheConfigService,
-    private readonly orderingService: OrderingService
+    private readonly orderingService: OrderingService,
+    private readonly progressRecalculationService: ProgressRecalculationService
   ) {}
-  
+
+  /**
+   * Check if lesson changes require progress recalculation
+   */
+  private hasMeaningfulChanges(oldLesson: Lesson, newLesson: Lesson): boolean {
+    return (
+      oldLesson.considerForPassing !== newLesson.considerForPassing ||
+      oldLesson.status !== newLesson.status ||
+      oldLesson.mediaId !== newLesson.mediaId ||
+      oldLesson.format !== newLesson.format ||
+      oldLesson.subFormat !== newLesson.subFormat
+    );
+  }
+
+  /**
+   * Check if lesson changes are content changes that require clearing lesson tracking
+   */
+  private hasContentChanges(oldLesson: Lesson, newLesson: Lesson): boolean {
+    return (
+      oldLesson.mediaId !== newLesson.mediaId ||
+      oldLesson.format !== newLesson.format ||
+      oldLesson.subFormat !== newLesson.subFormat
+    );
+  }
+
+  /**
+   * Check if media changes require progress recalculation
+   */
+  private async hasMediaMeaningfulChanges(
+    oldMedia: any,
+    newMedia: any,
+    lesson: Lesson
+  ): Promise<boolean> {
+    // Check if source URL changed (affects progress calculation)
+    if (oldMedia?.source !== newMedia?.source) {
+      return true;
+    }
+
+    // Check if format changed
+    if (oldMedia?.format !== newMedia?.format) {
+      return true;
+    }
+
+    // Check if subFormat changed
+    if (oldMedia?.subFormat !== newMedia?.subFormat) {
+      return true;
+    }
+
+    return false;
+  }
 
   /**
    * Create a new lesson with optional course association
@@ -254,6 +305,21 @@ export class LessonsService {
         // Invalidate cache for the associated lesson
         const associatedLessonKey = this.cacheConfig.getLessonKey(createLessonDto.associatedLesson, tenantId, organisationId);
         await this.cacheService.del(associatedLessonKey);
+      }
+
+      // Trigger progress recalculation if lesson affects course structure
+      if (savedLesson.courseId && savedLesson.considerForPassing && savedLesson.status === LessonStatus.PUBLISHED) {
+        try {
+          await this.progressRecalculationService.recalculateProgressForLessonChange(
+            savedLesson.lessonId,
+            'create',
+            tenantId,
+            organisationId
+          );
+        } catch (error) {
+          this.logger.error(`Failed to trigger progress recalculation for lesson ${savedLesson.lessonId}: ${error.message}`);
+          // Don't throw error to avoid breaking the main operation
+        }
       }
 
       // Cache the new lesson with proper key and TTL
@@ -648,6 +714,47 @@ export class LessonsService {
             updatedBy: userId,
             updatedAt: new Date()
           });
+
+          // Check if media changes require progress recalculation
+          const newMediaData = {
+            source: updateLessonDto.mediaContentSource,
+            format: lesson.format,
+            subFormat: updateLessonDto.mediaContentSubFormat
+          };
+          
+          if (await this.hasMediaMeaningfulChanges(currentMedia, newMediaData, lesson)) {
+            try {
+              // Log media content change for audit
+              this.logger.log(`Media content change detected for lesson ${lessonId}`, {
+                lessonId,
+                oldSource: currentMedia.source,
+                newSource: updateLessonDto.mediaContentSource,
+                oldSubFormat: currentMedia.subFormat,
+                newSubFormat: updateLessonDto.mediaContentSubFormat,
+                courseId: lesson.courseId,
+              });
+
+              // Prepare media content change information
+              const mediaContentChangeInfo = {
+                isContentChange: true,
+                changeDetails: {
+                  sourceChanged: currentMedia.source !== updateLessonDto.mediaContentSource,
+                  subFormatChanged: currentMedia.subFormat !== updateLessonDto.mediaContentSubFormat,
+                },
+              };
+
+              await this.progressRecalculationService.recalculateProgressForLessonChange(
+                lessonId,
+                'update',
+                tenantId,
+                organisationId,
+                mediaContentChangeInfo
+              );
+            } catch (error) {
+              this.logger.error(`Failed to trigger progress recalculation for media change in lesson ${lessonId}: ${error.message}`);
+              // Don't throw error to avoid breaking the main operation
+            }
+          }
      
       // If title is changed but no alias provided, generate one from the title
       if (updateLessonDto.title && updateLessonDto.title !== lesson.title && !updateLessonDto.alias) {
@@ -852,6 +959,47 @@ export class LessonsService {
           await this.cacheService.del(associatedLessonKey);
         }
 
+      // Check if meaningful changes occurred and trigger progress recalculation
+      if (this.hasMeaningfulChanges(lesson, savedLesson)) {
+        try {
+          // Check if this is a content change that requires clearing lesson tracking
+          const isContentChange = this.hasContentChanges(lesson, savedLesson);
+          
+          if (isContentChange) {
+            this.logger.log(`Content change detected for lesson ${lessonId}, will clear lesson tracking`, {
+              lessonId,
+              oldMediaId: lesson.mediaId,
+              newMediaId: savedLesson.mediaId,
+              oldFormat: lesson.format,
+              newFormat: savedLesson.format,
+              oldSubFormat: lesson.subFormat,
+              newSubFormat: savedLesson.subFormat,
+            });
+          }
+
+          // Prepare content change information
+          const contentChangeInfo = {
+            isContentChange,
+            changeDetails: isContentChange ? {
+              mediaIdChanged: lesson.mediaId !== savedLesson.mediaId,
+              formatChanged: lesson.format !== savedLesson.format,
+              subFormatChanged: lesson.subFormat !== savedLesson.subFormat,
+            } : undefined,
+          };
+
+          await this.progressRecalculationService.recalculateProgressForLessonChange(
+            lessonId,
+            'update',
+            tenantId,
+            organisationId,
+            contentChangeInfo
+          );
+        } catch (error) {
+          this.logger.error(`Failed to trigger progress recalculation for lesson ${lessonId}: ${error.message}`);
+          // Don't throw error to avoid breaking the main operation
+        }
+      }
+
       // Update cache and invalidate related caches
       const lessonKey = this.cacheConfig.getLessonKey(savedLesson.lessonId, tenantId, organisationId);
       await Promise.all([
@@ -914,6 +1062,21 @@ export class LessonsService {
       lesson.status = LessonStatus.ARCHIVED;
       lesson.updatedBy = userId;
       await this.lessonRepository.save(lesson);
+
+      // Trigger progress recalculation if deleted lesson affects course structure
+      if (lesson.courseId && lesson.considerForPassing) {
+        try {
+          await this.progressRecalculationService.recalculateProgressForLessonChange(
+            lessonId,
+            'delete',
+            tenantId,
+            organisationId
+          );
+        } catch (error) {
+          this.logger.error(`Failed to trigger progress recalculation for lesson ${lessonId}: ${error.message}`);
+          // Don't throw error to avoid breaking the main operation
+        }
+      }
 
       // Invalidate all related caches
       const lessonKey = this.cacheConfig.getLessonKey(lessonId, tenantId, organisationId);
