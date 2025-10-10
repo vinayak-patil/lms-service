@@ -209,9 +209,9 @@ export class TrackingService {
         organisationId
       } as FindOptionsWhere<CourseTrack>,
     }); 
-    if (courseTrack && courseTrack.status === TrackingStatus.COMPLETED) {
-      throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_COMPLETED);
-    }
+    // if (courseTrack && courseTrack.status === TrackingStatus.COMPLETED) {
+    //   throw new BadRequestException(RESPONSE_MESSAGES.ERROR.COURSE_COMPLETED);
+    // }
     // Find existing tracks for course lesson
     const existingTracks = await this.lessonTrackRepository.find({
       where: { 
@@ -706,13 +706,13 @@ export class TrackingService {
       courseTrack.completedLessons = completedLessonsCount;
       
       // Check if course is completed
-      // if (courseTrack.completedLessons >= courseTrack.noOfLessons) {
-      //   courseTrack.status = TrackingStatus.COMPLETED;
-      //   courseTrack.endDatetime = new Date();
+      if (courseTrack.completedLessons >= courseTrack.noOfLessons) {
+        courseTrack.status = TrackingStatus.COMPLETED;
+        courseTrack.endDatetime = new Date();
         
-      // } else {
+      } else {
         courseTrack.status = TrackingStatus.INCOMPLETE;
-      // }
+      }
     }
     await this.courseTrackRepository.save(courseTrack);
 
