@@ -55,6 +55,20 @@ export class LessonsService {
    * Check if lesson changes require progress recalculation
    */
   private hasMeaningfulChanges(oldLesson: Lesson, newLesson: Lesson): boolean {
+    
+    console.log('check hasMeaningfulChanges');
+
+    console.log('oldLesson.considerForPassing', oldLesson.considerForPassing);
+    console.log('newLesson.considerForPassing', newLesson.considerForPassing);
+    console.log('oldLesson.status', oldLesson.status);
+    console.log('newLesson.status', newLesson.status);
+    console.log('oldLesson.mediaId', oldLesson.mediaId);
+    console.log('newLesson.mediaId', newLesson.mediaId);
+    console.log('oldLesson.format', oldLesson.format);
+    console.log('newLesson.format', newLesson.format);
+    console.log('oldLesson.subFormat', oldLesson.subFormat);
+    console.log('newLesson.subFormat', newLesson.subFormat);
+
     return (
       oldLesson.considerForPassing !== newLesson.considerForPassing ||
       oldLesson.status !== newLesson.status ||
@@ -83,6 +97,7 @@ export class LessonsService {
     newMedia: any,
     lesson: Lesson
   ): Promise<boolean> {
+    
     // Check if source URL changed (affects progress calculation)
     if (oldMedia?.source !== newMedia?.source) {
       return true;
@@ -715,46 +730,8 @@ export class LessonsService {
             updatedAt: new Date()
           });
 
-          // Check if media changes require progress recalculation
-          const newMediaData = {
-            source: updateLessonDto.mediaContentSource,
-            format: lesson.format,
-            subFormat: updateLessonDto.mediaContentSubFormat
-          };
-          
-          if (await this.hasMediaMeaningfulChanges(currentMedia, newMediaData, lesson)) {
-            try {
-              // Log media content change for audit
-              this.logger.log(`Media content change detected for lesson ${lessonId}`, {
-                lessonId,
-                oldSource: currentMedia.source,
-                newSource: updateLessonDto.mediaContentSource,
-                oldSubFormat: currentMedia.subFormat,
-                newSubFormat: updateLessonDto.mediaContentSubFormat,
-                courseId: lesson.courseId,
-              });
-
-              // Prepare media content change information
-              const mediaContentChangeInfo = {
-                isContentChange: true,
-                changeDetails: {
-                  sourceChanged: currentMedia.source !== updateLessonDto.mediaContentSource,
-                  subFormatChanged: currentMedia.subFormat !== updateLessonDto.mediaContentSubFormat,
-                },
-              };
-
-              await this.progressRecalculationService.recalculateProgressForLessonChange(
-                lessonId,
-                'update',
-                tenantId,
-                organisationId,
-                mediaContentChangeInfo
-              );
-            } catch (error) {
-              this.logger.error(`Failed to trigger progress recalculation for media change in lesson ${lessonId}: ${error.message}`);
-              // Don't throw error to avoid breaking the main operation
-            }
-          }
+          // Note: Media changes will be detected in the general lesson change check below
+          // to avoid duplicate progress recalculation calls
      
       // If title is changed but no alias provided, generate one from the title
       if (updateLessonDto.title && updateLessonDto.title !== lesson.title && !updateLessonDto.alias) {
@@ -911,8 +888,17 @@ export class LessonsService {
       }
 
       // Update the lesson
-      const updatedLesson = this.lessonRepository.merge(lesson, updateData);
-      const savedLesson = await this.lessonRepository.save(updatedLesson);
+      const updatedLesson = this.lessonRepository.create({ ...lesson, ...updateData });
+      await this.lessonRepository.save(updatedLesson);
+
+      const savedLesson = await this.lessonRepository.findOne({
+        where: {
+          lessonId: lessonId,
+          tenantId,
+          organisationId
+        }
+      }) as Lesson;
+
 
        // If associatedLesson is set to null, clear any existing parent relationship
           const childLessons = await this.lessonRepository.find({
@@ -962,6 +948,8 @@ export class LessonsService {
       // Check if meaningful changes occurred and trigger progress recalculation
       if (this.hasMeaningfulChanges(lesson, savedLesson)) {
         try {
+
+          console.log('hasMeaningfulChanges');
           // Check if this is a content change that requires clearing lesson tracking
           const isContentChange = this.hasContentChanges(lesson, savedLesson);
           
@@ -977,13 +965,17 @@ export class LessonsService {
             });
           }
 
-          // Prepare content change information
+          // Prepare comprehensive content change information including media source changes
           const contentChangeInfo = {
             isContentChange,
             changeDetails: isContentChange ? {
               mediaIdChanged: lesson.mediaId !== savedLesson.mediaId,
               formatChanged: lesson.format !== savedLesson.format,
               subFormatChanged: lesson.subFormat !== savedLesson.subFormat,
+              // Include media source changes if media was updated
+              ...(updateLessonDto.mediaContentSource && {
+                sourceChanged: currentMedia?.source !== updateLessonDto.mediaContentSource,
+              }),
             } : undefined,
           };
 

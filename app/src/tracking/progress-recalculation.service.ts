@@ -224,32 +224,32 @@ export class ProgressRecalculationService {
         case AttemptsGradeMethod.FIRST_ATTEMPT:
           completionCondition = `EXISTS (
             SELECT 1 FROM lesson_track ${trackAlias} 
-            WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-              AND ${trackAlias}.userId = ue.userId 
-              AND ${trackAlias}.courseId = '${courseId}'
-              AND ${trackAlias}.tenantId = '${tenantId}'
-              AND ${trackAlias}.organisationId = '${organisationId}'
-              AND ${trackAlias}.attempt = 1 
-              AND ${trackAlias}.status = 'completed'
+            WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+              AND ${trackAlias}."userId" = ue."userId" 
+              AND ${trackAlias}."courseId" = '${courseId}'
+              AND ${trackAlias}."tenantId" = '${tenantId}'
+              AND ${trackAlias}."organisationId" = '${organisationId}'
+              AND ${trackAlias}."attempt" = 1 
+              AND ${trackAlias}."status" = 'completed'
           )`;
           break;
         case AttemptsGradeMethod.LAST_ATTEMPT:
           completionCondition = `EXISTS (
             SELECT 1 FROM lesson_track ${trackAlias} 
-            WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-              AND ${trackAlias}.userId = ue.userId 
-              AND ${trackAlias}.courseId = '${courseId}'
-              AND ${trackAlias}.tenantId = '${tenantId}'
-              AND ${trackAlias}.organisationId = '${organisationId}'
-              AND ${trackAlias}.status = 'completed'
-              AND ${trackAlias}.attempt = (
+            WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+              AND ${trackAlias}."userId" = ue."userId" 
+              AND ${trackAlias}."courseId" = '${courseId}'
+              AND ${trackAlias}."tenantId" = '${tenantId}'
+              AND ${trackAlias}."organisationId" = '${organisationId}'
+              AND ${trackAlias}."status" = 'completed'
+              AND ${trackAlias}."attempt" = (
                 SELECT MAX(attempt) FROM lesson_track lt2 
-                WHERE lt2.lessonId = '${lesson.lessonId}' 
-                  AND lt2.userId = ue.userId 
-                  AND lt2.courseId = '${courseId}'
-                  AND lt2.tenantId = '${tenantId}'
-                  AND lt2.organisationId = '${organisationId}'
-                  AND lt2.status = 'completed'
+                WHERE lt2."lessonId" = '${lesson.lessonId}' 
+                  AND lt2."userId" = ue."userId" 
+                  AND lt2."courseId" = '${courseId}'
+                  AND lt2."tenantId" = '${tenantId}'
+                  AND lt2."organisationId" = '${organisationId}'
+                  AND lt2."status" = 'completed'
               )
           )`;
           break;
@@ -259,12 +259,12 @@ export class ProgressRecalculationService {
           // For HIGHEST and AVERAGE, any completed attempt counts
           completionCondition = `EXISTS (
             SELECT 1 FROM lesson_track ${trackAlias} 
-            WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-              AND ${trackAlias}.userId = ue.userId 
-              AND ${trackAlias}.courseId = '${courseId}'
-              AND ${trackAlias}.tenantId = '${tenantId}'
-              AND ${trackAlias}.organisationId = '${organisationId}'
-              AND ${trackAlias}.status = 'completed'
+            WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+              AND ${trackAlias}."userId" = ue."userId" 
+              AND ${trackAlias}."courseId" = '${courseId}'
+              AND ${trackAlias}."tenantId" = '${tenantId}'
+              AND ${trackAlias}."organisationId" = '${organisationId}'
+              AND ${trackAlias}."status" = 'completed'
           )`;
           break;
       }
@@ -274,7 +274,7 @@ export class ProgressRecalculationService {
 
     const sql = `
       SELECT 
-        ue.userId,
+        ue."userId",
         ${courseStructure.totalLessons} as totalLessons,
         (${lessonConditions}) as completedLessons,
         CASE 
@@ -282,12 +282,12 @@ export class ProgressRecalculationService {
           THEN ROUND(((${lessonConditions}) * 100.0 / ${courseStructure.totalLessons}), 0)
           ELSE 0 
         END as progressPercentage
-      FROM user_enrollment ue
-      WHERE ue.courseId = '${courseId}'
-        AND ue.tenantId = '${tenantId}'
-        AND ue.organisationId = '${organisationId}'
-        AND ue.status = 'PUBLISHED'
-      ORDER BY ue.userId
+      FROM user_enrollments ue
+      WHERE ue."courseId" = '${courseId}'
+        AND ue."tenantId" = '${tenantId}'
+        AND ue."organisationId" = '${organisationId}'
+        AND ue."status" = 'PUBLISHED'
+      ORDER BY ue."userId"
     `;
 
     const results = await this.userEnrollmentRepository.query(sql);
@@ -343,32 +343,32 @@ export class ProgressRecalculationService {
           case AttemptsGradeMethod.FIRST_ATTEMPT:
             completionCondition = `EXISTS (
               SELECT 1 FROM lesson_track ${trackAlias} 
-              WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-                AND ${trackAlias}.userId = ue.userId 
-                AND ${trackAlias}.courseId = '${courseId}'
-                AND ${trackAlias}.tenantId = '${tenantId}'
-                AND ${trackAlias}.organisationId = '${organisationId}'
-                AND ${trackAlias}.attempt = 1 
-                AND ${trackAlias}.status = 'completed'
+              WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+                AND ${trackAlias}."userId" = ue."userId" 
+                AND ${trackAlias}."courseId" = '${courseId}'
+                AND ${trackAlias}."tenantId" = '${tenantId}'
+                AND ${trackAlias}."organisationId" = '${organisationId}'
+                AND ${trackAlias}."attempt" = 1 
+                AND ${trackAlias}."status" = 'completed'
             )`;
             break;
           case AttemptsGradeMethod.LAST_ATTEMPT:
             completionCondition = `EXISTS (
               SELECT 1 FROM lesson_track ${trackAlias} 
-              WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-                AND ${trackAlias}.userId = ue.userId 
-                AND ${trackAlias}.courseId = '${courseId}'
-                AND ${trackAlias}.tenantId = '${tenantId}'
-                AND ${trackAlias}.organisationId = '${organisationId}'
-                AND ${trackAlias}.status = 'completed'
-                AND ${trackAlias}.attempt = (
+              WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+                AND ${trackAlias}."userId" = ue."userId" 
+                AND ${trackAlias}."courseId" = '${courseId}'
+                AND ${trackAlias}."tenantId" = '${tenantId}'
+                AND ${trackAlias}."organisationId" = '${organisationId}'
+                AND ${trackAlias}."status" = 'completed'
+                AND ${trackAlias}."attempt" = (
                   SELECT MAX(attempt) FROM lesson_track lt2 
-                  WHERE lt2.lessonId = '${lesson.lessonId}' 
-                    AND lt2.userId = ue.userId 
-                    AND lt2.courseId = '${courseId}'
-                    AND lt2.tenantId = '${tenantId}'
-                    AND lt2.organisationId = '${organisationId}'
-                    AND lt2.status = 'completed'
+                  WHERE lt2."lessonId" = '${lesson.lessonId}' 
+                    AND lt2."userId" = ue."userId" 
+                    AND lt2."courseId" = '${courseId}'
+                    AND lt2."tenantId" = '${tenantId}'
+                    AND lt2."organisationId" = '${organisationId}'
+                    AND lt2."status" = 'completed'
                 )
             )`;
             break;
@@ -377,12 +377,12 @@ export class ProgressRecalculationService {
           default:
             completionCondition = `EXISTS (
               SELECT 1 FROM lesson_track ${trackAlias} 
-              WHERE ${trackAlias}.lessonId = '${lesson.lessonId}' 
-                AND ${trackAlias}.userId = ue.userId 
-                AND ${trackAlias}.courseId = '${courseId}'
-                AND ${trackAlias}.tenantId = '${tenantId}'
-                AND ${trackAlias}.organisationId = '${organisationId}'
-                AND ${trackAlias}.status = 'completed'
+              WHERE ${trackAlias}."lessonId" = '${lesson.lessonId}' 
+                AND ${trackAlias}."userId" = ue."userId" 
+                AND ${trackAlias}."courseId" = '${courseId}'
+                AND ${trackAlias}."tenantId" = '${tenantId}'
+                AND ${trackAlias}."organisationId" = '${organisationId}'
+                AND ${trackAlias}."status" = 'completed'
             )`;
             break;
         }
@@ -392,7 +392,7 @@ export class ProgressRecalculationService {
 
       const moduleSql = `
         SELECT 
-          ue.userId,
+          ue."userId",
           '${module.moduleId}' as moduleId,
           ${moduleLessons.length} as totalLessons,
           (${moduleLessonConditions}) as completedLessons,
@@ -401,12 +401,12 @@ export class ProgressRecalculationService {
             THEN ROUND(((${moduleLessonConditions}) * 100.0 / ${moduleLessons.length}), 0)
             ELSE 0 
           END as progressPercentage
-        FROM user_enrollment ue
-        WHERE ue.courseId = '${courseId}'
-          AND ue.tenantId = '${tenantId}'
-          AND ue.organisationId = '${organisationId}'
-          AND ue.status = 'PUBLISHED'
-        ORDER BY ue.userId
+        FROM user_enrollments ue
+        WHERE ue."courseId" = '${courseId}'
+          AND ue."tenantId" = '${tenantId}'
+          AND ue."organisationId" = '${organisationId}'
+          AND ue."status" = 'PUBLISHED'
+        ORDER BY ue."userId"
       `;
 
       const moduleResults = await this.userEnrollmentRepository.query(moduleSql);
@@ -450,7 +450,7 @@ export class ProgressRecalculationService {
           WHERE l."courseId" = ct."courseId"
             AND l."tenantId" = ct."tenantId"
             AND l."organisationId" = ct."organisationId"
-            AND l.status = 'published'
+            AND l."status" = 'published'
             AND l."considerForPassing" = true
         ),
         "completedLessons" = (
@@ -459,7 +459,7 @@ export class ProgressRecalculationService {
           WHERE l."courseId" = ct."courseId"
             AND l."tenantId" = ct."tenantId"
             AND l."organisationId" = ct."organisationId"
-            AND l.status = 'published'
+            AND l."status" = 'published'
             AND l."considerForPassing" = true
             AND EXISTS (
               SELECT 1
@@ -468,19 +468,19 @@ export class ProgressRecalculationService {
                 AND lt."userId" = ct."userId"
                 AND lt."tenantId" = ct."tenantId"
                 AND lt."organisationId" = ct."organisationId"
-                AND lt.status = 'completed'
+                AND lt."status" = 'completed'
                 AND (
                   l."attemptsGrade" = 'HIGHEST' OR
                   l."attemptsGrade" = 'AVERAGE' OR
-                  (l."attemptsGrade" = 'FIRST_ATTEMPT' AND lt.attempt = 1) OR
-                  (l."attemptsGrade" = 'LAST_ATTEMPT' AND lt.attempt = (
-                    SELECT MAX(lt2.attempt)
+                  (l."attemptsGrade" = 'FIRST_ATTEMPT' AND lt."attempt" = 1) OR
+                  (l."attemptsGrade" = 'LAST_ATTEMPT' AND lt."attempt" = (
+                    SELECT MAX(lt2."attempt")
                     FROM lesson_track lt2
                     WHERE lt2."lessonId" = l."lessonId"
                       AND lt2."userId" = ct."userId"
                       AND lt2."tenantId" = ct."tenantId"
                       AND lt2."organisationId" = ct."organisationId"
-                      AND lt2.status = 'completed'
+                      AND lt2."status" = 'completed'
                   ))
                 )
             )
@@ -526,7 +526,7 @@ export class ProgressRecalculationService {
           WHERE l."moduleId" = mt."moduleId"
             AND l."tenantId" = mt."tenantId"
             AND l."organisationId" = mt."organisationId"
-            AND l.status = 'published'
+            AND l."status" = 'published'
             AND l."considerForPassing" = true
         ),
         "completedLessons" = (
@@ -535,7 +535,7 @@ export class ProgressRecalculationService {
           WHERE l."moduleId" = mt."moduleId"
             AND l."tenantId" = mt."tenantId"
             AND l."organisationId" = mt."organisationId"
-            AND l.status = 'published'
+            AND l."status" = 'published'
             AND l."considerForPassing" = true
             AND EXISTS (
               SELECT 1
@@ -544,19 +544,19 @@ export class ProgressRecalculationService {
                 AND lt."userId" = mt."userId"
                 AND lt."tenantId" = mt."tenantId"
                 AND lt."organisationId" = mt."organisationId"
-                AND lt.status = 'completed'
+                AND lt."status" = 'completed'
                 AND (
                   l."attemptsGrade" = 'HIGHEST' OR
                   l."attemptsGrade" = 'AVERAGE' OR
-                  (l."attemptsGrade" = 'FIRST_ATTEMPT' AND lt.attempt = 1) OR
-                  (l."attemptsGrade" = 'LAST_ATTEMPT' AND lt.attempt = (
-                    SELECT MAX(lt2.attempt)
+                  (l."attemptsGrade" = 'FIRST_ATTEMPT' AND lt."attempt" = 1) OR
+                  (l."attemptsGrade" = 'LAST_ATTEMPT' AND lt."attempt" = (
+                    SELECT MAX(lt2."attempt")
                     FROM lesson_track lt2
                     WHERE lt2."lessonId" = l."lessonId"
                       AND lt2."userId" = mt."userId"
                       AND lt2."tenantId" = mt."tenantId"
                       AND lt2."organisationId" = mt."organisationId"
-                      AND lt2.status = 'completed'
+                      AND lt2."status" = 'completed'
                   ))
                 )
             )
@@ -669,8 +669,6 @@ export class ProgressRecalculationService {
         return;
       }
 
-      // Only recalculate if the lesson affects progress calculation
-      if (this.shouldRecalculateForLesson(lesson, changeType)) {
         // Check if this is a content change that requires clearing lesson tracking
         const shouldClearTracking = contentChangeInfo?.isContentChange || this.isContentChange(changeType);
         
@@ -689,9 +687,7 @@ export class ProgressRecalculationService {
         }
         
         await this.recalculateCourseProgress(lesson.courseId, tenantId, organisationId);
-      } else {
-        this.logger.debug(`Lesson ${lessonId} change does not require progress recalculation`);
-      }
+     
     } catch (error) {
       this.logger.error(`Failed to process lesson change for ${lessonId}`, {
         lessonId,
