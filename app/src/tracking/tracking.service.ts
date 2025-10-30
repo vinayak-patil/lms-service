@@ -657,7 +657,7 @@ export class TrackingService {
   /**
    * Helper method to update course and module tracking
    */
-  private async updateCourseAndModuleTracking(lessonTrack: LessonTrack, tenantId: string, organisationId: string): Promise<void> {
+  public async updateCourseAndModuleTracking(lessonTrack: LessonTrack, tenantId: string, organisationId: string): Promise<void> {
     if (!lessonTrack.courseId) {
       return;
     }
@@ -680,7 +680,7 @@ export class TrackingService {
     courseTrack.lastAccessedDate = new Date();
 
     // If the lesson is completed, update completed lessons count
-    if (lessonTrack.status === TrackingStatus.COMPLETED || courseTrack.status === TrackingStatus.STARTED) {
+    if (lessonTrack.status === TrackingStatus.COMPLETED || courseTrack.status === TrackingStatus.STARTED || lessonTrack.status === TrackingStatus.SUBMITTED) {
       // Get all parent lessons for this course that have considerForPassing = true
       const courseLessons = await this.lessonRepository.find({
         where: { 
@@ -701,12 +701,13 @@ export class TrackingService {
         tenantId,
         organisationId
       );
+
       
       // Update course track
       courseTrack.completedLessons = completedLessonsCount;
       
       // Check if course is completed
-      if (courseTrack.completedLessons >= courseTrack.noOfLessons) {
+      if (courseTrack.completedLessons >= courseTrack.noOfLessons && lessonTrack.status === TrackingStatus.COMPLETED) {
         courseTrack.status = TrackingStatus.COMPLETED;
         courseTrack.endDatetime = new Date();
         
@@ -747,7 +748,7 @@ export class TrackingService {
         userId,
         tenantId,
         organisationId,
-        status: TrackingStatus.COMPLETED
+        status: In([TrackingStatus.COMPLETED, TrackingStatus.SUBMITTED])
       };
       
       // Add courseId filter only if it's provided
@@ -972,16 +973,10 @@ export class TrackingService {
       // Save the updated attempt
       const updatedAttempt = await this.lessonTrackRepository.save(lastAttempt);
 
-      // Update course and module tracking if this lesson is part of a course
-      if (lesson.courseId) {
-        await this.updateCourseTracking(lesson.courseId, updateEventProgressDto.userId, {
-          status: TrackingStatus.COMPLETED
-        } as UpdateCourseTrackingDto, tenantId, organisationId);
-      }
-
-      if (lesson.moduleId) {
-        await this.updateModuleTracking(lesson.moduleId, updateEventProgressDto.userId, tenantId, organisationId);
-      }
+    // Update course and module tracking if lesson is completed
+    if (updatedAttempt.courseId) {
+      await this.updateCourseAndModuleTracking(updatedAttempt, tenantId, organisationId);
+    }
 
       return updatedAttempt;
     } catch (error) {
